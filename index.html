@@ -93,13 +93,13 @@
 <div id="intro">
   <div class="titleCard">
     <h1>🎢 Endless Coaster</h1>
-    <p>Eine futuristische Achterbahn rast durchs finstere Weltall, umgeben von leuchtenden Sternen – mit weiträumigen, ausladenden Kurven, grosszügigen Loopings und seitlichen Loopings, zwei sehr langen, steilen Abhängen, futuristisch beleuchteten Tunneln, einem Goldminen-Tunnel, einer hügeligen Strecke, einer Schanze mit doppelt so langer Flugphase, einer nochmals verlängerten Seilbahn-Passage, einer senkrecht ausgelegten Schienenstrecke, zwei goldenen Portalen, die dein Fahrzeug verwandeln, einem schwarzen Loch zu einem völlig anderen Universum voller Planeten (mit eigenem Looping und einer Schanze hoch über den Planeten!) und einem innen beleuchteten Zieltunnel statt einer offenen Geraden.</p>
+    <p>Eine futuristische Achterbahn rast durchs finstere Weltall, umgeben von leuchtenden Sternen – mit weiträumigen, ausladenden Kurven, grosszügigen Loopings und seitlichen Loopings, zwei sehr langen, steilen Abhängen, futuristisch beleuchteten Tunneln, einem Goldminen-Tunnel, einer hügeligen Strecke, einer Schanze mit doppelt so langer Flugphase, einer nochmals verlängerten Seilbahn-Passage, einer senkrecht ausgelegten Schienenstrecke, einer Teilstrecke, auf der alle fünf Schienen kurz zu einer einzigen zusammenlaufen, vier goldenen Portalen, die dein Fahrzeug verwandeln, einem schwarzen Loch zu einem völlig anderen Universum voller Planeten (mit eigenem Looping, Schraubenlooping, einem besonders hohen Hügel und einer Schanze hoch über den Planeten!) und einem innen beleuchteten, breiten Zieltunnel statt einer offenen Geraden, in dem alle fünf Achterbahnen nebeneinander Platz haben.</p>
     <p><span class="kbd">↑</span> gibt Gas (die Heckdüse zündet!), <span class="kbd">↓</span> bremst aktiv. Lässt du <span class="kbd">↑</span> los, wird die Bahn von allein langsamer.<br>
-    Tempolimit-Schilder am Streckenrand: einmal 750, zweimal 850, dreimal 1000 km/h. Dein Höchsttempo: 800 km/h.<br>
+    Tempolimit-Schilder am Streckenrand: einmal 600, einmal 700, einmal 750, einmal 800, zweimal 850, dreimal 1000 km/h. Dein Höchsttempo: 850 km/h.<br>
     Bist du mehr als 100 km/h über dem geltenden Limit UND fährst dabei in eine Kurve, verlässt die Bahn die Schienen und fällt endgültig ins endlose All – kein Warnlicht, kein Countdown, es passiert einfach.<br>
     An der Seilbahn fehlen die Schienen komplett: Ein Seil ist über die Lücke gespannt, an dem eine (undurchsichtige) Gondel hängt. Sobald du hineinfährst, fährt sie automatisch mit 400 km/h los, bringt dich auf die andere Seite und lädt dich dort automatisch wieder ab. Jede Achterbahn hat ihre eigene Gondel.<br>
-    Zwei goldene Portale verwandeln dein Fahrzeug in ein anderes Design, sobald du hindurchfliegst.<br>
-    Neben dir fahren jetzt <b>vier</b> KI-gesteuerte Achterbahnen auf eigenen Schienen (rot, grün, lila und orange) – alle starten erst, wenn du losfährst, stoppen mit dir und pendeln frei zwischen 400 und 700 km/h (ihr Höchsttempo).</p>
+    Vier goldene Portale verwandeln dein Fahrzeug in ein anderes Design, sobald du hindurchfliegst.<br>
+    Neben dir fahren jetzt <b>vier</b> KI-gesteuerte Achterbahnen auf eigenen Schienen (rot, grün, lila und orange) – alle starten erst, wenn du losfährst, stoppen mit dir und pendeln frei zwischen 400 und 800 km/h (ihr Höchsttempo).</p>
     <p style="margin-top:16px;"><b>Drücke <span class="kbd">Leertaste</span>, um zu starten.</b></p>
   </div>
 </div>
@@ -148,6 +148,7 @@ let inGondola = false;
 let gondolaProgress = 0;
 
 let vehiclePortalDistances = []; // Distanzen der Fahrzeug-Wechsel-Portale
+let mergeZoneInfo = null; // Indizes der Teilstrecke, in der alle fuenf Schienen zusammenlaufen
 
 let distanceTraveled = 0;
 let speedKmh = 0;
@@ -168,8 +169,8 @@ const keys = { up: false, down: false };
 const ACCEL = 220;    // km/h per second while accelerating (↑ gedrückt)
 const DECEL = 260;    // km/h per second while actively braking (↓ gedrückt)
 const FRICTION = 90;  // km/h per second automatische Verlangsamung, wenn ↑ NICHT gedrückt wird
-const MAX_SPEED = 800;    // Höchstgeschwindigkeit des Players (von 1000 auf 800 gesenkt)
-const AI_MAX_SPEED = 700; // Höchstgeschwindigkeit aller vier KI-Gegner
+const MAX_SPEED = 850;    // Höchstgeschwindigkeit des Players
+const AI_MAX_SPEED = 800; // Höchstgeschwindigkeit aller vier KI-Gegner
 const OVERSPEED_MARGIN = 100; // erst 100 km/h ueber dem Limit wird es gefaehrlich
 const CABLECAR_SPEED = 400;   // Geschwindigkeit auf der Seilbahn-Strecke (um 200 km/h erhöht)
 const NORMAL_BG = new THREE.Color(0x02030a);       // finsteres Weltall
@@ -299,7 +300,13 @@ function buildTrack() {
     const stepLen = radius * Math.abs(angleStep);
     const startIdx = trackPoints.length - 1;
     for (let i = 0; i < steps; i++) {
-      const axis = axisType === 'up' ? state.up.clone() : state.right.clone();
+      let axis;
+      if (axisType === 'up') axis = state.up.clone();
+      else if (axisType === 'right') axis = state.right.clone();
+      // diagonaler Bogen: Achse als laufend neu berechnete Mischung aus Rechts-/Hoch-Achse,
+      // damit Huegel- und Kurvenanteil in einem einzigen, durchgehenden Bogen stecken
+      // (kein Knick zwischen zwei nacheinander folgenden Boegen wie bei addHill+addTurn).
+      else axis = state.right.clone().multiplyScalar(Math.cos(axisType.bank)).add(state.up.clone().multiplyScalar(Math.sin(axisType.bank))).normalize();
       const q = new THREE.Quaternion().setFromAxisAngle(axis, angleStep);
       state.forward.applyQuaternion(q);
       state.up.applyQuaternion(q);
@@ -310,6 +317,12 @@ function buildTrack() {
     // jede Kurve (Turn/Hill/Loop/SideLoop) als "curve" markieren -> wird für die
     // Entgleisungs-Regel gebraucht ("fliegst in der naechsten Kurve raus")
     trackSegments.push({ start: startIdx, end: trackPoints.length - 1, tunnel: false, curve: true });
+  }
+
+  // Glatter, diagonaler Bogen (Huegel- + Kurvenanteil kombiniert) -> wird fuers Weben im
+  // Planeten-Universum verwendet, damit dort keine eckigen Uebergaenge mehr entstehen.
+  function addSmoothArc(totalAngleDeg, radius, bankDeg) {
+    addArc(totalAngleDeg, radius, { bank: THREE.MathUtils.degToRad(bankDeg) });
   }
 
   function addTurn(angleDeg, radius) { addArc(angleDeg, radius, 'up'); }
@@ -370,14 +383,52 @@ function buildTrack() {
     trackSegments.push({ start: startIdx, end: endIdx, tunnel: false, altUniverse: true });
   }
 
-  // Schlängelnder Pfad fuers Planeten-Universum: Huegel- und Kurvenrichtung laufen
-  // synchron (nicht mehr zufaellig) -> gleichmaessige, runde S-Kurven statt Zickzack.
+  // Schlängelnder Pfad fuers Planeten-Universum: Huegel- und Kurvenanteil laufen als EIN
+  // einziger diagonaler Bogen (statt zwei nacheinander folgender Boegen) -> keine eckigen
+  // Uebergaenge mehr, sondern durchgehend runde, gebankte S-Kurven.
   function addPlanetWeave(count, hillAngle, turnAngle, segLen) {
     for (let i = 0; i < count; i++) {
       const dir = i % 2 === 0 ? 1 : -1;
-      addHill(dir * hillAngle, segLen);
-      addTurn(dir * turnAngle, segLen * 0.75);
+      const angle = Math.hypot(hillAngle, turnAngle) * dir;
+      const bankDeg = Math.atan2(turnAngle, hillAngle) * (180 / Math.PI) * dir;
+      addSmoothArc(angle, segLen * 0.85, bankDeg);
     }
+  }
+
+  // Schraubenlooping (Corkscrew): die Bahn rollt waehrend der Vorwaertsfahrt einmal komplett
+  // um die eigene Laengsachse (Vorwaerts-Achse), statt wie addLoop nach oben oder addSideLoop
+  // zur Seite auszubrechen - typisches "verdrehtes" Element statt eines klassischen Loopings.
+  function addCorkscrew(length, rollDeg, direction) {
+    const steps = Math.max(24, Math.round(length / 10));
+    const stepLen = length / steps;
+    const angleStep = THREE.MathUtils.degToRad(rollDeg * (direction || 1)) / steps;
+    const startIdx = trackPoints.length - 1;
+    for (let i = 0; i < steps; i++) {
+      const axis = state.forward.clone();
+      const q = new THREE.Quaternion().setFromAxisAngle(axis, angleStep);
+      state.up.applyQuaternion(q);
+      state.right.applyQuaternion(q);
+      reorthogonalize();
+      state.position.addScaledVector(state.forward, stepLen);
+      pushSample();
+    }
+    trackSegments.push({ start: startIdx, end: trackPoints.length - 1, tunnel: false, curve: true });
+  }
+
+  // Teilstrecke, auf der alle fuenf Schienen (Player + 4 KIs) kurz zu einer einzigen
+  // gemeinsamen Schiene zusammenlaufen und sich danach wieder auf ihre normalen seitlichen
+  // Abstaende auftrennen. Die eigentliche Zusammenfuehrung passiert ueber mergeZoneInfo,
+  // das in buildAiTrack()/updateAiState() den seitlichen Versatz Richtung 0 herunterfaehrt.
+  function addMergeZone(taperLen, mergeLen) {
+    const taperInStart = trackPoints.length - 1;
+    addStraight(taperLen);              // Schienen laufen zusammen
+    const mergeStart = trackPoints.length - 1;
+    addStraight(mergeLen);              // gemeinsame Strecke: alle fuenf Bahnen auf einer Schiene
+    const mergeEnd = trackPoints.length - 1;
+    addStraight(taperLen);              // Schienen trennen sich wieder auf
+    const taperOutEnd = trackPoints.length - 1;
+    trackSegments.push({ start: taperInStart, end: taperOutEnd, tunnel: false, mergeZone: true });
+    mergeZoneInfo = { taperInStart, mergeStart, mergeEnd, taperOutEnd };
   }
 
   // Fahrzeug-Wechsel-Portal: markiert einen einzelnen Punkt. Jede Achterbahn, die
@@ -424,7 +475,9 @@ function buildTrack() {
   addHill(-82, 340);         // zweiter sehr langer, sehr steiler (fast senkrechter) Abhang
   addStraight(70);
   addTurn(-50, 65);
+  addMergeZone(140, 320);      // NEU: Teilstrecke - alle fuenf Schienen laufen kurz zu einer einzigen zusammen
   addHilly(8, 18, 55);        // NEU: hügelige Strecke (mehrere kleine Wellen hintereinander)
+  addVehiclePortal();        // NEU: Fahrzeug-Wechsel-Portal 3
   addStraight(60);
   addCableCar(2200);          // Seilbahn deutlich verlängert (800 -> 2200)
   addStraight(60);
@@ -437,13 +490,21 @@ function buildTrack() {
     addPlanetWeave(22, 14, 16, 110);
     addLoop(45, 1);              // Looping mitten im Planetenfeld
     addPlanetWeave(14, 13, 15, 105);
+    addCorkscrew(150, 360, 1);   // NEU: Schraubenlooping (Corkscrew) mitten im Planetenfeld
+    addPlanetWeave(10, 13, 15, 105);
+    addHill(80, 380);            // NEU: sehr hoher Hügel - steiler Anstieg weit über die Planeten hinaus
+    addHill(-80, 380);           //      ... und wieder hinunter
     addRamp(48, 160, 380, 160);  // hohe Schanze - fliegt weit über die Planeten, wird am Ende wieder aufgefangen
     addPlanetWeave(18, 14, 16, 110);
   });
   addStraight(80);
   addVehiclePortal();        // NEU: Fahrzeug-Wechsel-Portal 2
   addStraight(80);
-  addStraight(4750, true);   // finale Strecke jetzt als innen beleuchteter Tunnel statt offener Gerade
+  addStraight(2350, true);   // finale Strecke jetzt als innen beleuchteter Tunnel statt offener Gerade (Teil 1)
+  trackSegments[trackSegments.length - 1].wideTunnel = true; // breit genug fuer alle fuenf Achterbahnen nebeneinander
+  addVehiclePortal();        // NEU: Fahrzeug-Wechsel-Portal 4
+  addStraight(2400, true);   // finale Strecke Teil 2
+  trackSegments[trackSegments.length - 1].wideTunnel = true;
 
   // cumulative arc length
   cumLen = [0];
@@ -501,6 +562,20 @@ function getAltUniverseRanges() {
 }
 function isInsideRange(i, ranges) {
   return ranges.some(r => i >= r.start && i <= r.end);
+}
+
+/* Liefert 1 ausserhalb der Teilstrecke (normaler seitlicher Abstand), 0 mitten in der
+   Teilstrecke (alle fuenf Schienen auf einer einzigen Linie) und einen weich interpolierten
+   Zwischenwert in den beiden Uebergangsstuecken davor/danach. */
+function getMergeFactor(i) {
+  if (!mergeZoneInfo) return 1;
+  const { taperInStart, mergeStart, mergeEnd, taperOutEnd } = mergeZoneInfo;
+  if (i <= taperInStart || i >= taperOutEnd) return 1;
+  if (i >= mergeStart && i <= mergeEnd) return 0;
+  let t;
+  if (i < mergeStart) t = 1 - (i - taperInStart) / Math.max(1, mergeStart - taperInStart);
+  else t = (i - mergeEnd) / Math.max(1, taperOutEnd - mergeEnd);
+  return t * t * (3 - 2 * t); // smoothstep
 }
 
 /* ================= FAHRZEUG-WECHSEL-PORTALE ================= */
@@ -657,8 +732,15 @@ function buildTunnels() {
     const pts = trackPoints.slice(seg.start, seg.end + 1);
     if (pts.length < 2) return;
 
+    // die finale Tunnelstrecke ist als "wideTunnel" markiert und bekommt einen deutlich
+    // groesseren Radius, damit Player- und alle vier KI-Schienen (bis zu ±28 versetzt) bequem
+    // nebeneinander hineinpassen, statt nur die mittige Spieler-Schiene zu umschliessen.
+    const tubeRadius = seg.wideTunnel ? 40 : 9.5;
+    const ringRadius = seg.wideTunnel ? 38 : 9.2;
+    const lightRange = seg.wideTunnel ? 90 : 40;
+
     const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
-    const tubeGeo = new THREE.TubeGeometry(curve, Math.max(20, pts.length), 9.5, 16, false);
+    const tubeGeo = new THREE.TubeGeometry(curve, Math.max(20, pts.length), tubeRadius, 16, false);
     const tunnel = new THREE.Mesh(tubeGeo, tunnelMat);
     scene.add(tunnel);
 
@@ -667,7 +749,7 @@ function buildTunnels() {
       const p = trackPoints[i];
       const f = trackFrames[i];
       const mat = ringMat.clone();
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(9.2, 0.18, 8, 20), mat);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(ringRadius, 0.18, 8, 20), mat);
       ring.position.copy(p);
       const m = new THREE.Matrix4().makeBasis(f.right, f.up, f.forward.clone().multiplyScalar(-1));
       ring.quaternion.setFromRotationMatrix(m);
@@ -679,7 +761,7 @@ function buildTunnels() {
     for (let i = seg.start; i <= seg.end; i += 56) {
       const p = trackPoints[i];
       const color = neonPalette[Math.floor(Math.random() * neonPalette.length)];
-      const light = new THREE.PointLight(color, 1.6, 40, 2);
+      const light = new THREE.PointLight(color, 1.6, lightRange, 2);
       light.position.copy(p);
       scene.add(light);
     }
@@ -780,7 +862,7 @@ function buildBlackHoles() {
   });
 }
 
-/* Baut die zwei Fahrzeug-Wechsel-Portale (goldene schwarze Löcher) und merkt sich ihre
+/* Baut die vier Fahrzeug-Wechsel-Portale (goldene schwarze Löcher) und merkt sich ihre
    Distanzen entlang der Strecke, damit jede Achterbahn beim Ueberqueren ihr Aussehen wechselt. */
 function buildVehiclePortals() {
   const ranges = getVehiclePortalRanges();
@@ -907,8 +989,8 @@ function makeSignTexture(number) {
 }
 
 function buildSigns() {
-  const limits = [750, 850, 850, 1000, 1000, 1000]; // 1x750, 2x850, 3x1000
-  const count = 6;
+  const limits = [600, 700, 750, 800, 850, 850, 1000, 1000, 1000]; // 1x600, 1x700, 1x750, 1x800, 2x850, 3x1000
+  const count = limits.length;
   const spacing = totalLength / count;
   const poleMat = new THREE.MeshStandardMaterial({ color: 0x555560 });
 
@@ -940,7 +1022,7 @@ function buildSigns() {
 }
 
 function getCurrentLimit(dist) {
-  let limit = 750; // default before first sign
+  let limit = 750; // default before first sign (sicher: MAX_SPEED 850 - OVERSPEED_MARGIN 100 = 750)
   for (let i = 0; i < signList.length; i++) {
     if (signList[i].dist <= dist) limit = signList[i].limit;
     else break;
@@ -951,7 +1033,7 @@ function getCurrentLimit(dist) {
 /* ================= ZWEITE SCHIENE (KI-GEGNER) ================= */
 
 function buildAiTrack(offset, tubeColor, tubeEmissive, tieColor, rampColor, gondolaColor) {
-  const pts = trackPoints.map((p, i) => p.clone().addScaledVector(trackFrames[i].right, offset));
+  const pts = trackPoints.map((p, i) => p.clone().addScaledVector(trackFrames[i].right, offset * getMergeFactor(i)));
   const gapRanges = getGapRanges();
 
   const tubeMat = new THREE.MeshStandardMaterial({ color: tubeColor, metalness: 0.6, roughness: 0.25, emissive: tubeEmissive, emissiveIntensity: 0.4 });
@@ -999,7 +1081,7 @@ function initAiState(config) {
 }
 
 /* Bewegt eine KI-Achterbahn: startet erst, wenn der Player losfährt, stoppt mit ihm,
-   pendelt sonst frei zwischen 400 und 700 km/h - ausser auf der Seilbahn-Strecke, dort
+   pendelt sonst frei zwischen 400 und 800 km/h - ausser auf der Seilbahn-Strecke, dort
    gilt zwingend das Seilbahn-Tempo, egal was die KI eigentlich moechte. */
 function updateAiState(state, dt) {
   const playerIsDriving = started && speedKmh > 0.01;
@@ -1011,7 +1093,7 @@ function updateAiState(state, dt) {
 
     const interpDist = THREE.MathUtils.lerp(state.gondolaInfo.entryDist, state.gondolaInfo.exitDist, state.gondolaProgress);
     const sample = sampleTrackAt(interpDist, state.idx);
-    const pos = sample.position.clone().addScaledVector(sample.right, state.config.offset).addScaledVector(sample.up, 1.1);
+    const pos = sample.position.clone().addScaledVector(sample.right, state.config.offset * getMergeFactor(state.idx.i)).addScaledVector(sample.up, 1.1);
     state.cartGroup.position.copy(pos);
     const m = new THREE.Matrix4().makeBasis(sample.right, sample.up, sample.forward.clone().multiplyScalar(-1));
     state.cartGroup.quaternion.setFromRotationMatrix(m);
@@ -1056,7 +1138,7 @@ function updateAiState(state, dt) {
 
   const sample = sampleTrackAt(state.distanceTraveled, state.idx);
   const pos = sample.position.clone()
-    .addScaledVector(sample.right, state.config.offset)
+    .addScaledVector(sample.right, state.config.offset * getMergeFactor(state.idx.i))
     .addScaledVector(sample.up, 1.1);
   state.cartGroup.position.copy(pos);
   const m = new THREE.Matrix4().makeBasis(sample.right, sample.up, sample.forward.clone().multiplyScalar(-1));
