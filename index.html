@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Endless Coaster</title>
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #ffffff; font-family: 'Segoe UI', Arial, sans-serif; }
+  #canvas-wrap { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  #hud { position: fixed; inset: 0; pointer-events: none; color: #111; }
+
+  .panel {
+    position: absolute;
+    background: rgba(255,255,255,0.85);
+    border: 1px solid #dcdce8;
+    border-radius: 12px;
+    padding: 10px 16px;
+    box-shadow: 0 4px 14px rgba(20,20,60,0.08);
+  }
+
+  #speedPanel { top: 18px; left: 18px; min-width: 180px; }
+  #speedPanel .row { font-size: 15px; margin: 2px 0; }
+  #speedPanel .big { font-size: 30px; font-weight: 700; color: #16209c; }
+  #speedPanel .limit { font-weight: 700; color: #d1272c; }
+
+  #scorePanel { top: 18px; right: 18px; text-align: right; }
+  #scorePanel .big { font-size: 30px; font-weight: 700; color: #16209c; }
+
+  #hint {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    font-size: 14px; color: #555; background: rgba(255,255,255,0.8);
+    padding: 6px 14px; border-radius: 10px; border: 1px solid #e2e2ee;
+  }
+
+  #intro, #gameover {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center; background: rgba(255,255,255,0.92);
+    z-index: 10;
+  }
+  #gameover { display: none; }
+  .titleCard { max-width: 520px; padding: 30px 36px; border-radius: 18px;
+    background: #ffffff; border: 1px solid #e4e4f2; box-shadow: 0 10px 40px rgba(20,20,60,0.12); }
+  .titleCard h1 { margin: 0 0 10px; color: #16209c; font-size: 26px; }
+  .titleCard p { color: #333; font-size: 15px; line-height: 1.5; }
+  .titleCard .kbd { display: inline-block; padding: 2px 8px; border: 1px solid #bbb; border-radius: 6px; background: #f4f4f8; font-weight: 700; }
+
+  #flash {
+    position: fixed; inset: 0; background: #ffffff; opacity: 0;
+    transition: opacity 0.15s ease; pointer-events: none; z-index: 5;
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-wrap"></div>
+<div id="flash"></div>
+
+<div id="hud">
+  <div id="speedPanel" class="panel">
+    <div class="row big"><span id="speedVal">0</span> km/h</div>
+    <div class="row">Limit: <span class="limit" id="limitVal">100</span> km/h</div>
+  </div>
+
+  <div id="aiPanel" class="panel" style="top: 110px; left: 18px; border-color:#f0c9c2;">
+    <div class="row" style="color:#b3341a;">🤖 KI-Gegner (rot)</div>
+    <div class="row"><span id="aiSpeedVal1">0</span> km/h</div>
+  </div>
+
+  <div id="aiPanel2" class="panel" style="top: 172px; left: 18px; border-color:#c2f0d0;">
+    <div class="row" style="color:#1a8a3e;">🤖 KI-Gegner (grün)</div>
+    <div class="row"><span id="aiSpeedVal2">0</span> km/h</div>
+  </div>
+
+  <div id="aiPanel3" class="panel" style="top: 234px; left: 18px; border-color:#ddc2f0;">
+    <div class="row" style="color:#6a1ab3;">🤖 KI-Gegner (lila)</div>
+    <div class="row"><span id="aiSpeedVal3">0</span> km/h</div>
+  </div>
+
+  <div id="aiPanel4" class="panel" style="top: 296px; left: 18px; border-color:#f0ddc2;">
+    <div class="row" style="color:#b3701a;">🤖 KI-Gegner (orange)</div>
+    <div class="row"><span id="aiSpeedVal4">0</span> km/h</div>
+  </div>
+
+  <div id="scorePanel" class="panel">
+    <div class="row">Score</div>
+    <div class="big"><span id="scoreVal">0</span> s</div>
+  </div>
+
+  <div id="hint">⬆ schneller &nbsp;·&nbsp; ⬇ langsamer &nbsp;·&nbsp; Mehr als 100 km/h über dem Limit + Kurve = Absturz ins All!</div>
+</div>
+
+<div id="intro">
+  <div class="titleCard">
+    <h1>🎢 Endless Coaster</h1>
+    <p>Eine futuristische Achterbahn rast durchs finstere Weltall, umgeben von leuchtenden Sternen – mit weiträumigen, ausladenden Kurven, grosszügigen Loopings und seitlichen Loopings, zwei sehr langen, steilen Abhängen, futuristisch beleuchteten Tunneln, einem Goldminen-Tunnel, einer hügeligen Strecke, einer Schanze mit doppelt so langer Flugphase, einer nochmals verlängerten Seilbahn-Passage, einer senkrecht ausgelegten Schienenstrecke, zwei goldenen Portalen, die dein Fahrzeug verwandeln, einem schwarzen Loch zu einem völlig anderen Universum voller Planeten (mit eigenem Looping und einer Schanze hoch über den Planeten!) und einem innen beleuchteten Zieltunnel statt einer offenen Geraden.</p>
+    <p><span class="kbd">↑</span> gibt Gas (die Heckdüse zündet!), <span class="kbd">↓</span> bremst aktiv. Lässt du <span class="kbd">↑</span> los, wird die Bahn von allein langsamer.<br>
+    Tempolimit-Schilder am Streckenrand: einmal 750, zweimal 850, dreimal 1000 km/h. Dein Höchsttempo: 800 km/h.<br>
+    Bist du mehr als 100 km/h über dem geltenden Limit UND fährst dabei in eine Kurve, verlässt die Bahn die Schienen und fällt endgültig ins endlose All – kein Warnlicht, kein Countdown, es passiert einfach.<br>
+    An der Seilbahn fehlen die Schienen komplett: Ein Seil ist über die Lücke gespannt, an dem eine (undurchsichtige) Gondel hängt. Sobald du hineinfährst, fährt sie automatisch mit 400 km/h los, bringt dich auf die andere Seite und lädt dich dort automatisch wieder ab. Jede Achterbahn hat ihre eigene Gondel.<br>
+    Zwei goldene Portale verwandeln dein Fahrzeug in ein anderes Design, sobald du hindurchfliegst.<br>
+    Neben dir fahren jetzt <b>vier</b> KI-gesteuerte Achterbahnen auf eigenen Schienen (rot, grün, lila und orange) – alle starten erst, wenn du losfährst, stoppen mit dir und pendeln frei zwischen 400 und 700 km/h (ihr Höchsttempo).</p>
+    <p style="margin-top:16px;"><b>Drücke <span class="kbd">Leertaste</span>, um zu starten.</b></p>
+  </div>
+</div>
+
+<div id="gameover">
+  <div class="titleCard">
+    <h1>💫 Ins All gestürzt!</h1>
+    <p>Du warst zu weit über dem Tempolimit, als die nächste Kurve kam – die Achterbahn hat die Schienen verlassen und ist ins endlose All gefallen.</p>
+    <p style="font-size:22px; font-weight:700; color:#16209c;">Score: <span id="finalScore">0</span> Sekunden</p>
+    <p>Drücke <span class="kbd">Enter</span> oder <span class="kbd">Leertaste</span> zum Neustart.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= ENDLESS COASTER – GAME LOGIC ================= */
+
+let scene, camera, renderer, clock;
+let trackPoints = [], trackFrames = [], cumLen = [], totalLength = 0;
+let trackSegments = []; // markierte Streckenabschnitte (u.a. Tunnel)
+let signList = []; // {dist, limit}
+let cartGroup, cartFlame;
+let playerCartBuilt = null;
+let playerPortalState = { nextPortal: 0 };
+let playerIdx = { i: 0 };
+
+// Seitliche Abstände der vier KI-Schienen (Player bleibt in der Mitte bei Offset 0)
+const SIDE_OFFSET = 14;
+const SIDE_OFFSET2 = -14;
+const SIDE_OFFSET3 = 28;
+const SIDE_OFFSET4 = -28;
+
+// Konfiguration aller vier KI-Gegner (Farben, seitlicher Abstand)
+const AI_CONFIGS = [
+  { name: 'rot',    offset: SIDE_OFFSET,  bodyColor: 0xcc2200, finColor: 0xffcc33, tubeColor: 0xe0402b, tubeEmissive: 0x661208, tieColor: 0x3a2a2a, rampColor: 0xff5050, startTarget: 700 },
+  { name: 'grün',   offset: SIDE_OFFSET2, bodyColor: 0x22aa44, finColor: 0xccff66, tubeColor: 0x22cc55, tubeEmissive: 0x0f5c26, tieColor: 0x1f3a26, rampColor: 0x55ff88, startTarget: 650 },
+  { name: 'lila',   offset: SIDE_OFFSET3, bodyColor: 0x8833cc, finColor: 0xd9b3ff, tubeColor: 0x8833cc, tubeEmissive: 0x3a1466, tieColor: 0x2a1f3a, rampColor: 0xcc88ff, startTarget: 680 },
+  { name: 'orange', offset: SIDE_OFFSET4, bodyColor: 0xff9900, finColor: 0xffe066, tubeColor: 0xff9900, tubeEmissive: 0x664400, tieColor: 0x3a2f1a, rampColor: 0xffcc55, startTarget: 620 }
+];
+
+let aiStates = []; // je ein Zustandsobjekt pro KI-Gegner, befüllt in init()
+
+// Seilbahn-Gondel-Zustand des Players (die KIs haben ihre eigene Gondel-Info in aiStates)
+let gondolaInfo = null;
+let inGondola = false;
+let gondolaProgress = 0;
+
+let vehiclePortalDistances = []; // Distanzen der Fahrzeug-Wechsel-Portale
+
+let distanceTraveled = 0;
+let speedKmh = 0;
+let started = false;
+let gameOver = false;
+let falling = false;      // true, waehrend die Bahn nach einer Entgleisung ins All faellt
+let fallVelocity = new THREE.Vector3();
+let fallElapsed = 0;
+let tunnelRings = [];      // für die animierte Neon-Beleuchtung in animate()
+let blackHoleVisuals = []; // fuer die Dreh-Animation der schwarzen Löcher in animate()
+let planetMeshes = [];     // fuer die langsame Rotationsanimation der Planeten in animate()
+let startTime = 0;
+let scoreSeconds = 0;
+let currentLimit = 750;
+
+const keys = { up: false, down: false };
+
+const ACCEL = 220;    // km/h per second while accelerating (↑ gedrückt)
+const DECEL = 260;    // km/h per second while actively braking (↓ gedrückt)
+const FRICTION = 90;  // km/h per second automatische Verlangsamung, wenn ↑ NICHT gedrückt wird
+const MAX_SPEED = 800;    // Höchstgeschwindigkeit des Players (von 1000 auf 800 gesenkt)
+const AI_MAX_SPEED = 700; // Höchstgeschwindigkeit aller vier KI-Gegner
+const OVERSPEED_MARGIN = 100; // erst 100 km/h ueber dem Limit wird es gefaehrlich
+const CABLECAR_SPEED = 400;   // Geschwindigkeit auf der Seilbahn-Strecke (um 200 km/h erhöht)
+const NORMAL_BG = new THREE.Color(0x02030a);       // finsteres Weltall
+const ALT_UNIVERSE_BG = new THREE.Color(0x230a2e); // "anderes Universum"
+
+init();
+animate();
+
+function init() {
+  scene = new THREE.Scene();
+  scene.background = NORMAL_BG; // finsteres Weltall
+
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 5000);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.getElementById('canvas-wrap').appendChild(renderer.domElement);
+
+  // Lighting fürs All: dezentes Umgebungslicht + zwei Richtungslichter für Kontraste auf der Bahn
+  const hemi = new THREE.HemisphereLight(0x4a5a8a, 0x0a0a14, 0.7);
+  scene.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffffff, 1.3);
+  dir.position.set(120, 200, 80);
+  scene.add(dir);
+  const dir2 = new THREE.DirectionalLight(0x88aaff, 0.5);
+  dir2.position.set(-120, 80, -80);
+  scene.add(dir2);
+
+  buildStarfield();
+
+  buildTrack();
+  buildTrackMesh();
+  buildTunnels();
+  buildSigns();
+  buildCart();
+
+  aiStates = AI_CONFIGS.map(initAiState);
+
+  buildVehiclePortals();
+  buildBlackHoles();
+  const altRanges = getAltUniverseRanges();
+  altRanges.forEach((r) => {
+    buildUniverseDecor(trackPoints, r, { colors: [0x39d6ff, 0x8fe8ff, 0xffffff], shape: 'crystal' });     // Player: eisig-blaue Kristallwelt
+    buildUniverseDecor(aiStates[0].trackPoints, r, { colors: [0xff5522, 0xff8800, 0xffcc33], shape: 'lava' });   // rote KI: Lavawelt
+    buildUniverseDecor(aiStates[1].trackPoints, r, { colors: [0x33ff77, 0x99ff33, 0xccff66], shape: 'alien' });  // grüne KI: Alienwelt
+    buildUniverseDecor(aiStates[2].trackPoints, r, { colors: [0xaa66ff, 0xcc99ff, 0xffffff], shape: 'crystal' }); // lila KI: Void-Kristallwelt
+    buildUniverseDecor(aiStates[3].trackPoints, r, { colors: [0xffaa00, 0xffcc55, 0xffe0a0], shape: 'lava' });   // orange KI: Wüstenwelt
+    buildPlanetUniverse(r); // dichtes Planetenfeld, die Strecke schlängelt sich hindurch
+  });
+
+  clock = new THREE.Clock();
+
+  window.addEventListener('resize', onResize);
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('keyup', onKeyUp);
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function onKeyDown(e) {
+  if (e.code === 'ArrowUp') { keys.up = true; e.preventDefault(); dismissIntro(); }
+  if (e.code === 'ArrowDown') { keys.down = true; e.preventDefault(); dismissIntro(); }
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (gameOver) {
+      resetGame();
+    } else {
+      dismissIntro(); // Leertaste startet das Spiel
+    }
+  }
+  if (e.code === 'Enter' && gameOver) { resetGame(); }
+}
+function onKeyUp(e) {
+  if (e.code === 'ArrowUp') keys.up = false;
+  if (e.code === 'ArrowDown') keys.down = false;
+}
+
+function dismissIntro() {
+  const el = document.getElementById('intro');
+  if (el) el.style.display = 'none';
+}
+
+/* ================= TRACK GENERATION (turtle-style) ================= */
+
+function buildTrack() {
+  const state = {
+    position: new THREE.Vector3(0, 40, 0),
+    forward: new THREE.Vector3(0, 0, -1),
+    up: new THREE.Vector3(0, 1, 0),
+    right: new THREE.Vector3(1, 0, 0)
+  };
+
+  trackPoints = [state.position.clone()];
+  trackFrames = [{ forward: state.forward.clone(), up: state.up.clone(), right: state.right.clone() }];
+
+  function pushSample() {
+    trackPoints.push(state.position.clone());
+    trackFrames.push({ forward: state.forward.clone(), up: state.up.clone(), right: state.right.clone() });
+  }
+
+  function reorthogonalize() {
+    state.forward.normalize();
+    state.right.crossVectors(state.forward, state.up).normalize();
+    state.up.crossVectors(state.right, state.forward).normalize();
+  }
+
+  function addStraight(length, isTunnel) {
+    const startIdx = trackPoints.length - 1;
+    const steps = Math.max(2, Math.round(length / 20)); // gröbere Schrittweite: Geraden brauchen keine feine Auflösung
+    const stepLen = length / steps;
+    for (let i = 0; i < steps; i++) {
+      state.position.addScaledVector(state.forward, stepLen);
+      pushSample();
+    }
+    const endIdx = trackPoints.length - 1;
+    trackSegments.push({ start: startIdx, end: endIdx, tunnel: !!isTunnel });
+  }
+
+  function addArc(totalAngleDeg, radius, axisType) {
+    const steps = Math.max(8, Math.round(Math.abs(totalAngleDeg) / 4));
+    const angleStep = THREE.MathUtils.degToRad(totalAngleDeg) / steps;
+    const stepLen = radius * Math.abs(angleStep);
+    const startIdx = trackPoints.length - 1;
+    for (let i = 0; i < steps; i++) {
+      const axis = axisType === 'up' ? state.up.clone() : state.right.clone();
+      const q = new THREE.Quaternion().setFromAxisAngle(axis, angleStep);
+      state.forward.applyQuaternion(q);
+      state.up.applyQuaternion(q);
+      reorthogonalize();
+      state.position.addScaledVector(state.forward, stepLen);
+      pushSample();
+    }
+    // jede Kurve (Turn/Hill/Loop/SideLoop) als "curve" markieren -> wird für die
+    // Entgleisungs-Regel gebraucht ("fliegst in der naechsten Kurve raus")
+    trackSegments.push({ start: startIdx, end: trackPoints.length - 1, tunnel: false, curve: true });
+  }
+
+  function addTurn(angleDeg, radius) { addArc(angleDeg, radius, 'up'); }
+  function addHill(angleDeg, length) {
+    const rad = THREE.MathUtils.degToRad(Math.abs(angleDeg)) || 0.0001;
+    const radius = length / rad;
+    addArc(angleDeg, radius, 'right');
+  }
+  function addLoop(radius, direction) { addArc(360 * (direction || 1), radius, 'right'); }
+  // Seitliches Looping: volle 360°-Drehung um die Hoch-Achse -> die Bahn wird seitlich
+  // hinausgeschleudert und schliesst sich wieder, statt (wie addLoop) nach oben zu drehen.
+  function addSideLoop(radius, direction) { addArc(360 * (direction || 1), radius, 'up'); }
+
+  // Schanze: sichtbare Rampe hoch, dann eine unsichtbare Flugphase (gerade Fortsetzung der
+  // Absprungrichtung, wie im Flug), am Ende eine sichtbare Landerampe, die wieder einfängt.
+  function addRamp(launchAngle, launchLen, flightLen, landLen) {
+    addHill(launchAngle, launchLen);      // sichtbare Startrampe (Absprung)
+    const gapStart = trackPoints.length - 1;
+    addStraight(flightLen);                // unsichtbare Flugphase
+    const gapEnd = trackPoints.length - 1;
+    trackSegments.push({ start: gapStart, end: gapEnd, tunnel: false, gap: true });
+    addHill(-launchAngle, landLen);        // sichtbare Landerampe (Einfangen)
+  }
+
+  // Hügelige Strecke: mehrere kleine, abwechselnde Hügel hintereinander
+  function addHilly(count, angleDeg, segLen) {
+    for (let i = 0; i < count; i++) {
+      addHill(i % 2 === 0 ? angleDeg : -angleDeg, segLen);
+    }
+  }
+
+  // Seilbahn-Abschnitt: eine Achterbahn, die hineinfährt, wird dort zwangsweise mit
+  // konstant 300 km/h weitergezogen (siehe cablecar-Logik in animate()/updateAi()).
+  // Seilbahn: die Schiene fehlt hier komplett (gap), stattdessen haengt eine Gondel an
+  // einem gespannten Seil, die Spieler/KI erst dann uebernimmt, wenn sie eingefahren sind.
+  function addCableCar(length) {
+    const startIdx = trackPoints.length - 1;
+    addStraight(length);
+    const endIdx = trackPoints.length - 1;
+    trackSegments.push({ start: startIdx, end: endIdx, tunnel: false, gap: true, cablecar: true });
+  }
+
+  // Goldminen-Tunnel: wie ein normaler Tunnel, aber im Inneren mit Felswand-Optik,
+  // Holzstuetzbalken und Goldnuggets statt futuristischer Neon-Beleuchtung.
+  function addGoldmineTunnel(length) {
+    const startIdx = trackPoints.length - 1;
+    addStraight(length);
+    const endIdx = trackPoints.length - 1;
+    trackSegments.push({ start: startIdx, end: endIdx, tunnel: true, goldmine: true });
+  }
+
+  // "Anderes Universum": langer hügeliger Abschnitt, an dessen beiden Enden ein
+  // schwarzes Loch als Portal steht (Hin- und Rueckreise).
+  function addAltUniverse(buildFn) {
+    const startIdx = trackPoints.length - 1;
+    buildFn();
+    const endIdx = trackPoints.length - 1;
+    trackSegments.push({ start: startIdx, end: endIdx, tunnel: false, altUniverse: true });
+  }
+
+  // Schlängelnder Pfad fuers Planeten-Universum: Huegel- und Kurvenrichtung laufen
+  // synchron (nicht mehr zufaellig) -> gleichmaessige, runde S-Kurven statt Zickzack.
+  function addPlanetWeave(count, hillAngle, turnAngle, segLen) {
+    for (let i = 0; i < count; i++) {
+      const dir = i % 2 === 0 ? 1 : -1;
+      addHill(dir * hillAngle, segLen);
+      addTurn(dir * turnAngle, segLen * 0.75);
+    }
+  }
+
+  // Fahrzeug-Wechsel-Portal: markiert einen einzelnen Punkt. Jede Achterbahn, die
+  // hier vorbeikommt, wechselt ihr Aussehen (siehe checkVehiclePortal in animate()).
+  function addVehiclePortal() {
+    const idx = trackPoints.length - 1;
+    trackSegments.push({ start: idx, end: idx, tunnel: false, vehiclePortal: true });
+  }
+
+  trackSegments = [];
+
+  // ---- Sequence: weiträumige, ausladende Kurven/Loopings, lange Tunnel, sehr lange Gerade + sehr steiler Abhang ----
+  addStraight(220, true);   // Tunnel 1
+  addTurn(90, 85);          // weiter, lockerer Turn
+  addStraight(60);
+  addHill(-20, 120);        // sanfter, weiträumiger Drop
+  addTurn(-70, 75);
+  addHill(20, 120);
+  addStraight(450);         // sehr lange gerade Schienenstrecke
+  addStraight(200, true);   // Tunnel 2
+  addLoop(48);               // grosszügiges Looping
+  addStraight(70);
+  addSideLoop(58, 1);        // weites seitliches Looping 1
+  addTurn(55, 60);
+  addHill(-30, 150);
+  addStraight(70);
+  addTurn(-40, 55);
+  addLoop(42, -1);
+  addStraight(240, true);   // Tunnel 3
+  addHill(30, 150);
+  addSideLoop(52, -1);       // weites seitliches Looping 2
+  addTurn(90, 95);
+  addStraight(240, true);   // Tunnel 4
+  addVehiclePortal();        // NEU: Fahrzeug-Wechsel-Portal 1
+  addTurn(90, 85);
+  addHill(70, 260);          // langer, steiler Anstieg (Vorbereitung)
+  addHill(-85, 380);         // sehr langer, sehr steiler (fast senkrechter) Abhang
+  addStraight(260, true);   // Tunnel 5
+  addTurn(60, 70);
+  addStraight(320, true);   // Tunnel 6 - noch ein sehr langer Tunnel
+  addRamp(35, 90, 280, 90); // Schanze: doppelt so lange Flugzeit wie zuvor (140 -> 280)
+  addStraight(80);
+  addHill(78, 300);          // Anstieg vor dem zweiten Steil-Abhang
+  addHill(-82, 340);         // zweiter sehr langer, sehr steiler (fast senkrechter) Abhang
+  addStraight(70);
+  addTurn(-50, 65);
+  addHilly(8, 18, 55);        // NEU: hügelige Strecke (mehrere kleine Wellen hintereinander)
+  addStraight(60);
+  addCableCar(2200);          // Seilbahn deutlich verlängert (800 -> 2200)
+  addStraight(60);
+  addHill(88, 100);           // NEU: Übergang in eine senkrecht ausgelegte Schienenstrecke
+  addStraight(550);           // ... lange Fahrt auf der senkrechten Schiene ...
+  addHill(88, 100);           // ... Übergang zurück
+  addGoldmineTunnel(500);      // NEU: Goldminen-Tunnel
+  addStraight(80);
+  addAltUniverse(() => {
+    addPlanetWeave(22, 14, 16, 110);
+    addLoop(45, 1);              // Looping mitten im Planetenfeld
+    addPlanetWeave(14, 13, 15, 105);
+    addRamp(48, 160, 380, 160);  // hohe Schanze - fliegt weit über die Planeten, wird am Ende wieder aufgefangen
+    addPlanetWeave(18, 14, 16, 110);
+  });
+  addStraight(80);
+  addVehiclePortal();        // NEU: Fahrzeug-Wechsel-Portal 2
+  addStraight(80);
+  addStraight(4750, true);   // finale Strecke jetzt als innen beleuchteter Tunnel statt offener Gerade
+
+  // cumulative arc length
+  cumLen = [0];
+  for (let i = 1; i < trackPoints.length; i++) {
+    cumLen.push(cumLen[i - 1] + trackPoints[i].distanceTo(trackPoints[i - 1]));
+  }
+  totalLength = cumLen[cumLen.length - 1];
+}
+
+function frameQuaternion(frame) {
+  const m = new THREE.Matrix4().makeBasis(
+    frame.right, frame.up, frame.forward.clone().multiplyScalar(-1)
+  );
+  return new THREE.Quaternion().setFromRotationMatrix(m);
+}
+
+/* Returns interpolated {position, forward, up, right} for a distance along the (wrapped) track.
+   idxState = {i:0} is a small mutable object so player and AI can each keep their own search cursor. */
+function sampleTrackAt(dist, idxState) {
+  let i = idxState.i;
+  while (i < cumLen.length - 2 && cumLen[i + 1] < dist) i++;
+  while (i > 0 && cumLen[i] > dist) i--;
+  idxState.i = i;
+
+  const segLen = cumLen[i + 1] - cumLen[i];
+  const t = segLen > 0 ? THREE.MathUtils.clamp((dist - cumLen[i]) / segLen, 0, 1) : 0;
+
+  const pos = trackPoints[i].clone().lerp(trackPoints[i + 1], t);
+  const q1 = frameQuaternion(trackFrames[i]);
+  const q2 = frameQuaternion(trackFrames[i + 1]);
+  const q = q1.clone().slerp(q2, t);
+
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q).normalize();
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(q).normalize();
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(q).normalize();
+  return { position: pos, forward, up, right };
+}
+
+/* ================= VISUAL TRACK MESH ================= */
+
+function getGapRanges() {
+  return trackSegments.filter(s => s.gap);
+}
+function isInsideGap(i, gapRanges) {
+  return gapRanges.some(r => i >= r.start && i <= r.end);
+}
+function getCurveRanges() {
+  return trackSegments.filter(s => s.curve);
+}
+function isInsideCurve(i, curveRanges) {
+  return curveRanges.some(r => i >= r.start && i <= r.end);
+}
+function getAltUniverseRanges() {
+  return trackSegments.filter(s => s.altUniverse);
+}
+function isInsideRange(i, ranges) {
+  return ranges.some(r => i >= r.start && i <= r.end);
+}
+
+/* ================= FAHRZEUG-WECHSEL-PORTALE ================= */
+
+function getVehiclePortalRanges() {
+  return trackSegments.filter(s => s.vehiclePortal);
+}
+
+/* Prueft, ob eine Achterbahn gerade ein Fahrzeug-Portal ueberquert hat, und wechselt
+   in diesem Fall ihr Aussehen (Skin) auf das jeweils naechste. portalState = {nextIndex}. */
+function checkVehiclePortal(distanceTraveled, state, cart) {
+  if (vehiclePortalDistances.length === 0 || !cart || !cart.skins || cart.skins.length < 2) return;
+  const nextDist = vehiclePortalDistances[state.nextPortal % vehiclePortalDistances.length];
+  if (distanceTraveled >= nextDist) {
+    cart.skinIndex = (cart.skinIndex + 1) % cart.skins.length;
+    setCartSkin(cart, cart.skinIndex);
+    state.nextPortal = (state.nextPortal + 1) % vehiclePortalDistances.length;
+  }
+}
+
+function setCartSkin(cart, index) {
+  cart.skins.forEach((skinGroup, i) => { skinGroup.visible = (i === index); });
+}
+
+function getCableCarRanges() {
+  return trackSegments.filter(s => s.cablecar);
+}
+
+/* Baut die Schienen-Röhre in mehreren Stücken und lässt dabei die gap-Bereiche
+   (Schanzen-Flugphasen) komplett aus, damit dort wirklich keine Schiene zu sehen ist. */
+function buildTubeWithGaps(points, gapRanges, material, radius) {
+  const sorted = gapRanges.slice().sort((a, b) => a.start - b.start);
+  let cursor = 0;
+  const ranges = [];
+  sorted.forEach((g) => {
+    if (g.start > cursor) ranges.push([cursor, g.start]);
+    cursor = Math.max(cursor, g.end);
+  });
+  if (cursor < points.length - 1) ranges.push([cursor, points.length - 1]);
+
+  ranges.forEach(([s, e]) => {
+    if (e - s < 2) return;
+    const pts = points.slice(s, e + 1);
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
+    const tubeGeo = new THREE.TubeGeometry(curve, Math.max(20, pts.length * 2), radius, 8, false);
+    scene.add(new THREE.Mesh(tubeGeo, material));
+  });
+}
+
+/* Leuchtende Markierungsplatten an Absprung- und Landepunkt der Schanze */
+function buildRampMarkers(points, frames, gapRanges, color) {
+  const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1.6 });
+  gapRanges.forEach((g) => {
+    [g.start, g.end].forEach((idx) => {
+      const p = points[idx];
+      const f = frames[idx];
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.25, 2.2), mat);
+      plate.position.copy(p);
+      const m = new THREE.Matrix4().makeBasis(f.right, f.up, f.forward.clone().multiplyScalar(-1));
+      plate.quaternion.setFromRotationMatrix(m);
+      scene.add(plate);
+    });
+  });
+}
+
+/* Silbern schimmernde Zusatz-Röhre über der Seilbahn-Strecke, damit sie optisch als
+   eigener Abschnitt erkennbar ist. */
+/* Baut eine kaefigartige Gondel-Box in Wagenfarbe (Panels + Kanten), passend zur jeweiligen Achterbahn. */
+function buildGondolaBox(color) {
+  const group = new THREE.Group();
+  const panelMat = new THREE.MeshStandardMaterial({ color, metalness: 0.35, roughness: 0.5, side: THREE.DoubleSide });
+  const box = new THREE.Mesh(new THREE.BoxGeometry(3.6, 3.0, 4.6), panelMat);
+  group.add(box);
+
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0xffffff });
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(box.geometry), edgeMat);
+  group.add(edges);
+
+  // kurze Verbindungsstange nach oben zum Seil
+  const hookMat = new THREE.MeshStandardMaterial({ color: 0x333340, metalness: 0.8, roughness: 0.3 });
+  const hook = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.4, 6), hookMat);
+  hook.position.y = 2.2;
+  group.add(hook);
+
+  scene.add(group);
+  return group;
+}
+
+/* Spannt ein Seil zwischen Ein- und Ausstieg der Seilbahn-Luecke und setzt dort die
+   (anfangs stehende) Gondel-Box ab. Gibt die Distanzwerte + die Gondel zurueck, damit
+   animate()/updateAi() die Ueberfahrt steuern koennen. */
+function buildCableSystem(points, frames, cableRanges, color) {
+  const cableMat = new THREE.MeshStandardMaterial({ color: 0x1a1a22, metalness: 0.7, roughness: 0.4 });
+  let info = null;
+  cableRanges.forEach((r) => {
+    const pA = points[r.start];
+    const pB = points[r.end];
+    const dir = pB.clone().sub(pA);
+    const len = dir.length();
+    if (len < 1) return;
+
+    const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, len, 6), cableMat);
+    cable.position.copy(pA).add(pB).multiplyScalar(0.5);
+    cable.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+    scene.add(cable);
+
+    const gondola = buildGondolaBox(color);
+    gondola.position.copy(pA);
+    const m = new THREE.Matrix4().makeBasis(frames[r.start].right, frames[r.start].up, frames[r.start].forward.clone().multiplyScalar(-1));
+    gondola.quaternion.setFromRotationMatrix(m);
+
+    info = {
+      entryDist: cumLen[r.start],
+      exitDist: cumLen[r.end],
+      box: gondola,
+      entryPos: pA.clone(),
+      entryQuat: gondola.quaternion.clone()
+    };
+  });
+  return info;
+}
+
+function buildTrackMesh() {
+  const gapRanges = getGapRanges();
+  const tubeMat = new THREE.MeshStandardMaterial({ color: 0x2b3fe0, metalness: 0.6, roughness: 0.25, emissive: 0x0b1466, emissiveIntensity: 0.4 });
+  buildTubeWithGaps(trackPoints, gapRanges, tubeMat, 0.9);
+
+  // simple cross ties for a rail look (in der Schanzen-Lücke ausgelassen)
+  const tieGeo = new THREE.BoxGeometry(3.2, 0.35, 0.7);
+  const tieMat = new THREE.MeshStandardMaterial({ color: 0x333340, roughness: 0.8 });
+  for (let i = 0; i < trackPoints.length; i += 10) {
+    if (isInsideGap(i, gapRanges)) continue;
+    const p = trackPoints[i];
+    const f = trackFrames[i];
+    const tie = new THREE.Mesh(tieGeo, tieMat);
+    tie.position.copy(p);
+    const m = new THREE.Matrix4().makeBasis(f.right, f.up, f.forward.clone().multiplyScalar(-1));
+    tie.quaternion.setFromRotationMatrix(m);
+    scene.add(tie);
+  }
+
+  buildRampMarkers(trackPoints, trackFrames, gapRanges, 0xffb020);
+  gondolaInfo = buildCableSystem(trackPoints, trackFrames, getCableCarRanges(), 0x3355ff);
+}
+
+/* ================= TUNNELS ================= */
+
+function buildTunnels() {
+  const tunnelMat = new THREE.MeshStandardMaterial({ color: 0x15151d, side: THREE.BackSide, roughness: 0.9, metalness: 0.1 });
+  const ringMat = new THREE.MeshStandardMaterial({ color: 0x39e4ff, emissive: 0x39e4ff, emissiveIntensity: 1.3 });
+  const neonPalette = [0x39e4ff, 0xff3cf0, 0x7cff3c, 0xffb020];
+
+  trackSegments.filter(seg => seg.tunnel && !seg.goldmine).forEach(seg => {
+    const pts = trackPoints.slice(seg.start, seg.end + 1);
+    if (pts.length < 2) return;
+
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
+    const tubeGeo = new THREE.TubeGeometry(curve, Math.max(20, pts.length), 9.5, 16, false);
+    const tunnel = new THREE.Mesh(tubeGeo, tunnelMat);
+    scene.add(tunnel);
+
+    // glühende, farbig pulsierende Ringe als futuristische Tunnelbeleuchtung
+    for (let i = seg.start; i <= seg.end; i += 14) {
+      const p = trackPoints[i];
+      const f = trackFrames[i];
+      const mat = ringMat.clone();
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(9.2, 0.18, 8, 20), mat);
+      ring.position.copy(p);
+      const m = new THREE.Matrix4().makeBasis(f.right, f.up, f.forward.clone().multiplyScalar(-1));
+      ring.quaternion.setFromRotationMatrix(m);
+      scene.add(ring);
+      tunnelRings.push({ mesh: ring, mat, colorIndex: Math.floor(Math.random() * neonPalette.length), palette: neonPalette });
+    }
+
+    // echte Lichtquellen (sparsam platziert) fuer wirkliche Ausleuchtung der Tunnelwaende
+    for (let i = seg.start; i <= seg.end; i += 56) {
+      const p = trackPoints[i];
+      const color = neonPalette[Math.floor(Math.random() * neonPalette.length)];
+      const light = new THREE.PointLight(color, 1.6, 40, 2);
+      light.position.copy(p);
+      scene.add(light);
+    }
+  });
+
+  buildGoldmineTunnels();
+}
+
+/* Tunnel im Goldminen-Look: raue Felswand, Holzstützbalken, glitzernde Goldnuggets, warme Laternen. */
+function buildGoldmineTunnels() {
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x4a3323, side: THREE.BackSide, roughness: 1.0, metalness: 0.05 });
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1e, roughness: 0.9 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd23f, emissive: 0xffb020, emissiveIntensity: 1.2, metalness: 0.8, roughness: 0.3 });
+
+  trackSegments.filter(seg => seg.goldmine).forEach(seg => {
+    const pts = trackPoints.slice(seg.start, seg.end + 1);
+    if (pts.length < 2) return;
+
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
+    const tubeGeo = new THREE.TubeGeometry(curve, Math.max(20, pts.length), 8.5, 10, false);
+    scene.add(new THREE.Mesh(tubeGeo, rockMat));
+
+    for (let i = seg.start; i <= seg.end; i += 16) {
+      const p = trackPoints[i];
+      const f = trackFrames[i];
+      const m = new THREE.Matrix4().makeBasis(f.right, f.up, f.forward.clone().multiplyScalar(-1));
+      const q = new THREE.Quaternion().setFromRotationMatrix(m);
+
+      // A-Rahmen-Stützbalken (zwei schräge + ein Querbalken), wie im Minenschacht
+      [-1, 1].forEach((s) => {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 8.5, 6), beamMat);
+        post.position.copy(p).addScaledVector(f.right, s * 7).addScaledVector(f.up, -1);
+        post.quaternion.copy(q);
+        post.rotateZ(s * 0.25);
+        scene.add(post);
+      });
+      const crossbeam = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 15, 6), beamMat);
+      crossbeam.position.copy(p).addScaledVector(f.up, 6.5);
+      crossbeam.quaternion.copy(q);
+      crossbeam.rotateX(Math.PI / 2);
+      scene.add(crossbeam);
+
+      // warme Laterne
+      const lantern = new THREE.PointLight(0xffa040, 1.4, 35, 2);
+      lantern.position.copy(p).addScaledVector(f.up, 4.5);
+      scene.add(lantern);
+
+      // glitzernde Goldnuggets an der Wand
+      for (let k = 0; k < 3; k++) {
+        const angle = Math.random() * Math.PI * 2;
+        const nugget = new THREE.Mesh(new THREE.DodecahedronGeometry(0.25 + Math.random() * 0.25, 0), goldMat);
+        nugget.position.copy(p)
+          .addScaledVector(f.right, Math.cos(angle) * 7.8)
+          .addScaledVector(f.up, Math.sin(angle) * 7.8);
+        scene.add(nugget);
+      }
+    }
+  });
+}
+
+/* ================= SCHWARZES LOCH / ANDERES UNIVERSUM ================= */
+
+function buildBlackHolePortal(color) {
+  const group = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.SphereGeometry(7, 24, 24), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  group.add(core);
+
+  const ringMat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 2.2, side: THREE.DoubleSide });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(11, 1.8, 16, 48), ringMat);
+  group.add(ring);
+
+  const ring2Mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1.4, side: THREE.DoubleSide });
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(9, 0.9, 16, 48), ring2Mat);
+  ring2.rotation.x = Math.PI / 3;
+  group.add(ring2);
+
+  const light = new THREE.PointLight(color, 2.2, 90, 2);
+  group.add(light);
+
+  scene.add(group);
+  blackHoleVisuals.push({ group, ring, ring2 });
+  return group;
+}
+
+/* Setzt an Anfang und Ende jedes "anderes Universum"-Abschnitts ein schwarzes Loch
+   (einmal fuer Hin-, einmal fuer Rueckreise). Wird nur einmal fuer die geteilte
+   Streckenmitte gebraucht, da alle drei Schienen dieselben Indizes verwenden. */
+function buildBlackHoles() {
+  getAltUniverseRanges().forEach((r) => {
+    [{ idx: r.start, color: 0x8a3cff }, { idx: r.end, color: 0xff6a3c }].forEach(({ idx, color }) => {
+      const p = trackPoints[idx];
+      const f = trackFrames[idx];
+      const portal = buildBlackHolePortal(color);
+      portal.position.copy(p);
+      const m = new THREE.Matrix4().makeBasis(f.right, f.up, f.forward.clone().multiplyScalar(-1));
+      portal.quaternion.setFromRotationMatrix(m);
+    });
+  });
+}
+
+/* Baut die zwei Fahrzeug-Wechsel-Portale (goldene schwarze Löcher) und merkt sich ihre
+   Distanzen entlang der Strecke, damit jede Achterbahn beim Ueberqueren ihr Aussehen wechselt. */
+function buildVehiclePortals() {
+  const ranges = getVehiclePortalRanges();
+  vehiclePortalDistances = ranges.map(r => cumLen[r.start]).sort((a, b) => a - b);
+  ranges.forEach((r) => {
+    const p = trackPoints[r.start];
+    const f = trackFrames[r.start];
+    const portal = buildBlackHolePortal(0xffd166); // goldenes Portal, unterscheidbar von den lila/orangen Universums-Portalen
+    portal.position.copy(p);
+    const m = new THREE.Matrix4().makeBasis(f.right, f.up, f.forward.clone().multiplyScalar(-1));
+    portal.quaternion.setFromRotationMatrix(m);
+  });
+}
+
+/* Streut rund um die Schiene EINER Achterbahn (player/rote KI/gruene KI) thematisch
+   ganz anders aussehende, leuchtende Formen -> jede Bahn bekommt ihren eigenen
+   "Universum"-Look fuer den Bereich zwischen den beiden schwarzen Loechern. */
+function buildUniverseDecor(pts, range, theme) {
+  for (let i = range.start; i <= range.end; i += 18) {
+    const p = pts[i];
+    const f = trackFrames[i];
+    const color = theme.colors[Math.floor(Math.random() * theme.colors.length)];
+    const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1.1, roughness: 0.4, metalness: 0.2 });
+    let geo;
+    if (theme.shape === 'crystal') geo = new THREE.OctahedronGeometry(1.8 + Math.random() * 2.6, 0);
+    else if (theme.shape === 'lava') geo = new THREE.SphereGeometry(1.3 + Math.random() * 2.2, 8, 8);
+    else geo = new THREE.IcosahedronGeometry(1.4 + Math.random() * 2.4, 0);
+
+    const mesh = new THREE.Mesh(geo, mat);
+    const outward = (Math.random() - 0.5) * 34;
+    const vertical = Math.random() * 26 - 4;
+    mesh.position.copy(p).addScaledVector(f.right, outward).addScaledVector(f.up, vertical);
+    mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    scene.add(mesh);
+  }
+}
+
+/* Das "sehr krasse": ein dichtes Feld aus vielen kleinen und grossen Planeten, durch das
+   sich die Strecke hindurchschlängelt, plus ein riesiger Ring-Gasriese und eine Sonne
+   mit echtem Licht als dramatischer Blickfang. */
+function buildPlanetUniverse(range) {
+  const palette = [0x66aaff, 0xffaa55, 0xff5566, 0x88ff66, 0xaa66ff, 0xffee66, 0x66ffee, 0xff88cc, 0xcccccc];
+  const span = range.end - range.start;
+
+  for (let k = 0; k < 70; k++) {
+    const idx = range.start + Math.floor(Math.random() * span);
+    const p = trackPoints[idx];
+    const f = trackFrames[idx];
+    const size = 3 + Math.random() * Math.random() * 55; // meist klein, ab und zu richtig gross
+    const color = palette[Math.floor(Math.random() * palette.length)];
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.15, emissive: color, emissiveIntensity: 0.18 });
+    const planet = new THREE.Mesh(new THREE.SphereGeometry(size, 20, 16), mat);
+
+    const dist = size + 22 + Math.random() * 85;
+    const angle = Math.random() * Math.PI * 2;
+    planet.position.copy(p)
+      .addScaledVector(f.right, Math.cos(angle) * dist)
+      .addScaledVector(f.up, Math.sin(angle) * dist);
+    scene.add(planet);
+    planetMeshes.push({ mesh: planet, spin: (Math.random() - 0.5) * 0.3 });
+
+    if (Math.random() < 0.25) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(size * 1.4, size * 2.1, 32),
+        new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.6, roughness: 0.8 })
+      );
+      ring.position.copy(planet.position);
+      ring.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+      ring.rotation.y = Math.random() * Math.PI;
+      scene.add(ring);
+    }
+  }
+
+  // Riesiger Ring-Gasriese direkt an der Strecke -> man fliegt fast durch seinen Ring
+  const bigIdx = range.start + Math.floor(span * 0.5);
+  const bp = trackPoints[bigIdx];
+  const bf = trackFrames[bigIdx];
+  const huge = new THREE.Mesh(
+    new THREE.SphereGeometry(120, 32, 24),
+    new THREE.MeshStandardMaterial({ color: 0xffb347, roughness: 0.5, emissive: 0xff8800, emissiveIntensity: 0.25 })
+  );
+  huge.position.copy(bp).addScaledVector(bf.right, 95).addScaledVector(bf.up, 15);
+  scene.add(huge);
+  planetMeshes.push({ mesh: huge, spin: 0.05 });
+
+  const hugeRing = new THREE.Mesh(
+    new THREE.RingGeometry(160, 230, 48),
+    new THREE.MeshStandardMaterial({ color: 0xffe0a0, side: THREE.DoubleSide, transparent: true, opacity: 0.55 })
+  );
+  hugeRing.position.copy(huge.position);
+  hugeRing.rotation.x = Math.PI / 2 + 0.3;
+  scene.add(hugeRing);
+
+  // Leuchtende Sonne mit echtem Licht fuer dramatische Beleuchtung im Planetenfeld
+  const sunIdx = range.start + Math.floor(span * 0.25);
+  const sp = trackPoints[sunIdx];
+  const sf = trackFrames[sunIdx];
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(45, 24, 24), new THREE.MeshBasicMaterial({ color: 0xfff2b0 }));
+  sun.position.copy(sp).addScaledVector(sf.right, -150).addScaledVector(sf.up, 60);
+  scene.add(sun);
+  const sunLight = new THREE.PointLight(0xfff2b0, 3.5, 700, 2);
+  sunLight.position.copy(sun.position);
+  scene.add(sunLight);
+}
+
+/* ================= SPEED SIGNS ================= */
+
+function makeSignTexture(number) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(128, 128, 118, 0, Math.PI * 2); ctx.fill();
+  ctx.lineWidth = 22;
+  ctx.strokeStyle = '#e0272c';
+  ctx.beginPath(); ctx.arc(128, 128, 107, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#111111';
+  ctx.font = 'bold 96px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(number), 128, 140);
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+}
+
+function buildSigns() {
+  const limits = [750, 850, 850, 1000, 1000, 1000]; // 1x750, 2x850, 3x1000
+  const count = 6;
+  const spacing = totalLength / count;
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x555560 });
+
+  for (let s = 0; s < count; s++) {
+    const dist = (s + 0.5) * spacing;
+    // find nearest index
+    let idx = 0;
+    while (idx < cumLen.length - 1 && cumLen[idx] < dist) idx++;
+    const p = trackPoints[idx];
+    const f = trackFrames[idx];
+    const side = (s % 2 === 0) ? 1 : -1;
+    const basePos = p.clone().addScaledVector(f.right, side * 7).addScaledVector(f.up, -2.5);
+
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 3.5, 6), poleMat);
+    pole.position.copy(basePos);
+    scene.add(pole);
+
+    const limit = limits[s % limits.length];
+    const tex = makeSignTexture(limit);
+    const spriteMat = new THREE.SpriteMaterial({ map: tex });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(4.2, 4.2, 1);
+    sprite.position.copy(basePos).addScaledVector(f.up, 2.2);
+    scene.add(sprite);
+
+    signList.push({ dist: dist, limit: limit });
+  }
+  signList.sort((a, b) => a.dist - b.dist);
+}
+
+function getCurrentLimit(dist) {
+  let limit = 750; // default before first sign
+  for (let i = 0; i < signList.length; i++) {
+    if (signList[i].dist <= dist) limit = signList[i].limit;
+    else break;
+  }
+  return limit;
+}
+
+/* ================= ZWEITE SCHIENE (KI-GEGNER) ================= */
+
+function buildAiTrack(offset, tubeColor, tubeEmissive, tieColor, rampColor, gondolaColor) {
+  const pts = trackPoints.map((p, i) => p.clone().addScaledVector(trackFrames[i].right, offset));
+  const gapRanges = getGapRanges();
+
+  const tubeMat = new THREE.MeshStandardMaterial({ color: tubeColor, metalness: 0.6, roughness: 0.25, emissive: tubeEmissive, emissiveIntensity: 0.4 });
+  buildTubeWithGaps(pts, gapRanges, tubeMat, 0.9);
+
+  const tieGeo = new THREE.BoxGeometry(3.2, 0.35, 0.7);
+  const tieMat = new THREE.MeshStandardMaterial({ color: tieColor, roughness: 0.8 });
+  for (let i = 0; i < pts.length; i += 10) {
+    if (isInsideGap(i, gapRanges)) continue;
+    const p = pts[i];
+    const f = trackFrames[i];
+    const tie = new THREE.Mesh(tieGeo, tieMat);
+    tie.position.copy(p);
+    const m = new THREE.Matrix4().makeBasis(f.right, f.up, f.forward.clone().multiplyScalar(-1));
+    tie.quaternion.setFromRotationMatrix(m);
+    scene.add(tie);
+  }
+
+  buildRampMarkers(pts, trackFrames, gapRanges, rampColor);
+  const gInfo = buildCableSystem(pts, trackFrames, getCableCarRanges(), gondolaColor);
+  return { pts, gondolaInfo: gInfo };
+}
+
+/* Baut Schiene + Wagen fuer einen einzelnen KI-Gegner und gibt sein komplettes
+   Zustandsobjekt zurueck (wird in init() vier Mal aufgerufen, siehe AI_CONFIGS). */
+function initAiState(config) {
+  const rail = buildAiTrack(config.offset, config.tubeColor, config.tubeEmissive, config.tieColor, config.rampColor, config.bodyColor);
+  const cart = buildCartMesh(config.bodyColor, config.finColor);
+  return {
+    config,
+    trackPoints: rail.pts,
+    gondolaInfo: rail.gondolaInfo,
+    cartGroup: cart.group,
+    cartFlame: cart.flame,
+    cart,
+    idx: { i: 0 },
+    distanceTraveled: 0,
+    speedKmh: 0,
+    throttle: false,
+    targetSpeed: config.startTarget,
+    inGondola: false,
+    gondolaProgress: 0,
+    nextPortal: 0
+  };
+}
+
+/* Bewegt eine KI-Achterbahn: startet erst, wenn der Player losfährt, stoppt mit ihm,
+   pendelt sonst frei zwischen 400 und 700 km/h - ausser auf der Seilbahn-Strecke, dort
+   gilt zwingend das Seilbahn-Tempo, egal was die KI eigentlich moechte. */
+function updateAiState(state, dt) {
+  const playerIsDriving = started && speedKmh > 0.01;
+
+  if (state.inGondola && state.gondolaInfo) {
+    const gapDist = state.gondolaInfo.exitDist - state.gondolaInfo.entryDist;
+    const crossDuration = Math.max(1, gapDist / (CABLECAR_SPEED / 3.6));
+    state.gondolaProgress = Math.min(1, state.gondolaProgress + dt / crossDuration);
+
+    const interpDist = THREE.MathUtils.lerp(state.gondolaInfo.entryDist, state.gondolaInfo.exitDist, state.gondolaProgress);
+    const sample = sampleTrackAt(interpDist, state.idx);
+    const pos = sample.position.clone().addScaledVector(sample.right, state.config.offset).addScaledVector(sample.up, 1.1);
+    state.cartGroup.position.copy(pos);
+    const m = new THREE.Matrix4().makeBasis(sample.right, sample.up, sample.forward.clone().multiplyScalar(-1));
+    state.cartGroup.quaternion.setFromRotationMatrix(m);
+
+    state.gondolaInfo.box.position.copy(pos).addScaledVector(sample.up, -1.1);
+    state.gondolaInfo.box.quaternion.copy(state.cartGroup.quaternion);
+    if (state.cartFlame) state.cartFlame.material.opacity = 0;
+
+    if (state.gondolaProgress >= 1) {
+      state.inGondola = false;
+      state.distanceTraveled = state.gondolaInfo.exitDist;
+      state.speedKmh = CABLECAR_SPEED;
+      state.gondolaInfo.box.position.copy(state.gondolaInfo.entryPos);
+      state.gondolaInfo.box.quaternion.copy(state.gondolaInfo.entryQuat);
+    }
+    return;
+  }
+
+  if (!playerIsDriving) {
+    state.speedKmh = Math.max(0, state.speedKmh - FRICTION * dt);
+    state.throttle = false;
+  } else {
+    state.targetSpeed += (Math.random() - 0.5) * 120 * dt;
+    state.targetSpeed = THREE.MathUtils.clamp(state.targetSpeed, 400, AI_MAX_SPEED);
+    if (state.speedKmh < state.targetSpeed) {
+      state.speedKmh += ACCEL * 0.8 * dt;
+      state.throttle = true;
+    } else {
+      state.speedKmh -= FRICTION * dt;
+      state.throttle = false;
+    }
+  }
+  state.speedKmh = THREE.MathUtils.clamp(state.speedKmh, 0, AI_MAX_SPEED);
+
+  const speedMs = state.speedKmh / 3.6;
+  state.distanceTraveled += speedMs * dt;
+  if (state.distanceTraveled >= totalLength) {
+    state.distanceTraveled = state.distanceTraveled % totalLength;
+    state.idx.i = 0;
+    state.nextPortal = 0;
+  }
+
+  const sample = sampleTrackAt(state.distanceTraveled, state.idx);
+  const pos = sample.position.clone()
+    .addScaledVector(sample.right, state.config.offset)
+    .addScaledVector(sample.up, 1.1);
+  state.cartGroup.position.copy(pos);
+  const m = new THREE.Matrix4().makeBasis(sample.right, sample.up, sample.forward.clone().multiplyScalar(-1));
+  state.cartGroup.quaternion.setFromRotationMatrix(m);
+
+  if (state.cartFlame) {
+    state.cartFlame.material.opacity = state.throttle ? 0.9 : 0.0;
+    const s = state.throttle ? 1 + Math.random() * 0.3 : 0.4;
+    state.cartFlame.scale.set(s, 1, s);
+  }
+
+  checkVehiclePortal(state.distanceTraveled, state, state.cart);
+
+  // In die eigene Gondel einsteigen, sobald der Eintrittspunkt erreicht ist
+  if (state.gondolaInfo && state.distanceTraveled >= state.gondolaInfo.entryDist && state.distanceTraveled < state.gondolaInfo.exitDist) {
+    state.inGondola = true;
+    state.gondolaProgress = 0;
+    state.distanceTraveled = state.gondolaInfo.entryDist;
+  }
+}
+
+/* ================= WELTALL / STERNENFELD ================= */
+
+function buildStarfield() {
+  // Grosses Feld aus vielen kleinen, leuchtenden Punktsternen rundum
+  const starCount = 6000;
+  const positions = new Float32Array(starCount * 3);
+  const colors = new Float32Array(starCount * 3);
+  const palette = [
+    [1, 1, 1], [0.75, 0.85, 1], [1, 0.9, 0.75], [0.8, 0.95, 1], [1, 0.8, 0.9]
+  ];
+  for (let i = 0; i < starCount; i++) {
+    // gleichmässig auf einer grossen Kugelschale verteilen, damit man nie an den Rand kommt
+    const radius = 900 + Math.random() * 1600;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = radius * Math.cos(phi);
+    positions[i * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+
+    const c = palette[Math.floor(Math.random() * palette.length)];
+    const brightness = 0.5 + Math.random() * 0.5;
+    colors[i * 3] = c[0] * brightness;
+    colors[i * 3 + 1] = c[1] * brightness;
+    colors[i * 3 + 2] = c[2] * brightness;
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const starMat = new THREE.PointsMaterial({ size: 3.2, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.95 });
+  scene.add(new THREE.Points(starGeo, starMat));
+
+  // ein paar grössere, kräftig leuchtende "nahe" Sterne für Tiefe
+  const bigStarMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  for (let i = 0; i < 60; i++) {
+    const radius = 400 + Math.random() * 500;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    const star = new THREE.Mesh(new THREE.SphereGeometry(1.2 + Math.random() * 1.8, 6, 6), bigStarMat.clone());
+    star.material.color.setHSL(Math.random(), 0.4, 0.85);
+    star.position.set(
+      radius * Math.sin(phi) * Math.cos(theta),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.sin(theta)
+    );
+    scene.add(star);
+  }
+}
+
+/* ================= CART / PLAYER ================= */
+
+function buildCartMesh(bodyColor, finColor) {
+  const group = new THREE.Group();
+
+  // ---- Skin A: das bisherige Achterbahn-Design ----
+  const skinA = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, metalness: 0.8, roughness: 0.25, emissive: bodyColor, emissiveIntensity: 0.35 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.0, 3.4), bodyMat);
+  body.position.y = 0.3;
+  skinA.add(body);
+
+  const canopyMat = new THREE.MeshStandardMaterial({ color: 0x35d7ff, transparent: true, opacity: 0.55, metalness: 0.2, roughness: 0.1, emissive: 0x0b8fb0, emissiveIntensity: 0.6 });
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), canopyMat);
+  canopy.position.set(0, 0.85, -0.2);
+  canopy.scale.set(1, 0.7, 1.4);
+  skinA.add(canopy);
+
+  const finMat = new THREE.MeshStandardMaterial({ color: finColor, emissive: finColor, emissiveIntensity: 0.6 });
+  [-1, 1].forEach((s) => {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, 1.6), finMat);
+    fin.position.set(s * 1.2, 0.4, -1.2);
+    skinA.add(fin);
+  });
+  group.add(skinA);
+
+  // ---- Skin B: rundes, futuristisches Pod-Design (wird an Fahrzeug-Portalen aktiviert) ----
+  const skinB = new THREE.Group();
+  const podMat = new THREE.MeshStandardMaterial({ color: finColor, metalness: 0.9, roughness: 0.15, emissive: finColor, emissiveIntensity: 0.4 });
+  const pod = new THREE.Mesh(new THREE.SphereGeometry(1.35, 20, 16), podMat);
+  pod.position.set(0, 0.55, 0);
+  pod.scale.set(1, 0.8, 1.5);
+  skinB.add(pod);
+  const ringMat = new THREE.MeshStandardMaterial({ color: bodyColor, emissive: bodyColor, emissiveIntensity: 1.0, metalness: 0.6, roughness: 0.3 });
+  const podRing = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.14, 8, 24), ringMat);
+  podRing.position.set(0, 0.35, 0);
+  podRing.rotation.x = Math.PI / 2;
+  skinB.add(podRing);
+  skinB.visible = false;
+  group.add(skinB);
+
+  // simplified human figure (in beiden Skins sichtbar)
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.8 });
+  const jacketMat = new THREE.MeshStandardMaterial({ color: 0x2255cc, roughness: 0.6 });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), skinMat);
+  head.position.set(0, 1.15, 0.3);
+  group.add(head);
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.7, 10), jacketMat);
+  torso.position.set(0, 0.7, 0.3);
+  group.add(torso);
+
+  // Heckdüse: Triebwerksgehäuse + Flamme, die beim Gasgeben aufleuchtet/wächst (unabhängig vom Skin)
+  const nozzleMat = new THREE.MeshStandardMaterial({ color: 0x2a2a33, metalness: 0.7, roughness: 0.4 });
+  const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, 0.6, 12), nozzleMat);
+  nozzle.rotation.x = Math.PI / 2;
+  nozzle.position.set(0, 0.3, 1.85);
+  group.add(nozzle);
+
+  const flameMat = new THREE.MeshStandardMaterial({ color: 0xff9d2e, emissive: 0xff6a00, emissiveIntensity: 2.2, transparent: true, opacity: 0.0 });
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.4, 12), flameMat);
+  flame.rotation.x = Math.PI / 2;
+  flame.position.set(0, 0.3, 2.7);
+  group.add(flame);
+
+  scene.add(group);
+  return { group, flame, skins: [skinA, skinB], skinIndex: 0 };
+}
+
+function buildCart() {
+  const built = buildCartMesh(0x141428, 0xff5566);
+  cartGroup = built.group;
+  cartFlame = built.flame;
+  built.skinIndex = 0;
+  playerCartBuilt = built; // fuer checkVehiclePortal (gleiche Struktur wie bei den KIs)
+}
+
+/* ================= GAME STATE ================= */
+
+function resetGame() {
+  distanceTraveled = 0;
+  playerIdx.i = 0;
+  speedKmh = 0;
+  started = false;
+  gameOver = false;
+  falling = false;
+  scoreSeconds = 0;
+  cartGroup.rotation.set(0, 0, 0);
+  inGondola = false;
+  gondolaProgress = 0;
+  playerPortalState.nextPortal = 0;
+  if (playerCartBuilt) { playerCartBuilt.skinIndex = 0; setCartSkin(playerCartBuilt, 0); }
+  if (gondolaInfo) {
+    gondolaInfo.box.position.copy(gondolaInfo.entryPos);
+    gondolaInfo.box.quaternion.copy(gondolaInfo.entryQuat);
+  }
+
+  aiStates.forEach((s) => {
+    s.distanceTraveled = 0;
+    s.idx.i = 0;
+    s.speedKmh = 0;
+    s.throttle = false;
+    s.targetSpeed = s.config.startTarget;
+    s.inGondola = false;
+    s.gondolaProgress = 0;
+    s.nextPortal = 0;
+    s.cart.skinIndex = 0;
+    setCartSkin(s.cart, 0);
+    if (s.gondolaInfo) {
+      s.gondolaInfo.box.position.copy(s.gondolaInfo.entryPos);
+      s.gondolaInfo.box.quaternion.copy(s.gondolaInfo.entryQuat);
+    }
+  });
+
+  document.getElementById('gameover').style.display = 'none';
+  document.getElementById('intro').style.display = 'block';
+}
+
+/* Wird ausgeloest, wenn der Player mehr als OVERSPEED_MARGIN (100 km/h) ueber dem
+   aktuellen Limit ist und dabei in eine Kurve faehrt: die Bahn verlaesst die Schiene
+   und faellt endgueltig ins All. */
+function startFalling() {
+  falling = true;
+  fallElapsed = 0;
+  const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(cartGroup.quaternion);
+  fallVelocity.copy(fwd).multiplyScalar((speedKmh / 3.6) * 0.4);
+}
+
+function finalizeDerail() {
+  falling = false;
+  gameOver = true;
+  document.getElementById('finalScore').textContent = scoreSeconds;
+  document.getElementById('gameover').style.display = 'flex';
+}
+
+function flashWrap() {
+  const f = document.getElementById('flash');
+  f.style.opacity = '1';
+  setTimeout(() => { f.style.opacity = '0'; }, 180);
+}
+
+/* ================= MAIN LOOP ================= */
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  // Schwarze Löcher drehen sich immer weiter (auch im Intro/Game-Over)
+  blackHoleVisuals.forEach((bh) => {
+    bh.ring.rotation.z += dt * 0.6;
+    bh.ring2.rotation.y += dt * 0.9;
+  });
+  // Planeten drehen sich langsam um sich selbst
+  planetMeshes.forEach((p) => {
+    p.mesh.rotation.y += p.spin * dt;
+  });
+  // Tunnel-Neonringe pulsieren/wechseln farblich durch
+  tunnelRings.forEach((tr) => {
+    const t = (performance.now() / 600 + tr.colorIndex) % tr.palette.length;
+    const idx = Math.floor(t);
+    const nextIdx = (idx + 1) % tr.palette.length;
+    const frac = t - idx;
+    const c1 = new THREE.Color(tr.palette[idx]);
+    const c2 = new THREE.Color(tr.palette[nextIdx]);
+    const mixed = c1.clone().lerp(c2, frac);
+    tr.mat.color.copy(mixed);
+    tr.mat.emissive.copy(mixed);
+  });
+
+  if (!gameOver && falling) {
+    // Die Bahn ist entgleist und faellt endgueltig ins dunkle All
+    fallElapsed += dt;
+    fallVelocity.y -= 240 * dt; // zieht die Bahn ins Leere
+    cartGroup.position.addScaledVector(fallVelocity, dt);
+    cartGroup.rotation.x += 2.4 * dt;
+    cartGroup.rotation.z += 1.6 * dt;
+
+    const desiredCamPos = cartGroup.position.clone().add(new THREE.Vector3(0, 18, 42));
+    camera.position.lerp(desiredCamPos, 1 - Math.pow(0.001, dt));
+    camera.up.set(0, 1, 0);
+    camera.lookAt(cartGroup.position);
+
+    if (cartFlame) cartFlame.material.opacity = 0;
+
+    if (fallElapsed > 2.5) finalizeDerail();
+  } else if (!gameOver) {
+    let sample, cartPos;
+
+    if (inGondola && gondolaInfo) {
+      // Die Gondel hat vollstaendig die Kontrolle: Spieler-Eingaben wirken hier nicht
+      const gapDist = gondolaInfo.exitDist - gondolaInfo.entryDist;
+      const crossDuration = Math.max(1, gapDist / (CABLECAR_SPEED / 3.6));
+      gondolaProgress = Math.min(1, gondolaProgress + dt / crossDuration);
+
+      const interpDist = THREE.MathUtils.lerp(gondolaInfo.entryDist, gondolaInfo.exitDist, gondolaProgress);
+      sample = sampleTrackAt(interpDist, playerIdx);
+      cartPos = sample.position.clone().addScaledVector(sample.up, 1.1);
+      cartGroup.position.copy(cartPos);
+      const gm = new THREE.Matrix4().makeBasis(sample.right, sample.up, sample.forward.clone().multiplyScalar(-1));
+      cartGroup.quaternion.setFromRotationMatrix(gm);
+
+      gondolaInfo.box.position.copy(sample.position);
+      gondolaInfo.box.quaternion.copy(cartGroup.quaternion);
+      if (cartFlame) cartFlame.material.opacity = 0;
+
+      if (gondolaProgress >= 1) {
+        inGondola = false;
+        distanceTraveled = gondolaInfo.exitDist;
+        speedKmh = CABLECAR_SPEED; // automatisches Abladen: faehrt mit Seilbahntempo weiter
+        gondolaInfo.box.position.copy(gondolaInfo.entryPos);
+        gondolaInfo.box.quaternion.copy(gondolaInfo.entryQuat);
+      }
+    } else {
+      // speed control
+      if (keys.up) {
+        speedKmh += ACCEL * dt;
+      } else if (keys.down) {
+        speedKmh -= DECEL * dt;
+      } else {
+        speedKmh -= FRICTION * dt; // rollt selbstständig langsamer, sobald ↑ losgelassen wird
+      }
+      speedKmh = THREE.MathUtils.clamp(speedKmh, 0, MAX_SPEED);
+
+      if (speedKmh > 0 && !started) {
+        started = true;
+        startTime = performance.now();
+      }
+      if (started) {
+        scoreSeconds = Math.floor((performance.now() - startTime) / 1000);
+      }
+
+      // move along track
+      const speedMs = speedKmh / 3.6;
+      distanceTraveled += speedMs * dt;
+      if (distanceTraveled >= totalLength) {
+        distanceTraveled = distanceTraveled % totalLength;
+        playerIdx.i = 0;
+        playerPortalState.nextPortal = 0;
+        flashWrap();
+      }
+
+      sample = sampleTrackAt(distanceTraveled, playerIdx);
+      cartPos = sample.position.clone().addScaledVector(sample.up, 1.1);
+      cartGroup.position.copy(cartPos);
+      const m = new THREE.Matrix4().makeBasis(sample.right, sample.up, sample.forward.clone().multiplyScalar(-1));
+      cartGroup.quaternion.setFromRotationMatrix(m);
+
+      // Szenenhintergrund wechselt, waehrend der Player im "anderen Universum" ist
+      const altRanges = getAltUniverseRanges();
+      scene.background = isInsideRange(playerIdx.i, altRanges) ? ALT_UNIVERSE_BG : NORMAL_BG;
+
+      // Heckdüse: zündet/leuchtet, sobald Gas gegeben wird (Pfeiltaste hoch)
+      if (cartFlame) {
+        cartFlame.material.opacity = keys.up ? 0.9 : 0.0;
+        const s = keys.up ? 1 + Math.random() * 0.3 : 0.4;
+        cartFlame.scale.set(s, 1, s);
+      }
+
+      // Fahrzeug-Portal: wechselt das Aussehen der Achterbahn, sobald man hindurchfliegt
+      checkVehiclePortal(distanceTraveled, playerPortalState, playerCartBuilt);
+
+      // In die Seilbahn-Gondel einsteigen, sobald der Eintrittspunkt erreicht ist
+      if (gondolaInfo && distanceTraveled >= gondolaInfo.entryDist && distanceTraveled < gondolaInfo.exitDist) {
+        inGondola = true;
+        gondolaProgress = 0;
+        distanceTraveled = gondolaInfo.entryDist;
+      }
+
+      // Neue Entgleisungs-Regel: erst wenn du mehr als 100 km/h ueber dem Limit bist UND
+      // gerade in eine Kurve faehrst, fliegst du aus der Bahn und faellst ins All.
+      currentLimit = getCurrentLimit(distanceTraveled);
+      const curveRanges = getCurveRanges();
+      const dangerouslyFast = speedKmh > currentLimit + OVERSPEED_MARGIN;
+      if (dangerouslyFast && isInsideCurve(playerIdx.i, curveRanges)) {
+        startFalling();
+      }
+    }
+
+    // alle vier KI-Achterbahnen aktualisieren
+    aiStates.forEach((s) => updateAiState(s, dt));
+
+    // camera follow (third person, banks/flips with track)
+    const camOffset = sample.forward.clone().multiplyScalar(-13).add(sample.up.clone().multiplyScalar(4));
+    const desiredCamPos = cartPos.clone().add(camOffset);
+    camera.position.lerp(desiredCamPos, 1 - Math.pow(0.00005, dt));
+    camera.up.copy(sample.up);
+    const lookTarget = cartPos.clone().add(sample.forward.clone().multiplyScalar(6));
+    camera.lookAt(lookTarget);
+
+    updateHUD();
+  }
+
+  renderer.render(scene, camera);
+}
+
+function updateHUD() {
+  document.getElementById('speedVal').textContent = Math.round(speedKmh);
+  document.getElementById('limitVal').textContent = currentLimit;
+  document.getElementById('scoreVal').textContent = scoreSeconds;
+  aiStates.forEach((s, i) => {
+    const el = document.getElementById('aiSpeedVal' + (i + 1));
+    if (el) el.textContent = Math.round(s.speedKmh);
+  });
+}
+
+</script>
+</body>
+</html>
