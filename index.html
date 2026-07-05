@@ -176,6 +176,72 @@ const CABLECAR_SPEED = 400;   // Geschwindigkeit auf der Seilbahn-Strecke (um 20
 const NORMAL_BG = new THREE.Color(0x02030a);       // finsteres Weltall
 const ALT_UNIVERSE_BG = new THREE.Color(0x230a2e); // "anderes Universum"
 
+// ---- Motorsound (Web Audio): Tonhoehe und Lautstaerke folgen der aktuellen Geschwindigkeit ----
+let audioCtx = null;
+let engineOsc, engineOsc2, engineGain, windNoise, windFilter, windGain;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // Motorton: zwei leicht verstimmte Saegezahn-Oszillatoren fuer einen satteren Klang
+  engineGain = audioCtx.createGain();
+  engineGain.gain.value = 0;
+  engineGain.connect(audioCtx.destination);
+
+  engineOsc = audioCtx.createOscillator();
+  engineOsc.type = 'sawtooth';
+  engineOsc.frequency.value = 40;
+  engineOsc.connect(engineGain);
+  engineOsc.start();
+
+  engineOsc2 = audioCtx.createOscillator();
+  engineOsc2.type = 'triangle';
+  engineOsc2.frequency.value = 40 * 1.5;
+  engineOsc2.connect(engineGain);
+  engineOsc2.start();
+
+  // Fahrtwind: gefiltertes Rauschen, dessen Cutoff mit dem Tempo steigt
+  const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+
+  windNoise = audioCtx.createBufferSource();
+  windNoise.buffer = noiseBuffer;
+  windNoise.loop = true;
+
+  windFilter = audioCtx.createBiquadFilter();
+  windFilter.type = 'lowpass';
+  windFilter.frequency.value = 200;
+
+  windGain = audioCtx.createGain();
+  windGain.gain.value = 0;
+
+  windNoise.connect(windFilter);
+  windFilter.connect(windGain);
+  windGain.connect(audioCtx.destination);
+  windNoise.start();
+}
+
+/* Aktualisiert Motorton + Fahrtwind anhand der aktuellen Spieler-Geschwindigkeit (0..MAX_SPEED).
+   Waehrend des Falls ins All oder im Game-Over-Bildschirm klingt der Motor schnell aus. */
+function updateEngineSound() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const ramp = 0.08;
+
+  const silent = gameOver || falling;
+  const speedFrac = silent ? 0 : THREE.MathUtils.clamp(speedKmh / MAX_SPEED, 0, 1);
+  const thrustBoost = (!silent && keys.up) ? 0.05 : 0;
+
+  engineOsc.frequency.setTargetAtTime(40 + speedFrac * 190, t, ramp);
+  engineOsc2.frequency.setTargetAtTime((40 + speedFrac * 190) * 1.5, t, ramp);
+  engineGain.gain.setTargetAtTime(silent ? 0 : 0.025 + speedFrac * 0.11 + thrustBoost, t, ramp);
+
+  windFilter.frequency.setTargetAtTime(200 + speedFrac * 2400, t, ramp);
+  windGain.gain.setTargetAtTime(silent ? 0 : 0.015 + speedFrac * 0.09, t, ramp);
+}
+
 init();
 animate();
 
@@ -236,6 +302,7 @@ function onResize() {
 }
 
 function onKeyDown(e) {
+  initAudio(); // Web Audio darf erst nach einer Nutzer-Interaktion starten
   if (e.code === 'ArrowUp') { keys.up = true; e.preventDefault(); dismissIntro(); }
   if (e.code === 'ArrowDown') { keys.down = true; e.preventDefault(); dismissIntro(); }
   if (e.code === 'Space') {
@@ -1353,6 +1420,8 @@ function flashWrap() {
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
+
+  updateEngineSound();
 
   // Schwarze Löcher drehen sich immer weiter (auch im Intro/Game-Over)
   blackHoleVisuals.forEach((bh) => {
