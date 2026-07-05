@@ -176,32 +176,97 @@ const CABLECAR_SPEED = 400;   // Geschwindigkeit auf der Seilbahn-Strecke (um 20
 const NORMAL_BG = new THREE.Color(0x02030a);       // finsteres Weltall
 const ALT_UNIVERSE_BG = new THREE.Color(0x230a2e); // "anderes Universum"
 
-// ---- Motorsound (Web Audio): Tonhoehe und Lautstaerke folgen der aktuellen Geschwindigkeit ----
+// ---- Motorsound (Web Audio): elektrischer Sci-Fi-Antrieb, folgt der aktuellen Geschwindigkeit ----
 let audioCtx = null;
-let engineOsc, engineOsc2, engineGain, windNoise, windFilter, windGain;
+let subOsc, carrierOsc, modOsc, ringGain, driveShaper, engineFilter, engineGain;
+let windNoise, windFilter, windGain;
+let shimmerGain, spaceDelay, spaceWet;
+
+// Weiche Tangens-Verzerrungskurve fuers WaveShaping (mehr "Biss"/Obertöne, kein hartes Clipping)
+function makeDriveCurve(amount) {
+  const n = 1024;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    curve[i] = Math.tanh(x * amount) / Math.tanh(amount);
+  }
+  return curve;
+}
 
 function initAudio() {
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const master = audioCtx.createGain();
+  master.gain.value = 1;
+  master.connect(audioCtx.destination);
 
-  // Motorton: zwei leicht verstimmte Saegezahn-Oszillatoren fuer einen satteren Klang
+  // Weltraum-Echo: kurzes, ruecksgekoppeltes Delay verleiht allem etwas Weite/Hall
+  spaceDelay = audioCtx.createDelay(1.0);
+  spaceDelay.delayTime.value = 0.24;
+  const spaceFeedback = audioCtx.createGain();
+  spaceFeedback.gain.value = 0.33;
+  spaceWet = audioCtx.createGain();
+  spaceWet.gain.value = 0.25;
+  spaceDelay.connect(spaceFeedback);
+  spaceFeedback.connect(spaceDelay);
+  spaceDelay.connect(spaceWet);
+  spaceWet.connect(master);
+
+  // Elektrischer Antrieb: Saegezahn-Traeger wird von einem Rechteck ringmoduliert
+  // (klassischer robotischer/elektrischer Klang), danach angezerrt fuer mehr Biss.
   engineGain = audioCtx.createGain();
   engineGain.gain.value = 0;
-  engineGain.connect(audioCtx.destination);
 
-  engineOsc = audioCtx.createOscillator();
-  engineOsc.type = 'sawtooth';
-  engineOsc.frequency.value = 40;
-  engineOsc.connect(engineGain);
-  engineOsc.start();
+  engineFilter = audioCtx.createBiquadFilter();
+  engineFilter.type = 'lowpass';
+  engineFilter.Q.value = 2.4;
+  engineFilter.frequency.value = 500;
 
-  engineOsc2 = audioCtx.createOscillator();
-  engineOsc2.type = 'triangle';
-  engineOsc2.frequency.value = 40 * 1.5;
-  engineOsc2.connect(engineGain);
-  engineOsc2.start();
+  driveShaper = audioCtx.createWaveShaper();
+  driveShaper.curve = makeDriveCurve(3.2);
+  driveShaper.oversample = '2x';
 
-  // Fahrtwind: gefiltertes Rauschen, dessen Cutoff mit dem Tempo steigt
+  ringGain = audioCtx.createGain();
+  ringGain.gain.value = 0; // wird komplett von modOsc angesteuert -> echte Ringmodulation
+
+  carrierOsc = audioCtx.createOscillator();
+  carrierOsc.type = 'sawtooth';
+  carrierOsc.frequency.value = 90;
+  carrierOsc.connect(ringGain);
+  carrierOsc.start();
+
+  modOsc = audioCtx.createOscillator();
+  modOsc.type = 'square';
+  modOsc.frequency.value = 90 * 2.01; // leicht verstimmtes Verhaeltnis -> metallisch/inharmonisch
+  modOsc.connect(ringGain.gain);
+  modOsc.start();
+
+  // leichtes elektrisches Vibrato auf dem Traeger
+  const vibrato = audioCtx.createOscillator();
+  vibrato.type = 'sine';
+  vibrato.frequency.value = 6.5;
+  const vibratoGain = audioCtx.createGain();
+  vibratoGain.gain.value = 4;
+  vibrato.connect(vibratoGain);
+  vibratoGain.connect(carrierOsc.detune);
+  vibrato.start();
+
+  subOsc = audioCtx.createOscillator();
+  subOsc.type = 'sine';
+  subOsc.frequency.value = 34;
+  const subGain = audioCtx.createGain();
+  subGain.gain.value = 0.6;
+  subOsc.connect(subGain);
+  subOsc.start();
+
+  ringGain.connect(driveShaper);
+  driveShaper.connect(engineFilter);
+  subGain.connect(engineFilter);
+  engineFilter.connect(engineGain);
+  engineGain.connect(master);
+  engineGain.connect(spaceDelay);
+
+  // Fahrtwind: bandpassgefiltertes Rauschen, Cutoff folgt dem Tempo ("Weltraum-Wind")
   const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
   const data = noiseBuffer.getChannelData(0);
   for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
@@ -211,20 +276,47 @@ function initAudio() {
   windNoise.loop = true;
 
   windFilter = audioCtx.createBiquadFilter();
-  windFilter.type = 'lowpass';
-  windFilter.frequency.value = 200;
+  windFilter.type = 'bandpass';
+  windFilter.Q.value = 0.7;
+  windFilter.frequency.value = 300;
 
   windGain = audioCtx.createGain();
   windGain.gain.value = 0;
 
   windNoise.connect(windFilter);
   windFilter.connect(windGain);
-  windGain.connect(audioCtx.destination);
+  windGain.connect(master);
   windNoise.start();
+
+  // Shimmer: drei leise, hoch liegende Sinus-Toene mit langsamem Tremolo fuer eine
+  // schwebende "unendliches All"-Atmosphaere, unabhaengig vom Tempo immer leise praesent.
+  shimmerGain = audioCtx.createGain();
+  shimmerGain.gain.value = 0.018;
+  shimmerGain.connect(spaceDelay);
+  shimmerGain.connect(master);
+  [1046.5, 1568, 2093].forEach((freq, i) => {
+    const o = audioCtx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    const g = audioCtx.createGain();
+    g.gain.value = 0.4;
+    const lfo = audioCtx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.05 + i * 0.03;
+    const lfoGain = audioCtx.createGain();
+    lfoGain.gain.value = 0.3;
+    lfo.connect(lfoGain);
+    lfoGain.connect(g.gain);
+    o.connect(g);
+    g.connect(shimmerGain);
+    o.start();
+    lfo.start();
+  });
 }
 
-/* Aktualisiert Motorton + Fahrtwind anhand der aktuellen Spieler-Geschwindigkeit (0..MAX_SPEED).
-   Waehrend des Falls ins All oder im Game-Over-Bildschirm klingt der Motor schnell aus. */
+/* Aktualisiert den elektrischen Antriebssound + Fahrtwind anhand der aktuellen
+   Spieler-Geschwindigkeit (0..MAX_SPEED). Waehrend des Falls ins All oder im
+   Game-Over-Bildschirm klingt der Motor schnell aus (nur der Weltraum-Shimmer bleibt). */
 function updateEngineSound() {
   if (!audioCtx) return;
   const t = audioCtx.currentTime;
@@ -232,14 +324,20 @@ function updateEngineSound() {
 
   const silent = gameOver || falling;
   const speedFrac = silent ? 0 : THREE.MathUtils.clamp(speedKmh / MAX_SPEED, 0, 1);
-  const thrustBoost = (!silent && keys.up) ? 0.05 : 0;
+  const thrustBoost = (!silent && keys.up) ? 0.06 : 0;
 
-  engineOsc.frequency.setTargetAtTime(40 + speedFrac * 190, t, ramp);
-  engineOsc2.frequency.setTargetAtTime((40 + speedFrac * 190) * 1.5, t, ramp);
-  engineGain.gain.setTargetAtTime(silent ? 0 : 0.025 + speedFrac * 0.11 + thrustBoost, t, ramp);
+  const carrierFreq = 70 + speedFrac * 260;
+  carrierOsc.frequency.setTargetAtTime(carrierFreq, t, ramp);
+  modOsc.frequency.setTargetAtTime(carrierFreq * 2.01, t, ramp);
+  subOsc.frequency.setTargetAtTime(28 + speedFrac * 46, t, ramp);
 
-  windFilter.frequency.setTargetAtTime(200 + speedFrac * 2400, t, ramp);
-  windGain.gain.setTargetAtTime(silent ? 0 : 0.015 + speedFrac * 0.09, t, ramp);
+  engineFilter.frequency.setTargetAtTime(400 + speedFrac * 3200, t, ramp);
+  engineGain.gain.setTargetAtTime(silent ? 0 : 0.05 + speedFrac * 0.16 + thrustBoost, t, ramp);
+
+  windFilter.frequency.setTargetAtTime(350 + speedFrac * 3200, t, ramp);
+  windGain.gain.setTargetAtTime(silent ? 0 : 0.02 + speedFrac * 0.1, t, ramp);
+
+  spaceWet.gain.setTargetAtTime(silent ? 0.15 : 0.25 + speedFrac * 0.15, t, 0.3);
 }
 
 init();
