@@ -93,7 +93,7 @@
 <div id="intro">
   <div class="titleCard">
     <h1>🎢 Endless Coaster</h1>
-    <p>Eine futuristische Achterbahn rast durchs finstere Weltall, umgeben von leuchtenden Sternen – mit weiträumigen, ausladenden Kurven, grosszügigen Loopings und seitlichen Loopings, zwei sehr langen, steilen Abhängen, futuristisch beleuchteten Tunneln, einem Goldminen-Tunnel, einer hügeligen Strecke, einer Schanze mit doppelt so langer Flugphase, einer nochmals verlängerten Seilbahn-Passage, einer senkrecht ausgelegten Schienenstrecke, einer Teilstrecke, auf der alle fünf Schienen kurz zu einer einzigen zusammenlaufen, vier goldenen Portalen, die dein Fahrzeug verwandeln, einem schwarzen Loch zu einem völlig anderen Universum voller Planeten (mit eigenem Looping, Schraubenlooping, einem besonders hohen Hügel und einer Schanze hoch über den Planeten!) und einem innen beleuchteten, breiten Zieltunnel statt einer offenen Geraden, in dem alle fünf Achterbahnen nebeneinander Platz haben.</p>
+    <p>Eine futuristische Achterbahn rast durchs finstere Weltall, umgeben von leuchtenden Sternen – mit weiträumigen, ausladenden Kurven, grosszügigen Loopings und seitlichen Loopings, zwei sehr langen, steilen Abhängen, futuristisch beleuchteten Tunneln, einem Goldminen-Tunnel, einer hügeligen Strecke, einer Schanze mit doppelt so langer Flugphase, einer nochmals verlängerten Seilbahn-Passage, einer senkrecht ausgelegten Schienenstrecke, einer Teilstrecke, auf der alle fünf Schienen kurz zu einer einzigen zusammenlaufen, vier goldenen Portalen, die dein Fahrzeug verwandeln, einem schwarzen Loch zu einem völlig anderen Universum voller Planeten (mit eigenem Looping, Schraubenlooping, einer Spirale, die sich hoch ins All hinaufbohrt und an ihrer Spitze senkrecht zurück nach unten stürzt, und einer Schanze hoch über den Planeten!) und einem innen beleuchteten, breiten Zieltunnel statt einer offenen Geraden, in dem alle fünf Achterbahnen nebeneinander Platz haben.</p>
     <p><span class="kbd">↑</span> gibt Gas (die Heckdüse zündet!), <span class="kbd">↓</span> bremst aktiv. Lässt du <span class="kbd">↑</span> los, wird die Bahn von allein langsamer.<br>
     Tempolimit-Schilder am Streckenrand: einmal 600, einmal 700, einmal 750, einmal 800, zweimal 850, dreimal 1000 km/h. Dein Höchsttempo: 850 km/h.<br>
     Bist du mehr als 100 km/h über dem geltenden Limit UND fährst dabei in eine Kurve, verlässt die Bahn die Schienen und fällt endgültig ins endlose All – kein Warnlicht, kein Countdown, es passiert einfach.<br>
@@ -580,6 +580,27 @@ function buildTrack() {
     trackSegments.push({ start: startIdx, end: trackPoints.length - 1, tunnel: false, curve: true });
   }
 
+  // Spirale/Schraube: bohrt sich in mehreren vollen Umdrehungen wie ein Bohrer spiralfoermig
+  // ins All hinauf. Die Bahn dreht sich fortlaufend um die Hoch-Achse (wie addSideLoop), steigt
+  // dabei aber gleichmaessig in der Welt-Vertikalen, statt auf gleicher Hoehe zu bleiben.
+  function addSpiralClimb(turns, radius, riseTotal) {
+    const totalAngleDeg = 360 * turns;
+    const steps = Math.max(24, Math.round(totalAngleDeg / 6));
+    const angleStep = THREE.MathUtils.degToRad(totalAngleDeg) / steps;
+    const stepLen = radius * Math.abs(angleStep);
+    const riseStep = riseTotal / steps;
+    const startIdx = trackPoints.length - 1;
+    for (let i = 0; i < steps; i++) {
+      const q = new THREE.Quaternion().setFromAxisAngle(state.up, angleStep);
+      state.forward.applyQuaternion(q);
+      reorthogonalize();
+      state.position.addScaledVector(state.forward, stepLen);
+      state.position.y += riseStep;
+      pushSample();
+    }
+    trackSegments.push({ start: startIdx, end: trackPoints.length - 1, tunnel: false, curve: true });
+  }
+
   // Teilstrecke, auf der alle fuenf Schienen (Player + 4 KIs) kurz zu einer einzigen
   // gemeinsamen Schiene zusammenlaufen und sich danach wieder auf ihre normalen seitlichen
   // Abstaende auftrennen. Die eigentliche Zusammenfuehrung passiert ueber mergeZoneInfo,
@@ -652,15 +673,17 @@ function buildTrack() {
   addGoldmineTunnel(500);      // NEU: Goldminen-Tunnel
   addStraight(80);
   addAltUniverse(() => {
-    addPlanetWeave(22, 14, 16, 110);
+    addStraight(160);
     addLoop(45, 1);              // Looping mitten im Planetenfeld
-    addPlanetWeave(14, 13, 15, 105);
-    addCorkscrew(150, 360, 1);   // NEU: Schraubenlooping (Corkscrew) mitten im Planetenfeld
-    addPlanetWeave(10, 13, 15, 105);
-    addHill(80, 380);            // NEU: sehr hoher Hügel - steiler Anstieg weit über die Planeten hinaus
-    addHill(-80, 380);           //      ... und wieder hinunter
+    addStraight(160);
+    addCorkscrew(150, 360, 1);   // Schraubenlooping (Corkscrew) mitten im Planetenfeld
+    addStraight(160);
+    addSpiralClimb(4, 90, 260);  // NEU: Spirale/Schraube, die sich hoch ins All hinaufbohrt
+    addHill(-90, 260);           // NEU: an der Spitze kippt die Bahn senkrecht nach unten ab
+    addStraight(420);            // NEU: langer senkrechter Sturz zurueck Richtung Planeten
+    addHill(90, 260);            // NEU: faengt die Bahn wieder ab, zurueck in die Horizontale
+    addStraight(160);
     addRamp(48, 160, 380, 160);  // hohe Schanze - fliegt weit über die Planeten, wird am Ende wieder aufgefangen
-    addPlanetWeave(18, 14, 16, 110);
   });
   addStraight(80);
   addVehiclePortal();        // NEU: Fahrzeug-Wechsel-Portal 2
