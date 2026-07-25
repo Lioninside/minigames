@@ -49,6 +49,12 @@
     position: fixed; inset: 0; background: #ffffff; opacity: 0;
     transition: opacity 0.15s ease; pointer-events: none; z-index: 5;
   }
+
+  #loaderr {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center; background: #ffffff; z-index: 20;
+  }
+  #loaderr .titleCard h1 { color: #d1272c; }
 </style>
 </head>
 <body>
@@ -113,8 +119,27 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<div id="loaderr">
+  <div class="titleCard">
+    <h1>⚠️ 3D-Engine konnte nicht geladen werden</h1>
+    <p>Die Grafikbibliothek <b>Three.js</b> wurde weder lokal (<code>three.min.js</code>) noch über das Internet gefunden, deshalb kann die Achterbahn nicht starten.</p>
+    <p>Stelle sicher, dass die Datei <code>three.min.js</code> neben <code>index.html</code> liegt, oder öffne die Seite mit einer aktiven Internetverbindung.</p>
+  </div>
+</div>
+
+<!-- Three.js: zuerst die lokal mitgelieferte Kopie (funktioniert offline / ohne CDN),
+     nur wenn die fehlt, wird als Rückfall das CDN nachgeladen. -->
+<script src="./three.min.js"></script>
 <script>
+  if (!window.THREE) {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+  }
+</script>
+<script>
+if (!window.THREE) {
+  // Weder lokal noch per CDN verfügbar -> verständliche Meldung statt weißer Seite.
+  document.getElementById('loaderr').style.display = 'flex';
+} else {
 /* ================= ENDLESS COASTER – GAME LOGIC ================= */
 
 let scene, camera, renderer, clock;
@@ -1702,6 +1727,7 @@ function updateHUD() {
   });
 }
 
+} // Ende des THREE-verfügbar-Guards
 </script>
 </body>
 </html>
