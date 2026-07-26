@@ -300,6 +300,11 @@ const CABLECAR_SPEED = 400;   // Geschwindigkeit auf der Seilbahn-Strecke (um 20
 const NORMAL_BG = new THREE.Color(0x02030a);       // finsteres Weltall (Level 1)
 const ALT_UNIVERSE_BG = new THREE.Color(0x230a2e); // "anderes Universum"
 
+// Performance-Hilfen: Frame-Zähler (fürs Drosseln von HUD/Effekten) + wiederverwendete Scratch-Objekte
+let frameCount = 0;
+const _ringC1 = new THREE.Color(), _ringC2 = new THREE.Color();
+const _camOffset = new THREE.Vector3(), _camPos = new THREE.Vector3(), _lookTarget = new THREE.Vector3();
+
 // Aktuell geltender Hintergrund/Nebel (wird von applyLevelTheme() gesetzt und in animate()
 // verwendet, ausser waehrend der Player im "anderen Universum" ist).
 let themeBaseBg = NORMAL_BG.clone();
@@ -308,7 +313,8 @@ let themeFog = null;
 // Referenzen auf themenfähige Materialien (werden beim Bau eingesammelt und pro Level umgefärbt)
 let playerRailMat = null;      // Schienen-Röhre der Spielerbahn
 let themeTieMats = [];         // alle Schwellen-Materialien (Player + KI)
-const placeGroups = {};        // { city, desert, jungle, ocean, moon, ice, castle } -> pro Level ein-/ausgeblendet
+const placeGroups = {};        // { city, desert, jungle, ocean, moon, ice, castle }; nur die aktive hängt in der Szene
+let currentPlaceKey = null;    // Schlüssel der aktuell eingehängten Welt (Performance: nur eine gleichzeitig)
 let starGroup = null;          // Sternenfeld (nur im Weltall- und Mond-Level sichtbar)
 
 // Themen der 7 Level: Hintergrund, Nebel, Schienenfarbe, Schwellenfarbe, Spieler-Auto, Ort-Deko.
@@ -335,7 +341,7 @@ const RACER_META = [
 ];
 
 // ---- Minimap (Navi-Übersicht unten links) ----
-let miniCanvas = null, miniCtx = null, miniProjected = null; // vorprojizierte Streckenpunkte (2D)
+let miniCanvas = null, miniCtx = null, miniProjected = null, miniTrackCanvas = null; // Minimap (2D)
 
 // ---- Drachenauto (Gegner im Schloss-Duell) ----
 let dragonState = null;
@@ -1656,7 +1662,7 @@ function buildDesertDecor(box, groundY) {
   g.add(buildGround(0xd9b36a, groundY, box, { roughness: 1.0 }));
   const duneMat = new THREE.MeshStandardMaterial({ color: 0xcaa25a, roughness: 1.0 });
   const cactusMat = new THREE.MeshStandardMaterial({ color: 0x3f7d3a, roughness: 0.8 });
-  forEachTrackSpot(8, (p) => {
+  forEachTrackSpot(11, (p) => {
     for (let s = -1; s <= 1; s += 2) {
       const off = 50 + Math.random() * 260;
       const bx = p.x + s * off + (Math.random() - 0.5) * 50;
@@ -1690,7 +1696,7 @@ function buildJungleDecor(box, groundY) {
   g.add(buildGround(0x2f6a2f, groundY, box, { roughness: 1.0 }));
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1e, roughness: 0.9 });
   const leafMats = [0x1f7d2a, 0x2c9c3a, 0x3fb54a].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85 }));
-  forEachTrackSpot(6, (p) => {
+  forEachTrackSpot(9, (p) => {
     for (let s = -1; s <= 1; s += 2) {
       if (Math.random() < 0.2) continue;
       const off = 40 + Math.random() * 240;
@@ -1701,7 +1707,7 @@ function buildJungleDecor(box, groundY) {
       trunk.position.set(bx, groundY + hgt / 2, bz);
       g.add(trunk);
       const leafMat = leafMats[Math.floor(Math.random() * leafMats.length)];
-      for (let k = 0; k < 3; k++) {
+      for (let k = 0; k < 2; k++) {
         const r = 5 + Math.random() * 5;
         const leaf = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 7), leafMat);
         leaf.position.set(bx + (Math.random() - 0.5) * 6, groundY + hgt + (Math.random() - 0.3) * 6, bz + (Math.random() - 0.5) * 6);
@@ -1859,7 +1865,7 @@ function buildIceDecor(box, groundY) {
   g.add(buildGround(0xdff1fb, groundY, box, { roughness: 0.4, metalness: 0.2 }));
   const iceMat = new THREE.MeshStandardMaterial({ color: 0xbfe6f5, roughness: 0.3, metalness: 0.25, transparent: true, opacity: 0.9 });
   const snowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
-  forEachTrackSpot(8, (p, i) => {
+  forEachTrackSpot(11, (p, i) => {
     for (let s = -1; s <= 1; s += 2) {
       const off = 45 + Math.random() * 280;
       const bx = p.x + s * off + (Math.random() - 0.5) * 60;
@@ -1898,7 +1904,7 @@ function buildCastleDecor(box, groundY) {
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x8a8f96, roughness: 0.9 });
   const roofMat = new THREE.MeshStandardMaterial({ color: 0x7a2233, roughness: 0.8 });
   const flagMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, emissive: 0x3a2f0a, roughness: 0.6, side: THREE.DoubleSide });
-  forEachTrackSpot(9, (p) => {
+  forEachTrackSpot(13, (p) => {
     for (let s = -1; s <= 1; s += 2) {
       const off = 70 + Math.random() * 220;
       const bx = p.x + s * off + (Math.random() - 0.5) * 40;
@@ -1924,7 +1930,7 @@ function buildCastleDecor(box, groundY) {
         const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, 8), stoneMat);
         wall.position.set(bx, groundY + h / 2, bz);
         g.add(wall);
-        const n = Math.floor(w / 6);
+        const n = Math.floor(w / 10);
         for (let c = 0; c < n; c++) {
           const merlon = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4, 8), stoneMat);
           merlon.position.set(bx - w / 2 + 3 + c * 6, groundY + h + 2, bz);
@@ -1937,6 +1943,11 @@ function buildCastleDecor(box, groundY) {
 }
 
 /* Baut alle Level-Welten einmal auf (anfangs unsichtbar) und blendet sie später per Level ein/aus. */
+/* Friert die statischen Transforms einer Gruppe ein (kein Neuberechnen der Matrix pro Frame). */
+function freezeStatic(group) {
+  group.traverse(o => { o.matrixAutoUpdate = false; o.updateMatrix(); });
+}
+
 function buildLevelWorlds() {
   const box = getTrackBounds();
   const groundY = box.min.y - 14;
@@ -1947,7 +1958,10 @@ function buildLevelWorlds() {
   placeGroups.moon = buildMoonDecor(box, groundY);
   placeGroups.ice = buildIceDecor(box, groundY);
   placeGroups.castle = buildCastleDecor(box, groundY);
-  Object.values(placeGroups).forEach(g => { g.visible = false; scene.add(g); });
+  // Statische Deko einfrieren; nur die animierten Haie brauchen weiterhin Auto-Updates.
+  Object.values(placeGroups).forEach(g => freezeStatic(g));
+  swimmers.forEach(s => { s.mesh.matrixAutoUpdate = true; });
+  // WICHTIG: Welten werden NICHT alle in die Szene gehängt - nur die jeweils aktive (applyTheme).
 }
 
 /* Wendet ein Thema an: Hintergrund/Nebel, Schienen-/Schwellenfarbe, Spieler-Auto (nur beim
@@ -1969,7 +1983,12 @@ function applyTheme(t, aiMax) {
     if (mats.podRing) { mats.podRing.color.setHex(t.carBody); mats.podRing.emissive.setHex(t.carBody); }
   }
 
-  Object.entries(placeGroups).forEach(([key, grp]) => { grp.visible = (key === t.place); });
+  // Nur die aktive Welt in der Szene halten (spart pro Frame das Durchlaufen aller anderen).
+  if (currentPlaceKey !== t.place) {
+    if (currentPlaceKey && placeGroups[currentPlaceKey]) scene.remove(placeGroups[currentPlaceKey]);
+    if (t.place && placeGroups[t.place]) scene.add(placeGroups[t.place]);
+    currentPlaceKey = t.place;
+  }
   if (starGroup) starGroup.visible = (t.place === null || t.place === 'moon'); // Sterne im Weltall + auf dem Mond
 }
 
@@ -2303,19 +2322,24 @@ function initMinimap() {
   const ox = (W - s * spanX) / 2, oz = (H - s * spanZ) / 2;
   const toX = x => ox + (x - minX) * s;
   const toY = z => oz + (z - minZ) * s;
-  miniProjected = { toX, toY, pts: trackPoints.map(p => [toX(p.x), toY(p.z)]) };
+  miniProjected = { toX, toY };
+
+  // Streckenlinie EINMAL in ein Offscreen-Canvas rendern (jede Runde identisch)
+  miniTrackCanvas = document.createElement('canvas');
+  miniTrackCanvas.width = W; miniTrackCanvas.height = H;
+  const c = miniTrackCanvas.getContext('2d');
+  c.strokeStyle = 'rgba(120,130,180,0.85)';
+  c.lineWidth = 2;
+  c.beginPath();
+  trackPoints.forEach((p, i) => { const x = toX(p.x), y = toY(p.z); i ? c.lineTo(x, y) : c.moveTo(x, y); });
+  c.stroke();
 }
 
 function drawMinimap() {
   if (!miniCtx || !miniProjected) return;
   const W = miniCanvas.width, H = miniCanvas.height;
   miniCtx.clearRect(0, 0, W, H);
-  // Streckenlinie
-  miniCtx.strokeStyle = 'rgba(120,130,180,0.85)';
-  miniCtx.lineWidth = 2;
-  miniCtx.beginPath();
-  miniProjected.pts.forEach((pt, i) => { i ? miniCtx.lineTo(pt[0], pt[1]) : miniCtx.moveTo(pt[0], pt[1]); });
-  miniCtx.stroke();
+  miniCtx.drawImage(miniTrackCanvas, 0, 0); // vorgezeichnete Strecke
   // Autos als Punkte
   const dots = [];
   dots.push({ x: cartGroup.position.x, z: cartGroup.position.z, color: '#16209c', me: true });
@@ -2442,6 +2466,7 @@ function flashWrap() {
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
+  frameCount++;
 
   updateEngineSound();
 
@@ -2455,7 +2480,7 @@ function animate() {
     p.mesh.rotation.y += p.spin * dt;
   });
   // Haie kreisen im Meer-Level langsam an der Wasseroberfläche
-  if (placeGroups.ocean && placeGroups.ocean.visible) {
+  if (currentPlaceKey === 'ocean') {
     swimmers.forEach((sw) => {
       sw.angle += sw.speed * dt;
       const x = sw.cx + Math.cos(sw.angle) * sw.radius;
@@ -2464,18 +2489,19 @@ function animate() {
       sw.mesh.rotation.y = -sw.angle + Math.PI / 2; // Nase in Schwimmrichtung
     });
   }
-  // Tunnel-Neonringe pulsieren/wechseln farblich durch
-  tunnelRings.forEach((tr) => {
-    const t = (performance.now() / 600 + tr.colorIndex) % tr.palette.length;
-    const idx = Math.floor(t);
-    const nextIdx = (idx + 1) % tr.palette.length;
-    const frac = t - idx;
-    const c1 = new THREE.Color(tr.palette[idx]);
-    const c2 = new THREE.Color(tr.palette[nextIdx]);
-    const mixed = c1.clone().lerp(c2, frac);
-    tr.mat.color.copy(mixed);
-    tr.mat.emissive.copy(mixed);
-  });
+  // Tunnel-Neonringe pulsieren/wechseln farblich durch (nur jeden 3. Frame, ohne Allokationen)
+  if (frameCount % 3 === 0) {
+    const now = performance.now();
+    tunnelRings.forEach((tr) => {
+      const t = (now / 600 + tr.colorIndex) % tr.palette.length;
+      const idx = Math.floor(t);
+      const frac = t - idx;
+      _ringC1.setHex(tr.palette[idx]);
+      _ringC2.setHex(tr.palette[(idx + 1) % tr.palette.length]);
+      tr.mat.color.copy(_ringC1).lerp(_ringC2, frac);
+      tr.mat.emissive.copy(tr.mat.color);
+    });
+  }
 
   if (!gameOver && falling) {
     // Die Bahn ist entgleist und faellt endgueltig ins dunkle All
@@ -2593,15 +2619,16 @@ function animate() {
       else aiStates.forEach((s) => updateAiState(s, dt));
     }
 
-    // camera follow (third person, banks/flips with track)
-    const camOffset = sample.forward.clone().multiplyScalar(-13).add(sample.up.clone().multiplyScalar(4));
-    const desiredCamPos = cartPos.clone().add(camOffset);
-    camera.position.lerp(desiredCamPos, 1 - Math.pow(0.00005, dt));
+    // camera follow (third person, banks/flips with track) - ohne Pro-Frame-Allokationen
+    _camOffset.copy(sample.forward).multiplyScalar(-13).addScaledVector(sample.up, 4);
+    _camPos.copy(cartPos).add(_camOffset);
+    camera.position.lerp(_camPos, 1 - Math.pow(0.00005, dt));
     camera.up.copy(sample.up);
-    const lookTarget = cartPos.clone().add(sample.forward.clone().multiplyScalar(6));
-    camera.lookAt(lookTarget);
+    _lookTarget.copy(cartPos).addScaledVector(sample.forward, 6);
+    camera.lookAt(_lookTarget);
 
-    updateHUD();
+    // HUD/Rangliste/Minimap nur alle 3 Frames aktualisieren (spart DOM-/Canvas-Arbeit)
+    if (frameCount % 3 === 0) updateHUD();
   }
 
   renderer.render(scene, camera);
