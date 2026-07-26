@@ -21,9 +21,16 @@ Danach `http://localhost:8000` aufrufen.
 - `Leertaste` – Spiel starten / neustarten
 - `Enter` – Neustart nach Absturz
 
-## Level & Rangliste
+## Rennen, Level & Duell
 
-- Rechts zeigt eine **Live-Rangliste** Platzierung und Tempo aller fünf Achterbahnen (du + vier KI-Gegner), sortiert nach zurückgelegter Strecke.
-- Mit jeder abgeschlossenen Runde steigt das **Level** (max. 5). Pro Level verwandelt sich die ganze Welt (Hintergrund, Auto, Bahn, Umgebung):
-  1. **Weltall** · 2. **Grossstadt** · 3. **Wüste** · 4. **Dschungel** · 5. **Meer**
-- Mit jedem Level werden die Gegner schneller – Höchsttempo **450 → 550 → 650 → 750 → 850 km/h**.
+- **Jedes Level ist ein Rennen über eine Runde.** Alle Autos starten gemeinsam an der Startlinie. Wirst du **Erster**, geht es ins nächste Level – wirst du nicht Erster (oder stürzt ab), geht es zurück zu **Level 1**.
+- Rechts eine **Live-Rangliste**, unten links eine **Navi-Streckenübersicht** (Minimap) mit den Positionen aller Autos.
+- **7 Welten** (Hintergrund, Auto, Bahn und Umgebung wechseln pro Level):
+  1. **Weltall** · 2. **Grossstadt** · 3. **Wüste** · 4. **Dschungel** · 5. **Meer** (mit Haien) · 6. **Mondlandschaft** · 7. **Eislandschaft** (mit Eisbären)
+- Tempo der Gegner: In den Leveln **1–6 gleich schnell** wie der Player (850 km/h), im **7. Level 100 km/h schneller**.
+
+## Schloss-Duell & Fahrzeug-Shop
+
+- Nach Level 7 folgt das **Schloss-Duell 🐉**: ein 1-gegen-1-Rennen gegen das Drachenauto (bis zu **200 km/h schneller**) über eine Runde in einem riesigen Ritterschloss.
+- Gewinnst du, bekommst du einen **Pokal**. Mit mindestens einem Pokal kannst du im **Shop** ein neues Auto kaufen (kostet 1 Pokal): 🏎️ **Formel 1**, 🚙 **Monstertruck** oder 🟡 **U-Boot**. Pokale und Autos werden lokal gespeichert.
+- Verlierst du irgendein Rennen, beginnst du wieder bei Level 1.
