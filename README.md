@@ -27,10 +27,10 @@ Danach `http://localhost:8000` aufrufen.
 - Rechts eine **Live-Rangliste**, unten links eine **Navi-Streckenübersicht** (Minimap) mit den Positionen aller Autos.
 - **7 Welten** (Hintergrund, Auto, Bahn und Umgebung wechseln pro Level):
   1. **Weltall** · 2. **Grossstadt** · 3. **Wüste** · 4. **Dschungel** · 5. **Meer** (mit Haien) · 6. **Mondlandschaft** · 7. **Eislandschaft** (mit Eisbären)
-- Tempo der Gegner: In den Leveln **1–6 gleich schnell** wie der Player (850 km/h), im **7. Level 100 km/h schneller**.
+- Tempo der Gegner: In **allen Leveln gleich schnell** wie der Player (850 km/h) – gewinnen tust du durch sauberes Fahren.
 
 ## Schloss-Duell & Fahrzeug-Shop
 
-- Nach Level 7 folgt das **Schloss-Duell 🐉**: ein 1-gegen-1-Rennen gegen das Drachenauto (bis zu **200 km/h schneller**) über eine Runde in einem riesigen Ritterschloss.
+- Nach Level 7 folgt das **Schloss-Duell 🐉**: ein 1-gegen-1-Rennen gegen das Drachenauto (gleich schnell) über eine Runde in einem riesigen Ritterschloss.
 - Gewinnst du, bekommst du einen **Pokal**. Mit mindestens einem Pokal kannst du im **Shop** ein neues Auto kaufen (kostet 1 Pokal): 🏎️ **Formel 1**, 🚙 **Monstertruck** oder 🟡 **U-Boot**. Pokale und Autos werden lokal gespeichert.
 - Verlierst du irgendein Rennen, beginnst du wieder bei Level 1.

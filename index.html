@@ -153,8 +153,8 @@
     Bist du mehr als 100 km/h über dem Tempolimit UND fährst dabei in eine Kurve, verlässt die Bahn die Schienen und du stürzt ab – das bedeutet: zurück zu Level 1!<br>
     Neben dir fahren <b>vier</b> Gegner (rot, grün, lila, orange). Rechts die <b>Live-Rangliste</b>, unten links eine <b>Navi-Streckenübersicht</b> mit allen Positionen.</p>
     <p><b>Jedes Level ist ein Rennen über eine Runde:</b> Wirst du <b>Erster</b>, geht es ins nächste Level – sonst zurück zu Level 1.<br>
-    <b>7 Welten:</b> 1) Weltall · 2) Grossstadt · 3) Wüste · 4) Dschungel · 5) Meer (mit Haien!) · 6) Mondlandschaft · 7) Eislandschaft (mit Eisbären). In den Leveln 1–6 sind alle gleich schnell (850 km/h), im 7. Level sind die Gegner 100 km/h schneller.<br>
-    Danach das <b>Schloss-Duell 🐉</b> gegen das Drachenauto (bis zu 200 km/h schneller!). Gewinnst du, bekommst du einen <b>Pokal</b> und kannst dir im Shop ein neues Auto kaufen: 🏎️ Formel 1, 🚙 Monstertruck oder 🟡 U-Boot.</p>
+    <b>7 Welten:</b> 1) Weltall · 2) Grossstadt · 3) Wüste · 4) Dschungel · 5) Meer (mit Haien!) · 6) Mondlandschaft · 7) Eislandschaft (mit Eisbären). Alle Fahrer sind gleich schnell (850 km/h) – gewinnen tust du durch sauberes Fahren.<br>
+    Danach das <b>Schloss-Duell 🐉</b> gegen das Drachenauto (auch gleich schnell). Gewinnst du, bekommst du einen <b>Pokal</b> und kannst dir im Shop ein neues Auto kaufen: 🏎️ Formel 1, 🚙 Monstertruck oder 🟡 U-Boot.</p>
     <p style="margin-top:16px;"><b>Drücke <span class="kbd">Leertaste</span>, um zu starten.</b></p>
   </div>
 </div>
@@ -290,10 +290,9 @@ const ACCEL = 220;    // km/h per second while accelerating (↑ gedrückt)
 const DECEL = 260;    // km/h per second while actively braking (↓ gedrückt)
 const FRICTION = 90;  // km/h per second automatische Verlangsamung, wenn ↑ NICHT gedrückt wird
 const MAX_SPEED = 850;    // Höchstgeschwindigkeit des Players
-// KI-Höchsttempo pro Level: Level 1-6 gleich schnell wie der Player (850), im letzten Level (7)
-// sind die Gegner 100 km/h schneller. Im Schloss-Duell darf das Drachenauto 200 km/h schneller.
-const LEVEL_AI_SPEEDS = [850, 850, 850, 850, 850, 850, 950];
-const DUEL_DRAGON_SPEED = MAX_SPEED + 200; // 1050 km/h
+// KI-Höchsttempo pro Level: in allen Leveln gleich schnell wie der Player (850 km/h).
+const LEVEL_AI_SPEEDS = [850, 850, 850, 850, 850, 850, 850];
+const DUEL_DRAGON_SPEED = MAX_SPEED; // Drachenauto gleich schnell wie der Player (850 km/h)
 let aiMaxSpeed = LEVEL_AI_SPEEDS[0]; // aktuell geltendes KI-Höchsttempo (per Level gesetzt)
 const OVERSPEED_MARGIN = 100; // erst 100 km/h ueber dem Limit wird es gefaehrlich
 const CABLECAR_SPEED = 400;   // Geschwindigkeit auf der Seilbahn-Strecke (um 200 km/h erhöht)
