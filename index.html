@@ -302,6 +302,10 @@ const ALT_UNIVERSE_BG = new THREE.Color(0x230a2e); // "anderes Universum"
 
 // Performance-Hilfen: Frame-Zähler (fürs Drosseln von HUD/Effekten) + wiederverwendete Scratch-Objekte
 let frameCount = 0;
+// Adaptive Auflösung: senkt die Render-Auflösung automatisch, wenn die Bildrate einbricht,
+// und hebt sie wieder an, sobald genug Luft ist -> bleibt auf jedem Gerät flüssig.
+const BASE_PIXEL_RATIO = Math.min(window.devicePixelRatio || 1, 1.5);
+let renderScale = 1, perfAccum = 0, perfFrames = 0;
 const _ringC1 = new THREE.Color(), _ringC2 = new THREE.Color();
 const _camOffset = new THREE.Vector3(), _camPos = new THREE.Vector3(), _lookTarget = new THREE.Vector3();
 
@@ -541,8 +545,8 @@ function init() {
 
   camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 5000);
 
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(BASE_PIXEL_RATIO * renderScale);
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.getElementById('canvas-wrap').appendChild(renderer.domElement);
 
@@ -2465,8 +2469,20 @@ function flashWrap() {
 
 function animate() {
   requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const raw = clock.getDelta();
+  const dt = Math.min(raw, 0.05);
   frameCount++;
+
+  // Adaptive Auflösung: alle 40 Frames die Bildrate prüfen und Render-Skalierung anpassen.
+  perfAccum += raw; perfFrames++;
+  if (perfFrames >= 40) {
+    const fps = perfFrames / perfAccum;
+    perfAccum = 0; perfFrames = 0;
+    let ns = renderScale;
+    if (fps < 45) ns = Math.max(0.55, renderScale - 0.12);      // ruckelt -> Auflösung senken
+    else if (fps > 57 && renderScale < 1) ns = Math.min(1, renderScale + 0.08); // Luft -> wieder anheben
+    if (ns !== renderScale) { renderScale = ns; renderer.setPixelRatio(BASE_PIXEL_RATIO * renderScale); }
+  }
 
   updateEngineSound();
 
