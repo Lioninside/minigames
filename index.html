@@ -33,12 +33,26 @@
     padding: 6px 14px; border-radius: 10px; border: 1px solid #e2e2ee;
   }
 
-  #intro, #gameover {
+  #intro, #gameover, #raceresult, #shop {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
     flex-direction: column; text-align: center; background: rgba(255,255,255,0.92);
     z-index: 10;
   }
-  #gameover { display: none; }
+  #gameover, #raceresult, #shop { display: none; }
+
+  #shopCards { display: flex; gap: 14px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+  .shopCard {
+    width: 150px; padding: 16px 12px; border-radius: 14px; border: 2px solid #dcdce8;
+    background: #f7f8fc; cursor: pointer; pointer-events: auto; transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  }
+  .shopCard:hover { transform: translateY(-3px); border-color: #16209c; box-shadow: 0 8px 22px rgba(20,20,60,0.15); }
+  .shopCard.owned { border-color: #22aa44; background: #f0fbf3; }
+  .shopCard.selected { border-color: #16209c; box-shadow: 0 0 0 3px rgba(22,32,156,0.18); }
+  .shopCard .shopIcon { font-size: 42px; }
+  .shopCard .shopName { font-weight: 700; color: #16209c; margin: 6px 0 4px; }
+  .shopCard .shopStatus { font-size: 13px; color: #555; }
+
+  #miniPanel canvas { display: block; background: rgba(245,246,252,0.6); border-radius: 8px; }
   .titleCard { max-width: 520px; padding: 30px 36px; border-radius: 18px;
     background: #ffffff; border: 1px solid #e4e4f2; box-shadow: 0 10px 40px rgba(20,20,60,0.12); }
   .titleCard h1 { margin: 0 0 10px; color: #16209c; font-size: 26px; }
@@ -107,12 +121,12 @@
   </div>
 
   <div id="scorePanel" class="panel">
-    <div class="row">Score</div>
-    <div class="big"><span id="scoreVal">0</span> s</div>
+    <div class="row">🏆 Pokale</div>
+    <div class="big"><span id="scoreVal">0</span></div>
   </div>
 
   <div id="levelPanel" class="panel" style="top: 96px; right: 18px; text-align:right; min-width: 150px;">
-    <div class="row">Level <span id="levelVal" style="font-weight:700; color:#16209c;">1</span> / 5</div>
+    <div class="row">Level <span id="levelVal" style="font-weight:700; color:#16209c;">1</span> / 7</div>
     <div class="row" style="font-weight:700;" id="worldVal">🌌 Weltall</div>
   </div>
 
@@ -121,7 +135,12 @@
     <div id="rankList"></div>
   </div>
 
-  <div id="hint">⬆ schneller &nbsp;·&nbsp; ⬇ langsamer &nbsp;·&nbsp; Mehr als 100 km/h über dem Limit + Kurve = Absturz ins All!</div>
+  <div id="miniPanel" class="panel" style="left: 18px; bottom: 18px; padding: 8px;">
+    <div class="row" style="font-size:12px; color:#555; margin-bottom:4px;">🗺️ Streckenübersicht</div>
+    <canvas id="minimap" width="180" height="150"></canvas>
+  </div>
+
+  <div id="hint">⬆ schneller &nbsp;·&nbsp; ⬇ langsamer &nbsp;·&nbsp; Werde <b>Erster</b> pro Runde – sonst zurück zu Level 1!</div>
 </div>
 
 <div id="levelBanner"></div>
@@ -131,22 +150,55 @@
     <h1>🎢 Endless Coaster</h1>
     <p>Eine futuristische Achterbahn rast durchs finstere Weltall, umgeben von leuchtenden Sternen – mit weiträumigen, ausladenden Kurven, grosszügigen Loopings und seitlichen Loopings, zwei sehr langen, steilen Abhängen, futuristisch beleuchteten Tunneln, einem Goldminen-Tunnel, einer hügeligen Strecke, einer Schanze mit doppelt so langer Flugphase, einer nochmals verlängerten Seilbahn-Passage, einer senkrecht ausgelegten Schienenstrecke, einer Teilstrecke, auf der alle fünf Schienen kurz zu einer einzigen zusammenlaufen, vier goldenen Portalen, die dein Fahrzeug verwandeln, einem schwarzen Loch zu einem völlig anderen Universum voller Planeten (mit eigenem Looping, Schraubenlooping, einer Spirale, die sich hoch ins All hinaufbohrt und an ihrer Spitze senkrecht zurück nach unten stürzt, und einer Schanze hoch über den Planeten!) und einem innen beleuchteten, breiten Zieltunnel statt einer offenen Geraden, in dem alle fünf Achterbahnen nebeneinander Platz haben.</p>
     <p><span class="kbd">↑</span> gibt Gas (die Heckdüse zündet!), <span class="kbd">↓</span> bremst aktiv. Lässt du <span class="kbd">↑</span> los, wird die Bahn von allein langsamer.<br>
-    Tempolimit-Schilder am Streckenrand: einmal 600, einmal 700, einmal 750, einmal 800, zweimal 850, dreimal 1000 km/h. Dein Höchsttempo: 850 km/h.<br>
-    Bist du mehr als 100 km/h über dem geltenden Limit UND fährst dabei in eine Kurve, verlässt die Bahn die Schienen und fällt endgültig ins endlose All – kein Warnlicht, kein Countdown, es passiert einfach.<br>
-    An der Seilbahn fehlen die Schienen komplett: Ein Seil ist über die Lücke gespannt, an dem eine (undurchsichtige) Gondel hängt. Sobald du hineinfährst, fährt sie automatisch mit 400 km/h los, bringt dich auf die andere Seite und lädt dich dort automatisch wieder ab. Jede Achterbahn hat ihre eigene Gondel.<br>
-    Vier goldene Portale verwandeln dein Fahrzeug in ein anderes Design, sobald du hindurchfliegst.<br>
-    Neben dir fahren <b>vier</b> KI-gesteuerte Achterbahnen auf eigenen Schienen (rot, grün, lila und orange) – alle starten erst, wenn du losfährst, und stoppen mit dir. Rechts zeigt die <b>Live-Rangliste</b> jederzeit, wer gerade vorn liegt.<br>
-    <b>5 Level:</b> Mit jeder abgeschlossenen Runde steigst du ein Level auf und die ganze Welt verwandelt sich – <b>1) Weltall · 2) Grossstadt · 3) Wüste · 4) Dschungel · 5) Meer</b>. Mit jedem Level werden die Gegner schneller (Höchsttempo 450 → 550 → 650 → 750 → 850 km/h), im letzten Level sind sie also so schnell wie du.</p>
+    Bist du mehr als 100 km/h über dem Tempolimit UND fährst dabei in eine Kurve, verlässt die Bahn die Schienen und du stürzt ab – das bedeutet: zurück zu Level 1!<br>
+    Neben dir fahren <b>vier</b> Gegner (rot, grün, lila, orange). Rechts die <b>Live-Rangliste</b>, unten links eine <b>Navi-Streckenübersicht</b> mit allen Positionen.</p>
+    <p><b>Jedes Level ist ein Rennen über eine Runde:</b> Wirst du <b>Erster</b>, geht es ins nächste Level – sonst zurück zu Level 1.<br>
+    <b>7 Welten:</b> 1) Weltall · 2) Grossstadt · 3) Wüste · 4) Dschungel · 5) Meer (mit Haien!) · 6) Mondlandschaft · 7) Eislandschaft (mit Eisbären). In den Leveln 1–6 sind alle gleich schnell (850 km/h), im 7. Level sind die Gegner 100 km/h schneller.<br>
+    Danach das <b>Schloss-Duell 🐉</b> gegen das Drachenauto (bis zu 200 km/h schneller!). Gewinnst du, bekommst du einen <b>Pokal</b> und kannst dir im Shop ein neues Auto kaufen: 🏎️ Formel 1, 🚙 Monstertruck oder 🟡 U-Boot.</p>
     <p style="margin-top:16px;"><b>Drücke <span class="kbd">Leertaste</span>, um zu starten.</b></p>
   </div>
 </div>
 
 <div id="gameover">
   <div class="titleCard">
-    <h1>💫 Ins All gestürzt!</h1>
-    <p>Du warst zu weit über dem Tempolimit, als die nächste Kurve kam – die Achterbahn hat die Schienen verlassen und ist ins endlose All gefallen.</p>
-    <p style="font-size:22px; font-weight:700; color:#16209c;">Score: <span id="finalScore">0</span> Sekunden</p>
-    <p>Drücke <span class="kbd">Enter</span> oder <span class="kbd">Leertaste</span> zum Neustart.</p>
+    <h1>💫 Abgestürzt!</h1>
+    <p>Du warst zu weit über dem Tempolimit, als die nächste Kurve kam – die Achterbahn hat die Schienen verlassen. Das Rennen ist verloren.</p>
+    <p style="font-size:22px; font-weight:700; color:#16209c;">Erreicht: <span id="finalScore">Level 1</span></p>
+    <p>Drücke <span class="kbd">Enter</span> oder <span class="kbd">Leertaste</span> für einen Neustart ab <b>Level 1</b>.</p>
+  </div>
+</div>
+
+<div id="raceresult">
+  <div class="titleCard">
+    <h1 id="raceResultTitle">Rennen</h1>
+    <p id="raceResultMsg"></p>
+    <p>Drücke <span class="kbd">Enter</span> oder <span class="kbd">Leertaste</span>, um ab <b>Level 1</b> neu zu starten.</p>
+  </div>
+</div>
+
+<div id="shop">
+  <div class="titleCard" style="max-width: 720px;">
+    <h1>🏆 Duell gewonnen!</h1>
+    <p>Du hast das Drachenauto geschlagen und einen Pokal erhalten. Pokale: <b><span id="shopTrophies">0</span> 🏆</b><br>
+    Klicke ein Auto an, um es für <b>1 Pokal</b> zu kaufen (danach fährst du damit weiter). Bereits gekaufte Autos kannst du einfach auswählen.</p>
+    <div id="shopCards">
+      <div class="shopCard" id="shopcard-formel1">
+        <div class="shopIcon">🏎️</div>
+        <div class="shopName">Formel 1</div>
+        <div class="shopStatus">1 🏆 kaufen</div>
+      </div>
+      <div class="shopCard" id="shopcard-monstertruck">
+        <div class="shopIcon">🚙</div>
+        <div class="shopName">Monstertruck</div>
+        <div class="shopStatus">1 🏆 kaufen</div>
+      </div>
+      <div class="shopCard" id="shopcard-uboot">
+        <div class="shopIcon">🟡</div>
+        <div class="shopName">U-Boot</div>
+        <div class="shopStatus">1 🏆 kaufen</div>
+      </div>
+    </div>
+    <p style="margin-top:16px;"><span class="kbd" id="shopClose" style="cursor:pointer; pointer-events:auto;">Weiter ab Level 1 ▶</span> &nbsp; (oder <span class="kbd">Leertaste</span>)</p>
   </div>
 </div>
 
@@ -216,16 +268,21 @@ let fallElapsed = 0;
 let tunnelRings = [];      // für die animierte Neon-Beleuchtung in animate()
 let blackHoleVisuals = []; // fuer die Dreh-Animation der schwarzen Löcher in animate()
 let planetMeshes = [];     // fuer die langsame Rotationsanimation der Planeten in animate()
+let swimmers = [];         // Haie, die im Meer-Level an der Wasseroberfläche kreisen
 let startTime = 0;
 let scoreSeconds = 0;
 let currentLimit = 750;
 
-// ---- Level-System: mit jeder abgeschlossenen Runde steigt das Level (max. 5). Pro Level
-//      werden die KI-Gegner schneller UND die ganze Welt (Hintergrund, Auto, Ort, Bahn)
-//      verwandelt sich in ein neues Thema. ----
+// ---- Level-/Renn-System ----
+// Jedes Level ist ein Rennen über GENAU EINE Runde. Alle Autos starten gemeinsam an der
+// Startlinie. Wer zuerst durch ist, gewinnt: als Erster -> nächstes Level, sonst zurück zu
+// Level 1. Nach Level 7 folgt das Schloss-Duell gegen das Drachenauto.
 let level = 1;
-let playerLap = 0; // Anzahl abgeschlossener Runden des Players -> bestimmt das Level
-const MAX_LEVEL = 5;
+const MAX_LEVEL = 7;
+let raceActive = false;   // true, während ein Rennen läuft (Player hat die Runde noch nicht beendet)
+let inDuel = false;       // true im Schloss-Zweikampf gegen das Drachenauto
+let raceResult = null;    // 'won' | 'lost' -> steuert den Ergebnis-Bildschirm
+let playerLap = 0;        // abgeschlossene Runden des Players in dieser Rennrunde (für die Rangliste)
 
 const keys = { up: false, down: false };
 
@@ -233,13 +290,20 @@ const ACCEL = 220;    // km/h per second while accelerating (↑ gedrückt)
 const DECEL = 260;    // km/h per second while actively braking (↓ gedrückt)
 const FRICTION = 90;  // km/h per second automatische Verlangsamung, wenn ↑ NICHT gedrückt wird
 const MAX_SPEED = 850;    // Höchstgeschwindigkeit des Players
-// Höchstgeschwindigkeit der KI-Gegner pro Level (steigt von Level zu Level an).
-const LEVEL_AI_SPEEDS = [450, 550, 650, 750, 850];
+// KI-Höchsttempo pro Level: Level 1-6 gleich schnell wie der Player (850), im letzten Level (7)
+// sind die Gegner 100 km/h schneller. Im Schloss-Duell darf das Drachenauto 200 km/h schneller.
+const LEVEL_AI_SPEEDS = [850, 850, 850, 850, 850, 850, 950];
+const DUEL_DRAGON_SPEED = MAX_SPEED + 200; // 1050 km/h
 let aiMaxSpeed = LEVEL_AI_SPEEDS[0]; // aktuell geltendes KI-Höchsttempo (per Level gesetzt)
 const OVERSPEED_MARGIN = 100; // erst 100 km/h ueber dem Limit wird es gefaehrlich
 const CABLECAR_SPEED = 400;   // Geschwindigkeit auf der Seilbahn-Strecke (um 200 km/h erhöht)
 const NORMAL_BG = new THREE.Color(0x02030a);       // finsteres Weltall (Level 1)
 const ALT_UNIVERSE_BG = new THREE.Color(0x230a2e); // "anderes Universum"
+
+// Performance-Hilfen: Frame-Zähler (fürs Drosseln von HUD/Effekten) + wiederverwendete Scratch-Objekte
+let frameCount = 0;
+const _ringC1 = new THREE.Color(), _ringC2 = new THREE.Color();
+const _camOffset = new THREE.Vector3(), _camPos = new THREE.Vector3(), _lookTarget = new THREE.Vector3();
 
 // Aktuell geltender Hintergrund/Nebel (wird von applyLevelTheme() gesetzt und in animate()
 // verwendet, ausser waehrend der Player im "anderen Universum" ist).
@@ -249,17 +313,23 @@ let themeFog = null;
 // Referenzen auf themenfähige Materialien (werden beim Bau eingesammelt und pro Level umgefärbt)
 let playerRailMat = null;      // Schienen-Röhre der Spielerbahn
 let themeTieMats = [];         // alle Schwellen-Materialien (Player + KI)
-const placeGroups = {};        // { city, desert, jungle, ocean } -> pro Level ein-/ausgeblendet
-let starGroup = null;          // Sternenfeld (nur im Weltall-Level sichtbar)
+const placeGroups = {};        // { city, desert, jungle, ocean, moon, ice, castle }; nur die aktive hängt in der Szene
+let currentPlaceKey = null;    // Schlüssel der aktuell eingehängten Welt (Performance: nur eine gleichzeitig)
+let starGroup = null;          // Sternenfeld (nur im Weltall- und Mond-Level sichtbar)
 
-// Themen der 5 Level: Hintergrund, Nebel, Schienenfarbe, Schwellenfarbe, Spieler-Auto, Ort-Deko.
+// Themen der 7 Level: Hintergrund, Nebel, Schienenfarbe, Schwellenfarbe, Spieler-Auto, Ort-Deko.
 const LEVEL_THEMES = [
-  { name: '🌌 Weltall',    bg: 0x02030a, fog: null,                       rail: 0x2b3fe0, railEmissive: 0x0b1466, tie: 0x333340, carBody: 0x141428, carFin: 0xff5566, place: null },
-  { name: '🏙️ Grossstadt', bg: 0x0b1020, fog: { color: 0x0b1020, far: 1700 }, rail: 0x5566ff, railEmissive: 0x1a2299, tie: 0x22242e, carBody: 0x2a2f3a, carFin: 0x00e5ff, place: 'city' },
-  { name: '🏜️ Wüste',      bg: 0xe8b46a, fog: { color: 0xe8b46a, far: 2000 }, rail: 0xa8702e, railEmissive: 0x3a2205, tie: 0x6b4a24, carBody: 0xb5651d, carFin: 0xffd27f, place: 'desert' },
-  { name: '🌴 Dschungel',  bg: 0x2f6a3a, fog: { color: 0x2f6a3a, far: 1500 }, rail: 0x3a7d2c, railEmissive: 0x0e2a06, tie: 0x2a3d1a, carBody: 0x1f5c2a, carFin: 0xc6ff5e, place: 'jungle' },
-  { name: '🌊 Meer',       bg: 0x4aa6d8, fog: { color: 0x4aa6d8, far: 2200 }, rail: 0x2b7fb0, railEmissive: 0x083049, tie: 0x1f3a4a, carBody: 0x0d3f66, carFin: 0x7fe8ff, place: 'ocean' }
+  { name: '🌌 Weltall',      bg: 0x02030a, fog: null,                          rail: 0x2b3fe0, railEmissive: 0x0b1466, tie: 0x333340, carBody: 0x141428, carFin: 0xff5566, place: null },
+  { name: '🏙️ Grossstadt',   bg: 0x0b1020, fog: { color: 0x0b1020, far: 1700 }, rail: 0x5566ff, railEmissive: 0x1a2299, tie: 0x22242e, carBody: 0x2a2f3a, carFin: 0x00e5ff, place: 'city' },
+  { name: '🏜️ Wüste',        bg: 0xe8b46a, fog: { color: 0xe8b46a, far: 2000 }, rail: 0xa8702e, railEmissive: 0x3a2205, tie: 0x6b4a24, carBody: 0xb5651d, carFin: 0xffd27f, place: 'desert' },
+  { name: '🌴 Dschungel',    bg: 0x2f6a3a, fog: { color: 0x2f6a3a, far: 1500 }, rail: 0x3a7d2c, railEmissive: 0x0e2a06, tie: 0x2a3d1a, carBody: 0x1f5c2a, carFin: 0xc6ff5e, place: 'jungle' },
+  { name: '🌊 Meer',         bg: 0x4aa6d8, fog: { color: 0x4aa6d8, far: 2200 }, rail: 0x2b7fb0, railEmissive: 0x083049, tie: 0x1f3a4a, carBody: 0x0d3f66, carFin: 0x7fe8ff, place: 'ocean' },
+  { name: '🌙 Mondlandschaft', bg: 0x090a12, fog: null,                        rail: 0x9aa2b0, railEmissive: 0x2a2f3a, tie: 0x40454f, carBody: 0x8b9099, carFin: 0xd8dde6, place: 'moon' },
+  { name: '❄️ Eislandschaft', bg: 0xbfe4f0, fog: { color: 0xcfeaf5, far: 2000 }, rail: 0x8fd0e8, railEmissive: 0x14435c, tie: 0x2a4552, carBody: 0xdff3ff, carFin: 0x35c8ff, place: 'ice' }
 ];
+
+// Sonderwelt nach Level 7: Zweikampf gegen das Drachenauto in einem riesigen Ritterschloss.
+const DUEL_THEME = { name: '🐉 Schloss-Duell', bg: 0x241a2e, fog: { color: 0x241a2e, far: 2400 }, rail: 0x8a6d3a, railEmissive: 0x2a1f0a, tie: 0x3a2f1a, carBody: 0x1a2f6b, carFin: 0x66c0ff, place: 'castle' };
 
 // Anzeige-Namen + Farben der fünf Renn-Teilnehmer für die Rangliste (Index 0 = Player).
 const RACER_META = [
@@ -269,6 +339,34 @@ const RACER_META = [
   { name: 'Lila',   color: '#8833cc' },
   { name: 'Orange', color: '#ff9900' }
 ];
+
+// ---- Minimap (Navi-Übersicht unten links) ----
+let miniCanvas = null, miniCtx = null, miniProjected = null, miniTrackCanvas = null; // Minimap (2D)
+
+// ---- Drachenauto (Gegner im Schloss-Duell) ----
+let dragonState = null;
+
+// ---- Pokale & Fahrzeug-Shop ----
+// Persistenter Fortschritt (Pokale + gekaufte Autos + gewähltes Auto) im localStorage.
+const CARS = [
+  { id: 'formel1',     name: '🏎️ Formel 1',    body: 0xd11a1a, accent: 0xffffff },
+  { id: 'monstertruck', name: '🚙 Monstertruck', body: 0x2f9e34, accent: 0x111111 },
+  { id: 'uboot',       name: '🟡 U-Boot',       body: 0xf2c500, accent: 0x0a3550 }
+];
+let trophies = 0;
+let ownedCars = [];         // ['formel1', ...] gekaufte Sonder-Autos
+let playerCarId = 'default'; // aktuell gewähltes Spieler-Auto
+function loadProgress() {
+  try {
+    const d = JSON.parse(localStorage.getItem('xcoaster_progress') || '{}');
+    trophies = d.trophies || 0;
+    ownedCars = Array.isArray(d.ownedCars) ? d.ownedCars : [];
+    playerCarId = d.playerCarId || 'default';
+  } catch (e) { trophies = 0; ownedCars = []; playerCarId = 'default'; }
+}
+function saveProgress() {
+  try { localStorage.setItem('xcoaster_progress', JSON.stringify({ trophies, ownedCars, playerCarId })); } catch (e) {}
+}
 
 // ---- Motorsound (Web Audio): elektrischer Sci-Fi-Antrieb, folgt der aktuellen Geschwindigkeit ----
 let audioCtx = null;
@@ -458,6 +556,8 @@ function init() {
   dir2.position.set(-120, 80, -80);
   scene.add(dir2);
 
+  loadProgress(); // Pokale + gekauftes/gewähltes Auto aus dem localStorage
+
   buildStarfield();
 
   buildTrack();
@@ -467,9 +567,10 @@ function init() {
   buildCart();
 
   aiStates = AI_CONFIGS.map(initAiState);
+  dragonState = initDragonState(); // Gegner fürs Schloss-Duell (anfangs verborgen)
+  dragonState.gondolaInfo = aiStates[0].gondolaInfo; // Drache nutzt die Gondel der roten Schiene mit
 
-  buildVehiclePortals();
-  buildBlackHoles();
+  // Schwarze Verwandlungslöcher wurden entfernt; das Planeten-Universum bleibt als Strecke.
   const altRanges = getAltUniverseRanges();
   altRanges.forEach((r) => {
     buildUniverseDecor(trackPoints, r, { colors: [0x39d6ff, 0x8fe8ff, 0xffffff], shape: 'crystal' });     // Player: eisig-blaue Kristallwelt
@@ -480,8 +581,11 @@ function init() {
     buildPlanetUniverse(r); // dichtes Planetenfeld, die Strecke schlängelt sich hindurch
   });
 
-  buildLevelWorlds();   // Ort-Deko aller 5 Level (anfangs unsichtbar)
+  buildLevelWorlds();   // Ort-Deko aller Level-Welten (anfangs unsichtbar)
+  initMinimap();        // Navi-Übersicht unten links vorbereiten
+  setupShopUI();        // Klick-Handler der Fahrzeug-Karten
   applyLevelTheme(1);   // Level 1 (Weltall) als Startthema aktivieren
+  raceActive = true;    // Rennen von Level 1 ist scharf; startet, sobald der Player Gas gibt
 
   clock = new THREE.Clock();
 
@@ -498,17 +602,16 @@ function onResize() {
 
 function onKeyDown(e) {
   initAudio(); // Web Audio darf erst nach einer Nutzer-Interaktion starten
+  const shopOpen = document.getElementById('shop').style.display === 'flex';
   if (e.code === 'ArrowUp') { keys.up = true; e.preventDefault(); dismissIntro(); }
   if (e.code === 'ArrowDown') { keys.down = true; e.preventDefault(); dismissIntro(); }
-  if (e.code === 'Space') {
+  if (e.code === 'Space' || e.code === 'Enter') {
     e.preventDefault();
-    if (gameOver) {
-      resetGame();
-    } else {
-      dismissIntro(); // Leertaste startet das Spiel
-    }
+    if (gameOver) { proceedAfterResult(); return; }        // nach Absturz: neu ab Level 1
+    if (raceResult === 'lost') { proceedAfterResult(); return; } // Rennen verloren: neu ab Level 1
+    if (raceResult === 'won' && shopOpen) { proceedAfterResult(); return; } // Shop überspringen
+    dismissIntro(); // Leertaste/Enter startet das Spiel
   }
-  if (e.code === 'Enter' && gameOver) { resetGame(); }
 }
 function onKeyUp(e) {
   if (e.code === 'ArrowUp') keys.up = false;
@@ -745,7 +848,6 @@ function buildTrack() {
   addSideLoop(52, -1);       // weites seitliches Looping 2
   addTurn(90, 95);
   addStraight(240, true);   // Tunnel 4
-  addVehiclePortal();        // NEU: Fahrzeug-Wechsel-Portal 1
   addTurn(90, 85);
   addHill(70, 260);          // langer, steiler Anstieg (Vorbereitung)
   addHill(-85, 380);         // sehr langer, sehr steiler (fast senkrechter) Abhang
@@ -760,7 +862,6 @@ function buildTrack() {
   addTurn(-50, 65);
   addMergeZone(140, 320);      // NEU: Teilstrecke - alle fuenf Schienen laufen kurz zu einer einzigen zusammen
   addHilly(8, 18, 55);        // NEU: hügelige Strecke (mehrere kleine Wellen hintereinander)
-  addVehiclePortal();        // NEU: Fahrzeug-Wechsel-Portal 3
   addStraight(60);
   addCableCar(2200);          // Seilbahn deutlich verlängert (800 -> 2200)
   addStraight(60);
@@ -783,12 +884,11 @@ function buildTrack() {
     addRamp(48, 160, 380, 160);  // hohe Schanze - fliegt weit über die Planeten, wird am Ende wieder aufgefangen
   });
   addStraight(80);
-  addVehiclePortal();        // NEU: Fahrzeug-Wechsel-Portal 2
   addStraight(80);
-  addStraight(2350, true);   // finale Strecke jetzt als innen beleuchteter Tunnel statt offener Gerade (Teil 1)
-  trackSegments[trackSegments.length - 1].wideTunnel = true; // breit genug fuer alle fuenf Achterbahnen nebeneinander
-  addVehiclePortal();        // NEU: Fahrzeug-Wechsel-Portal 4
-  addStraight(2400, true);   // finale Strecke Teil 2
+  // finaler, innen beleuchteter Zieltunnel (breit genug für alle fünf Bahnen) - um die Hälfte gekürzt
+  addStraight(1175, true);   // finale Strecke Teil 1 (vorher 2350)
+  trackSegments[trackSegments.length - 1].wideTunnel = true;
+  addStraight(1200, true);   // finale Strecke Teil 2 (vorher 2400)
   trackSegments[trackSegments.length - 1].wideTunnel = true;
 
   // cumulative arc length
@@ -882,6 +982,7 @@ function checkVehiclePortal(distanceTraveled, state, cart) {
 }
 
 function setCartSkin(cart, index) {
+  if (!cart || !cart.skins) return; // Sonder-Autos haben keine Skins
   cart.skins.forEach((skinGroup, i) => { skinGroup.visible = (i === index); });
 }
 
@@ -1203,7 +1304,10 @@ function buildPlanetUniverse(range) {
     const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.15, emissive: color, emissiveIntensity: 0.18 });
     const planet = new THREE.Mesh(new THREE.SphereGeometry(size, 20, 16), mat);
 
-    const dist = size + 22 + Math.random() * 85;
+    // Abstand so wählen, dass die nächste Planetenoberfläche immer klar ausserhalb ALLER
+    // fünf Bahnen (bis ±28 seitlich) liegt -> die Fahrbahnen führen aussen um die Planeten
+    // herum statt durch sie hindurch.
+    const dist = size + 55 + Math.random() * 90;
     const angle = Math.random() * Math.PI * 2;
     planet.position.copy(p)
       .addScaledVector(f.right, Math.cos(angle) * dist)
@@ -1231,7 +1335,9 @@ function buildPlanetUniverse(range) {
     new THREE.SphereGeometry(120, 32, 24),
     new THREE.MeshStandardMaterial({ color: 0xffb347, roughness: 0.5, emissive: 0xff8800, emissiveIntensity: 0.25 })
   );
-  huge.position.copy(bp).addScaledVector(bf.right, 95).addScaledVector(bf.up, 15);
+  // klar zur Seite versetzt (Radius 120 + Sicherheitsabstand), damit die Bahnen aussen
+  // an ihm vorbeiführen; nur sein flacher, transparenter Ring reicht bis nahe an die Strecke.
+  huge.position.copy(bp).addScaledVector(bf.right, 240).addScaledVector(bf.up, 15);
   scene.add(huge);
   planetMeshes.push({ mesh: huge, spin: 0.05 });
 
@@ -1556,7 +1662,7 @@ function buildDesertDecor(box, groundY) {
   g.add(buildGround(0xd9b36a, groundY, box, { roughness: 1.0 }));
   const duneMat = new THREE.MeshStandardMaterial({ color: 0xcaa25a, roughness: 1.0 });
   const cactusMat = new THREE.MeshStandardMaterial({ color: 0x3f7d3a, roughness: 0.8 });
-  forEachTrackSpot(8, (p) => {
+  forEachTrackSpot(11, (p) => {
     for (let s = -1; s <= 1; s += 2) {
       const off = 50 + Math.random() * 260;
       const bx = p.x + s * off + (Math.random() - 0.5) * 50;
@@ -1590,7 +1696,7 @@ function buildJungleDecor(box, groundY) {
   g.add(buildGround(0x2f6a2f, groundY, box, { roughness: 1.0 }));
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1e, roughness: 0.9 });
   const leafMats = [0x1f7d2a, 0x2c9c3a, 0x3fb54a].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85 }));
-  forEachTrackSpot(6, (p) => {
+  forEachTrackSpot(9, (p) => {
     for (let s = -1; s <= 1; s += 2) {
       if (Math.random() < 0.2) continue;
       const off = 40 + Math.random() * 240;
@@ -1601,7 +1707,7 @@ function buildJungleDecor(box, groundY) {
       trunk.position.set(bx, groundY + hgt / 2, bz);
       g.add(trunk);
       const leafMat = leafMats[Math.floor(Math.random() * leafMats.length)];
-      for (let k = 0; k < 3; k++) {
+      for (let k = 0; k < 2; k++) {
         const r = 5 + Math.random() * 5;
         const leaf = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 7), leafMat);
         leaf.position.set(bx + (Math.random() - 0.5) * 6, groundY + hgt + (Math.random() - 0.3) * 6, bz + (Math.random() - 0.5) * 6);
@@ -1612,7 +1718,41 @@ function buildJungleDecor(box, groundY) {
   return g;
 }
 
-/* Level 5 – Meer: grosse (leicht transparente) Wasserfläche + verstreute Sandinseln mit Palmen. */
+/* Ein einzelner Hai: grauer, spindelförmiger Körper + Rückenflosse + Schwanzflosse. */
+function buildShark() {
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x5a6773, roughness: 0.7, metalness: 0.1 });
+  const bellyMat = new THREE.MeshStandardMaterial({ color: 0xd7dde2, roughness: 0.8 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(2.2, 14, 10), bodyMat);
+  body.scale.set(1, 0.7, 3.0); // langgezogen
+  g.add(body);
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(2.0, 12, 8), bellyMat);
+  belly.scale.set(0.9, 0.4, 2.6);
+  belly.position.y = -0.5;
+  g.add(belly);
+  // Rückenflosse (ragt aus dem Wasser)
+  const finMat = bodyMat;
+  const dorsal = new THREE.Mesh(new THREE.ConeGeometry(1.0, 2.4, 4), finMat);
+  dorsal.position.set(0, 1.6, 0.3);
+  dorsal.rotation.y = Math.PI / 4;
+  g.add(dorsal);
+  // Schwanzflosse
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(1.4, 2.6, 4), finMat);
+  tail.position.set(0, 0.4, -6.4);
+  tail.rotation.x = -Math.PI / 2;
+  tail.rotation.z = Math.PI / 4;
+  g.add(tail);
+  // Seitenflossen
+  [-1, 1].forEach((s) => {
+    const pec = new THREE.Mesh(new THREE.ConeGeometry(0.7, 2.2, 4), finMat);
+    pec.position.set(s * 1.6, -0.4, 1.5);
+    pec.rotation.z = s * Math.PI / 2.2;
+    g.add(pec);
+  });
+  return g;
+}
+
+/* Level 5 – Meer: grosse (leicht transparente) Wasserfläche + Sandinseln mit Palmen + kreisende Haie. */
 function buildOceanDecor(box, groundY) {
   const g = new THREE.Group();
   const waterY = groundY + 6;
@@ -1620,7 +1760,8 @@ function buildOceanDecor(box, groundY) {
   const sandMat = new THREE.MeshStandardMaterial({ color: 0xe6d18a, roughness: 1.0 });
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.9 });
   const palmMat = new THREE.MeshStandardMaterial({ color: 0x2c9c3a, roughness: 0.85 });
-  forEachTrackSpot(12, (p) => {
+  swimmers = [];
+  forEachTrackSpot(12, (p, i) => {
     if (Math.random() < 0.5) return;
     const s = Math.random() < 0.5 ? -1 : 1;
     const off = 60 + Math.random() * 260;
@@ -1644,11 +1785,169 @@ function buildOceanDecor(box, groundY) {
       frond.translateY(3);
       g.add(frond);
     }
+    // ein paar Haie, die um die Inseln kreisen
+    if (i % 24 === 0) {
+      const shark = buildShark();
+      const cx = p.x + s * (off + 20), cz = p.z;
+      shark.position.set(cx, waterY, cz);
+      g.add(shark);
+      swimmers.push({ mesh: shark, cx, cz, radius: 40 + Math.random() * 60, angle: Math.random() * Math.PI * 2, speed: 0.25 + Math.random() * 0.3, y: waterY });
+    }
+  });
+  return g;
+}
+
+/* Level 6 – Mondlandschaft: graue Oberfläche mit Kratern (Ringe) und verstreuten Felsen. */
+function buildMoonDecor(box, groundY) {
+  const g = new THREE.Group();
+  g.add(buildGround(0x8a8f98, groundY, box, { roughness: 1.0 }));
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x767b84, roughness: 1.0 });
+  const craterMat = new THREE.MeshStandardMaterial({ color: 0x5e636b, roughness: 1.0, side: THREE.DoubleSide });
+  forEachTrackSpot(7, (p) => {
+    for (let s = -1; s <= 1; s += 2) {
+      const off = 45 + Math.random() * 300;
+      const bx = p.x + s * off + (Math.random() - 0.5) * 60;
+      const bz = p.z + (Math.random() - 0.5) * 130;
+      if (Math.random() < 0.55) {
+        // Krater: flacher Ring auf dem Boden
+        const rad = 8 + Math.random() * 34;
+        const crater = new THREE.Mesh(new THREE.RingGeometry(rad * 0.6, rad, 20), craterMat);
+        crater.rotation.x = -Math.PI / 2;
+        crater.position.set(bx, groundY + 0.2, bz);
+        g.add(crater);
+      } else {
+        const r = 2 + Math.random() * 7;
+        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), rockMat);
+        rock.position.set(bx, groundY + r * 0.4, bz);
+        rock.rotation.set(Math.random(), Math.random(), Math.random());
+        g.add(rock);
+      }
+    }
+  });
+  return g;
+}
+
+/* Ein stilisierter Eisbär: weisser Körper, Kopf, vier Beine. */
+function buildPolarBear() {
+  const g = new THREE.Group();
+  const furMat = new THREE.MeshStandardMaterial({ color: 0xf4f7fb, roughness: 0.95 });
+  const noseMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.6 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(2.2, 12, 10), furMat);
+  body.scale.set(1, 0.9, 1.7);
+  body.position.y = 2.4;
+  g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 12, 10), furMat);
+  head.position.set(0, 3.4, 2.8);
+  g.add(head);
+  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), furMat);
+  snout.scale.set(1, 0.8, 1.4);
+  snout.position.set(0, 3.1, 3.9);
+  g.add(snout);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), noseMat);
+  nose.position.set(0, 3.2, 4.6);
+  g.add(nose);
+  [-1, 1].forEach((sx) => {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), furMat);
+    ear.position.set(sx * 0.7, 4.3, 2.6);
+    g.add(ear);
+    [1.6, -1.6].forEach((pz) => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 2.4, 8), furMat);
+      leg.position.set(sx * 1.1, 1.1, pz);
+      g.add(leg);
+    });
+  });
+  return g;
+}
+
+/* Level 7 – Eislandschaft: weisser Eisboden, Eisschollen/-blöcke und ein paar Eisbären. */
+function buildIceDecor(box, groundY) {
+  const g = new THREE.Group();
+  g.add(buildGround(0xdff1fb, groundY, box, { roughness: 0.4, metalness: 0.2 }));
+  const iceMat = new THREE.MeshStandardMaterial({ color: 0xbfe6f5, roughness: 0.3, metalness: 0.25, transparent: true, opacity: 0.9 });
+  const snowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+  forEachTrackSpot(11, (p, i) => {
+    for (let s = -1; s <= 1; s += 2) {
+      const off = 45 + Math.random() * 280;
+      const bx = p.x + s * off + (Math.random() - 0.5) * 60;
+      const bz = p.z + (Math.random() - 0.5) * 130;
+      if (Math.random() < 0.5) {
+        // gezackter Eisblock
+        const r = 6 + Math.random() * 22;
+        const berg = new THREE.Mesh(new THREE.ConeGeometry(r, r * (1.2 + Math.random()), 5), iceMat);
+        berg.position.set(bx, groundY + r * 0.6, bz);
+        berg.rotation.y = Math.random() * Math.PI;
+        g.add(berg);
+      } else {
+        const r = 8 + Math.random() * 20;
+        const mound = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), snowMat);
+        mound.scale.y = 0.4;
+        mound.position.set(bx, groundY, bz);
+        g.add(mound);
+      }
+    }
+    // ab und zu ein Eisbär direkt neben der Strecke
+    if (i % 10 === 0) {
+      const bear = buildPolarBear();
+      const s = Math.random() < 0.5 ? -1 : 1;
+      bear.position.set(p.x + s * (30 + Math.random() * 40), groundY, p.z + (Math.random() - 0.5) * 40);
+      bear.rotation.y = Math.random() * Math.PI * 2;
+      g.add(bear);
+    }
+  });
+  return g;
+}
+
+/* Schluss-Welt – Schloss-Duell: ein riesiges Ritterschloss (Mauern, Türme, Fahnen) rund um die Strecke. */
+function buildCastleDecor(box, groundY) {
+  const g = new THREE.Group();
+  g.add(buildGround(0x3a5a32, groundY, box, { roughness: 1.0 })); // Wiese
+  const stoneMat = new THREE.MeshStandardMaterial({ color: 0x8a8f96, roughness: 0.9 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0x7a2233, roughness: 0.8 });
+  const flagMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, emissive: 0x3a2f0a, roughness: 0.6, side: THREE.DoubleSide });
+  forEachTrackSpot(13, (p) => {
+    for (let s = -1; s <= 1; s += 2) {
+      const off = 70 + Math.random() * 220;
+      const bx = p.x + s * off + (Math.random() - 0.5) * 40;
+      const bz = p.z + (Math.random() - 0.5) * 120;
+      if (Math.random() < 0.5) {
+        // Rundturm mit Kegeldach + Fahne
+        const h = 40 + Math.random() * 90;
+        const tower = new THREE.Mesh(new THREE.CylinderGeometry(9, 11, h, 12), stoneMat);
+        tower.position.set(bx, groundY + h / 2, bz);
+        g.add(tower);
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(12, 22, 12), roofMat);
+        roof.position.set(bx, groundY + h + 11, bz);
+        g.add(roof);
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 12, 6), stoneMat);
+        pole.position.set(bx, groundY + h + 28, bz);
+        g.add(pole);
+        const flag = new THREE.Mesh(new THREE.PlaneGeometry(7, 4), flagMat);
+        flag.position.set(bx + 3.7, groundY + h + 31, bz);
+        g.add(flag);
+      } else {
+        // Mauerabschnitt mit Zinnen
+        const w = 24 + Math.random() * 30, h = 26 + Math.random() * 24;
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, 8), stoneMat);
+        wall.position.set(bx, groundY + h / 2, bz);
+        g.add(wall);
+        const n = Math.floor(w / 10);
+        for (let c = 0; c < n; c++) {
+          const merlon = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4, 8), stoneMat);
+          merlon.position.set(bx - w / 2 + 3 + c * 6, groundY + h + 2, bz);
+          g.add(merlon);
+        }
+      }
+    }
   });
   return g;
 }
 
 /* Baut alle Level-Welten einmal auf (anfangs unsichtbar) und blendet sie später per Level ein/aus. */
+/* Friert die statischen Transforms einer Gruppe ein (kein Neuberechnen der Matrix pro Frame). */
+function freezeStatic(group) {
+  group.traverse(o => { o.matrixAutoUpdate = false; o.updateMatrix(); });
+}
+
 function buildLevelWorlds() {
   const box = getTrackBounds();
   const groundY = box.min.y - 14;
@@ -1656,42 +1955,406 @@ function buildLevelWorlds() {
   placeGroups.desert = buildDesertDecor(box, groundY);
   placeGroups.jungle = buildJungleDecor(box, groundY);
   placeGroups.ocean = buildOceanDecor(box, groundY);
-  Object.values(placeGroups).forEach(g => { g.visible = false; scene.add(g); });
+  placeGroups.moon = buildMoonDecor(box, groundY);
+  placeGroups.ice = buildIceDecor(box, groundY);
+  placeGroups.castle = buildCastleDecor(box, groundY);
+  // Statische Deko einfrieren; nur die animierten Haie brauchen weiterhin Auto-Updates.
+  Object.values(placeGroups).forEach(g => freezeStatic(g));
+  swimmers.forEach(s => { s.mesh.matrixAutoUpdate = true; });
+  // WICHTIG: Welten werden NICHT alle in die Szene gehängt - nur die jeweils aktive (applyTheme).
 }
 
-/* Wendet das Thema eines Levels an: Hintergrund/Nebel, Schienen- & Schwellenfarbe, Spieler-Auto
-   und die sichtbare Ort-Deko. Setzt ausserdem das KI-Höchsttempo dieses Levels. */
-function applyLevelTheme(lv) {
-  const t = LEVEL_THEMES[Math.min(lv, LEVEL_THEMES.length) - 1];
-  aiMaxSpeed = LEVEL_AI_SPEEDS[Math.min(lv, LEVEL_AI_SPEEDS.length) - 1];
-
+/* Wendet ein Thema an: Hintergrund/Nebel, Schienen-/Schwellenfarbe, Spieler-Auto (nur beim
+   themenfähigen Standard-Auto), sichtbare Ort-Deko und das geltende Gegner-Höchsttempo. */
+function applyTheme(t, aiMax) {
+  aiMaxSpeed = aiMax;
   themeBaseBg = new THREE.Color(t.bg);
   themeFog = t.fog ? new THREE.Fog(t.fog.color, 120, t.fog.far) : null;
 
   if (playerRailMat) { playerRailMat.color.setHex(t.rail); playerRailMat.emissive.setHex(t.railEmissive); }
   themeTieMats.forEach(m => m.color.setHex(t.tie));
 
-  if (playerCartBuilt && playerCartBuilt.mats) {
+  // Das gekaufte Sonder-Auto behält seine eigene Lackierung; nur das Standard-Auto wird getönt.
+  if (playerCarId === 'default' && playerCartBuilt && playerCartBuilt.mats) {
     const mats = playerCartBuilt.mats;
     mats.body.color.setHex(t.carBody); mats.body.emissive.setHex(t.carBody);
     mats.fin.color.setHex(t.carFin); mats.fin.emissive.setHex(t.carFin);
-    mats.pod.color.setHex(t.carFin); mats.pod.emissive.setHex(t.carFin);
-    mats.podRing.color.setHex(t.carBody); mats.podRing.emissive.setHex(t.carBody);
+    if (mats.pod) { mats.pod.color.setHex(t.carFin); mats.pod.emissive.setHex(t.carFin); }
+    if (mats.podRing) { mats.podRing.color.setHex(t.carBody); mats.podRing.emissive.setHex(t.carBody); }
   }
 
-  Object.entries(placeGroups).forEach(([key, grp]) => { grp.visible = (key === t.place); });
-  if (starGroup) starGroup.visible = (t.place === null); // Sterne nur im Weltall-Level
+  // Nur die aktive Welt in der Szene halten (spart pro Frame das Durchlaufen aller anderen).
+  if (currentPlaceKey !== t.place) {
+    if (currentPlaceKey && placeGroups[currentPlaceKey]) scene.remove(placeGroups[currentPlaceKey]);
+    if (t.place && placeGroups[t.place]) scene.add(placeGroups[t.place]);
+    currentPlaceKey = t.place;
+  }
+  if (starGroup) starGroup.visible = (t.place === null || t.place === 'moon'); // Sterne im Weltall + auf dem Mond
 }
 
-/* Kurzer, ein-/ausblendender Banner beim Levelaufstieg mit Level-Nummer und Weltname. */
+function applyLevelTheme(lv) {
+  const idx = Math.min(lv, LEVEL_THEMES.length) - 1;
+  applyTheme(LEVEL_THEMES[idx], LEVEL_AI_SPEEDS[idx]);
+}
+
+/* Kurzer, ein-/ausblendender Banner (Levelstart / Duell / Meldungen). */
 let levelBannerTimer = null;
-function showLevelBanner() {
+function showLevelBanner(msg) {
   const el = document.getElementById('levelBanner');
-  const t = LEVEL_THEMES[Math.min(level, LEVEL_THEMES.length) - 1];
-  el.textContent = `Level ${level} · ${t.name}`;
+  if (!msg) {
+    const t = LEVEL_THEMES[Math.min(level, LEVEL_THEMES.length) - 1];
+    msg = `Level ${level} · ${t.name}`;
+  }
+  el.textContent = msg;
   el.classList.add('show');
   clearTimeout(levelBannerTimer);
   levelBannerTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ================= DRACHENAUTO (Duell-Gegner) ================= */
+
+/* Ein bedrohliches Drachenauto: dunkelrote Karosserie, goldene Hörner, Flügel und Glühaugen. */
+function buildDragonCar() {
+  const group = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x7a0f12, metalness: 0.6, roughness: 0.35, emissive: 0x3a0608, emissiveIntensity: 0.5 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.1, 3.8), bodyMat);
+  body.position.y = 0.4;
+  group.add(body);
+  // Drachenkopf vorn
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 6), bodyMat);
+  head.rotation.x = -Math.PI / 2;
+  head.position.set(0, 0.6, -2.2);
+  group.add(head);
+  const hornMat = new THREE.MeshStandardMaterial({ color: 0xffd23f, emissive: 0x7a5a10, emissiveIntensity: 0.6, metalness: 0.7, roughness: 0.3 });
+  [-1, 1].forEach((s) => {
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1.1, 5), hornMat);
+    horn.position.set(s * 0.5, 1.2, -2.1);
+    horn.rotation.x = 0.5;
+    group.add(horn);
+    // Glühauge
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffee55, emissive: 0xffcc00, emissiveIntensity: 2 }));
+    eye.position.set(s * 0.45, 0.85, -2.4);
+    group.add(eye);
+    // Flügel
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0x4a0a14, roughness: 0.7, side: THREE.DoubleSide, emissive: 0x220408, emissiveIntensity: 0.4 });
+    const wing = new THREE.Mesh(new THREE.ConeGeometry(2.2, 4.2, 3), wingMat);
+    wing.position.set(s * 2.1, 1.2, 0.4);
+    wing.rotation.z = s * 1.15;
+    wing.rotation.y = s * 0.5;
+    wing.scale.set(0.4, 1, 1);
+    group.add(wing);
+  });
+  // Heckflamme (wie bei den anderen Fahrzeugen)
+  const flameMat = new THREE.MeshStandardMaterial({ color: 0xff5a2e, emissive: 0xff3a00, emissiveIntensity: 2.4, transparent: true, opacity: 0.0 });
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.6, 12), flameMat);
+  flame.rotation.x = Math.PI / 2;
+  flame.position.set(0, 0.4, 2.9);
+  group.add(flame);
+  scene.add(group);
+  return { group, flame };
+}
+
+/* Zustandsobjekt des Drachenautos (nutzt dieselbe Bewegungs-Logik wie die KI-Gegner, aber
+   auf Rennrunde und mit Duell-Höchsttempo). Die rote KI-Schiene/Gondel wird mitgenutzt. */
+function initDragonState() {
+  const cart = buildDragonCar();
+  cart.group.visible = false;
+  return {
+    config: { offset: SIDE_OFFSET, name: 'drache' },
+    gondolaInfo: null, // wird in init() auf die Gondel der roten Schiene gesetzt
+    cartGroup: cart.group, cartFlame: cart.flame, cart,
+    idx: { i: 0 }, distanceTraveled: 0, speedKmh: 0, throttle: false,
+    targetSpeed: DUEL_DRAGON_SPEED - 150, inGondola: false, gondolaProgress: 0, nextPortal: 0, lap: 0
+  };
+}
+
+/* ================= SONDER-AUTOS (aus dem Shop) ================= */
+
+function addRearFlame(group) {
+  const flameMat = new THREE.MeshStandardMaterial({ color: 0xff9d2e, emissive: 0xff6a00, emissiveIntensity: 2.2, transparent: true, opacity: 0.0 });
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.4, 12), flameMat);
+  flame.rotation.x = Math.PI / 2;
+  flame.position.set(0, 0.35, 2.7);
+  group.add(flame);
+  return flame;
+}
+
+function buildF1Car() {
+  const group = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd11a1a, metalness: 0.7, roughness: 0.25, emissive: 0x3a0606, emissiveIntensity: 0.3 });
+  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+  const tyreMat = new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.85 });
+  const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 4.2), bodyMat);
+  chassis.position.y = 0.35;
+  group.add(chassis);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.6, 6), bodyMat);
+  nose.rotation.x = -Math.PI / 2; nose.position.set(0, 0.35, -2.6);
+  group.add(nose);
+  const cockpit = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), whiteMat);
+  cockpit.position.set(0, 0.7, 0.2);
+  group.add(cockpit);
+  const rearWing = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.5, 0.4), whiteMat);
+  rearWing.position.set(0, 1.0, 2.2);
+  group.add(rearWing);
+  const frontWing = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.15, 0.6), whiteMat);
+  frontWing.position.set(0, 0.2, -2.9);
+  group.add(frontWing);
+  [[-1, -1.6], [1, -1.6], [-1, 1.7], [1, 1.7]].forEach(([sx, pz]) => {
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.5, 14), tyreMat);
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(sx * 1.15, 0.4, pz);
+    group.add(wheel);
+  });
+  const flame = addRearFlame(group);
+  scene.add(group);
+  return { group, flame };
+}
+
+function buildMonsterTruck() {
+  const group = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2f9e34, metalness: 0.5, roughness: 0.4, emissive: 0x0c2e0e, emissiveIntensity: 0.3 });
+  const cabMat = new THREE.MeshStandardMaterial({ color: 0x1d6b22, roughness: 0.5 });
+  const tyreMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.95 });
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8, roughness: 0.3 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.1, 3.6), bodyMat);
+  body.position.y = 1.5;
+  group.add(body);
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.0, 1.6), cabMat);
+  cab.position.set(0, 2.4, -0.4);
+  group.add(cab);
+  [[-1, -1.1], [1, -1.1], [-1, 1.1], [1, 1.1]].forEach(([sx, pz]) => {
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.9, 16), tyreMat);
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(sx * 1.5, 1.0, pz);
+    group.add(wheel);
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.95, 10), rimMat);
+    rim.rotation.z = Math.PI / 2;
+    rim.position.set(sx * 1.5, 1.0, pz);
+    group.add(rim);
+  });
+  const flame = addRearFlame(group);
+  flame.position.set(0, 1.3, 2.4);
+  scene.add(group);
+  return { group, flame };
+}
+
+function buildUboot() {
+  const group = new THREE.Group();
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0xf2c500, metalness: 0.6, roughness: 0.35, emissive: 0x4a3a00, emissiveIntensity: 0.3 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x0a3550, roughness: 0.5, metalness: 0.4 });
+  const hullGeo = (typeof THREE.CapsuleGeometry === 'function')
+    ? new THREE.CapsuleGeometry(1.1, 2.6, 6, 12)
+    : new THREE.CylinderGeometry(1.1, 1.1, 4.6, 16);
+  const hull = new THREE.Mesh(hullGeo, hullMat);
+  hull.rotation.x = Math.PI / 2;
+  hull.position.y = 0.7;
+  group.add(hull);
+  // abgerundete Nase/Heck falls keine Kapsel verfügbar
+  if (typeof THREE.CapsuleGeometry !== 'function') {
+    [-2.3, 2.3].forEach(pz => { const cap = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 8), hullMat); cap.position.set(0, 0.7, pz); group.add(cap); });
+  }
+  const tower = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.1, 1.4), darkMat);
+  tower.position.set(0, 1.6, -0.1);
+  group.add(tower);
+  const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2, 8), darkMat);
+  scope.position.set(0, 2.3, -0.1);
+  group.add(scope);
+  const window1 = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x2aa0c0, emissiveIntensity: 0.8, transparent: true, opacity: 0.7 }));
+  window1.position.set(0, 0.9, -1.8);
+  group.add(window1);
+  [-1, 1].forEach((s) => {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.8, 1.0), darkMat);
+    fin.position.set(s * 1.1, 0.7, 1.9);
+    group.add(fin);
+  });
+  const prop = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.6, 6), darkMat);
+  prop.rotation.x = -Math.PI / 2;
+  prop.position.set(0, 0.7, 2.4);
+  group.add(prop);
+  const flame = addRearFlame(group);
+  flame.material.opacity = 0; flame.position.set(0, 0.7, 2.9);
+  scene.add(group);
+  return { group, flame };
+}
+
+/* Baut das aktuell gewählte Spieler-Auto (Standard oder gekauftes Sonder-Auto). */
+function setPlayerCar(id) {
+  if (cartGroup) { scene.remove(cartGroup); }
+  let built;
+  if (id === 'formel1') built = buildF1Car();
+  else if (id === 'monstertruck') built = buildMonsterTruck();
+  else if (id === 'uboot') built = buildUboot();
+  else built = buildCartMesh(0x141428, 0xff5566); // Standard-Auto (themenfähig)
+  cartGroup = built.group;
+  cartFlame = built.flame;
+  playerCartBuilt = built;
+  playerCarId = id;
+}
+
+/* ================= RENN-SYSTEM (1 Runde pro Level, gewinnen oder zurück zu Level 1) ================= */
+
+function resetPlayerToStart() {
+  distanceTraveled = 0; playerIdx.i = 0; speedKmh = 0;
+  inGondola = false; gondolaProgress = 0;
+  falling = false; gameOver = false;
+  playerLap = 0;
+  if (cartGroup) cartGroup.rotation.set(0, 0, 0);
+}
+
+function resetOpponentToStart(s) {
+  s.distanceTraveled = 0; s.idx.i = 0; s.speedKmh = 0;
+  s.throttle = false; s.targetSpeed = aiMaxSpeed - 100;
+  s.inGondola = false; s.gondolaProgress = 0; s.lap = 0;
+  if (s.gondolaInfo) { s.gondolaInfo.box.position.copy(s.gondolaInfo.entryPos); s.gondolaInfo.box.quaternion.copy(s.gondolaInfo.entryQuat); }
+}
+
+function hideOverlays() {
+  ['intro', 'gameover', 'raceresult', 'shop'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+}
+
+/* Startet ein normales Level-Rennen (alle Autos an der Startlinie, eine Runde). */
+function startRace(lv) {
+  level = lv; inDuel = false; raceActive = true; raceResult = null; started = false;
+  applyLevelTheme(lv);
+  resetPlayerToStart();
+  aiStates.forEach(s => { s.cartGroup.visible = true; resetOpponentToStart(s); });
+  if (dragonState) dragonState.cartGroup.visible = false;
+  if (gondolaInfo) { gondolaInfo.box.position.copy(gondolaInfo.entryPos); gondolaInfo.box.quaternion.copy(gondolaInfo.entryQuat); }
+  hideOverlays();
+  showLevelBanner();
+}
+
+/* Startet das Schloss-Duell gegen das Drachenauto (1 gegen 1, eine Runde). */
+function startDuel() {
+  inDuel = true; raceActive = true; raceResult = null; started = false; level = MAX_LEVEL + 1;
+  applyTheme(DUEL_THEME, DUEL_DRAGON_SPEED);
+  resetPlayerToStart();
+  aiStates.forEach(s => { s.cartGroup.visible = false; });
+  dragonState.cartGroup.visible = true;
+  resetOpponentToStart(dragonState);
+  hideOverlays();
+  showLevelBanner('🐉 Schloss-Duell! Schlag das Drachenauto!');
+}
+
+/* Wird aufgerufen, sobald der Player seine Rennrunde beendet: als Erster -> weiter, sonst Level 1. */
+function finishRace() {
+  const opponents = inDuel ? [dragonState] : aiStates;
+  const won = opponents.every(o => o.lap === 0); // niemand hat die Runde vor dir beendet
+  raceActive = false;
+  if (!won) { loseRace(); return; }
+  if (inDuel) { winDuel(); return; }
+  if (level < MAX_LEVEL) startRace(level + 1);
+  else startDuel();
+}
+
+function loseRace() {
+  raceActive = false; raceResult = 'lost';
+  document.getElementById('raceResultTitle').textContent = '😢 Rennen verloren';
+  document.getElementById('raceResultMsg').textContent = inDuel
+    ? 'Das Drachenauto war schneller. Es geht zurück zu Level 1.'
+    : 'Du bist nicht als Erster ins Ziel gekommen. Es geht zurück zu Level 1.';
+  document.getElementById('raceresult').style.display = 'flex';
+}
+
+function winDuel() {
+  raceActive = false; raceResult = 'won';
+  trophies++; saveProgress();
+  openShop();
+}
+
+/* Nach einem verlorenen Rennen / geschlossenem Shop: neu ab Level 1. */
+function proceedAfterResult() {
+  hideOverlays();
+  startRace(1);
+}
+
+/* ================= FAHRZEUG-SHOP ================= */
+
+function openShop() {
+  document.getElementById('shopTrophies').textContent = trophies;
+  CARS.forEach(c => {
+    const card = document.getElementById('shopcard-' + c.id);
+    if (!card) return;
+    const owned = ownedCars.includes(c.id);
+    const status = card.querySelector('.shopStatus');
+    card.classList.toggle('owned', owned);
+    card.classList.toggle('selected', playerCarId === c.id);
+    if (owned) status.textContent = (playerCarId === c.id) ? '✓ ausgewählt' : 'wählen';
+    else status.textContent = (trophies >= 1) ? '1 🏆 kaufen' : 'gesperrt';
+  });
+  document.getElementById('shop').style.display = 'flex';
+}
+
+/* Klick auf eine Auto-Karte: gekaufte Autos nur auswählen, neue für 1 Pokal kaufen. */
+function pickCar(id) {
+  const owned = ownedCars.includes(id);
+  if (!owned) {
+    if (trophies < 1) return; // gesperrt
+    trophies -= 1;
+    ownedCars.push(id);
+  }
+  playerCarId = id;
+  saveProgress();
+  setPlayerCar(id);
+  openShop(); // Anzeige aktualisieren
+}
+
+function setupShopUI() {
+  CARS.forEach(c => {
+    const card = document.getElementById('shopcard-' + c.id);
+    if (card) card.addEventListener('click', () => pickCar(c.id));
+  });
+  const closeBtn = document.getElementById('shopClose');
+  if (closeBtn) closeBtn.addEventListener('click', proceedAfterResult);
+}
+
+/* ================= MINIMAP (Navi-Übersicht unten links) ================= */
+
+function initMinimap() {
+  miniCanvas = document.getElementById('minimap');
+  if (!miniCanvas) return;
+  miniCtx = miniCanvas.getContext('2d');
+  const W = miniCanvas.width, H = miniCanvas.height, pad = 12;
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  trackPoints.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z); });
+  const spanX = (maxX - minX) || 1, spanZ = (maxZ - minZ) || 1;
+  const s = Math.min((W - 2 * pad) / spanX, (H - 2 * pad) / spanZ);
+  const ox = (W - s * spanX) / 2, oz = (H - s * spanZ) / 2;
+  const toX = x => ox + (x - minX) * s;
+  const toY = z => oz + (z - minZ) * s;
+  miniProjected = { toX, toY };
+
+  // Streckenlinie EINMAL in ein Offscreen-Canvas rendern (jede Runde identisch)
+  miniTrackCanvas = document.createElement('canvas');
+  miniTrackCanvas.width = W; miniTrackCanvas.height = H;
+  const c = miniTrackCanvas.getContext('2d');
+  c.strokeStyle = 'rgba(120,130,180,0.85)';
+  c.lineWidth = 2;
+  c.beginPath();
+  trackPoints.forEach((p, i) => { const x = toX(p.x), y = toY(p.z); i ? c.lineTo(x, y) : c.moveTo(x, y); });
+  c.stroke();
+}
+
+function drawMinimap() {
+  if (!miniCtx || !miniProjected) return;
+  const W = miniCanvas.width, H = miniCanvas.height;
+  miniCtx.clearRect(0, 0, W, H);
+  miniCtx.drawImage(miniTrackCanvas, 0, 0); // vorgezeichnete Strecke
+  // Autos als Punkte
+  const dots = [];
+  dots.push({ x: cartGroup.position.x, z: cartGroup.position.z, color: '#16209c', me: true });
+  if (inDuel) {
+    dots.push({ x: dragonState.cartGroup.position.x, z: dragonState.cartGroup.position.z, color: '#cc2200', me: false });
+  } else {
+    aiStates.forEach((s, i) => dots.push({ x: s.cartGroup.position.x, z: s.cartGroup.position.z, color: RACER_META[i + 1].color, me: false }));
+  }
+  dots.forEach(d => {
+    miniCtx.beginPath();
+    miniCtx.arc(miniProjected.toX(d.x), miniProjected.toY(d.z), d.me ? 5 : 3.5, 0, Math.PI * 2);
+    miniCtx.fillStyle = d.color;
+    miniCtx.fill();
+    if (d.me) { miniCtx.lineWidth = 2; miniCtx.strokeStyle = '#fff'; miniCtx.stroke(); }
+  });
 }
 
 /* ================= CART / PLAYER ================= */
@@ -1764,58 +2427,14 @@ function buildCartMesh(bodyColor, finColor) {
 }
 
 function buildCart() {
-  const built = buildCartMesh(0x141428, 0xff5566);
-  cartGroup = built.group;
-  cartFlame = built.flame;
-  built.skinIndex = 0;
-  playerCartBuilt = built; // fuer checkVehiclePortal (gleiche Struktur wie bei den KIs)
+  setPlayerCar(playerCarId); // Standard-Auto oder gekauftes Sonder-Auto (aus dem Fortschritt)
 }
 
 /* ================= GAME STATE ================= */
 
+// Vollständiger Neustart ab Level 1 (nach Absturz / verlorenem Rennen).
 function resetGame() {
-  distanceTraveled = 0;
-  playerIdx.i = 0;
-  speedKmh = 0;
-  started = false;
-  gameOver = false;
-  falling = false;
-  scoreSeconds = 0;
-  cartGroup.rotation.set(0, 0, 0);
-  inGondola = false;
-  gondolaProgress = 0;
-  playerPortalState.nextPortal = 0;
-  // zurück auf Level 1 (Weltall)
-  playerLap = 0;
-  level = 1;
-  applyLevelTheme(1);
-  document.getElementById('levelBanner').classList.remove('show');
-  if (playerCartBuilt) { playerCartBuilt.skinIndex = 0; setCartSkin(playerCartBuilt, 0); }
-  if (gondolaInfo) {
-    gondolaInfo.box.position.copy(gondolaInfo.entryPos);
-    gondolaInfo.box.quaternion.copy(gondolaInfo.entryQuat);
-  }
-
-  aiStates.forEach((s) => {
-    s.distanceTraveled = 0;
-    s.idx.i = 0;
-    s.speedKmh = 0;
-    s.throttle = false;
-    s.targetSpeed = s.config.startTarget;
-    s.inGondola = false;
-    s.gondolaProgress = 0;
-    s.nextPortal = 0;
-    s.lap = 0;
-    s.cart.skinIndex = 0;
-    setCartSkin(s.cart, 0);
-    if (s.gondolaInfo) {
-      s.gondolaInfo.box.position.copy(s.gondolaInfo.entryPos);
-      s.gondolaInfo.box.quaternion.copy(s.gondolaInfo.entryQuat);
-    }
-  });
-
-  document.getElementById('gameover').style.display = 'none';
-  document.getElementById('intro').style.display = 'block';
+  startRace(1);
 }
 
 /* Wird ausgeloest, wenn der Player mehr als OVERSPEED_MARGIN (100 km/h) ueber dem
@@ -1831,7 +2450,8 @@ function startFalling() {
 function finalizeDerail() {
   falling = false;
   gameOver = true;
-  document.getElementById('finalScore').textContent = scoreSeconds;
+  raceActive = false;
+  document.getElementById('finalScore').textContent = inDuel ? 'Schloss-Duell' : ('Level ' + level);
   document.getElementById('gameover').style.display = 'flex';
 }
 
@@ -1846,6 +2466,7 @@ function flashWrap() {
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
+  frameCount++;
 
   updateEngineSound();
 
@@ -1858,18 +2479,29 @@ function animate() {
   planetMeshes.forEach((p) => {
     p.mesh.rotation.y += p.spin * dt;
   });
-  // Tunnel-Neonringe pulsieren/wechseln farblich durch
-  tunnelRings.forEach((tr) => {
-    const t = (performance.now() / 600 + tr.colorIndex) % tr.palette.length;
-    const idx = Math.floor(t);
-    const nextIdx = (idx + 1) % tr.palette.length;
-    const frac = t - idx;
-    const c1 = new THREE.Color(tr.palette[idx]);
-    const c2 = new THREE.Color(tr.palette[nextIdx]);
-    const mixed = c1.clone().lerp(c2, frac);
-    tr.mat.color.copy(mixed);
-    tr.mat.emissive.copy(mixed);
-  });
+  // Haie kreisen im Meer-Level langsam an der Wasseroberfläche
+  if (currentPlaceKey === 'ocean') {
+    swimmers.forEach((sw) => {
+      sw.angle += sw.speed * dt;
+      const x = sw.cx + Math.cos(sw.angle) * sw.radius;
+      const z = sw.cz + Math.sin(sw.angle) * sw.radius;
+      sw.mesh.position.set(x, sw.y, z);
+      sw.mesh.rotation.y = -sw.angle + Math.PI / 2; // Nase in Schwimmrichtung
+    });
+  }
+  // Tunnel-Neonringe pulsieren/wechseln farblich durch (nur jeden 3. Frame, ohne Allokationen)
+  if (frameCount % 3 === 0) {
+    const now = performance.now();
+    tunnelRings.forEach((tr) => {
+      const t = (now / 600 + tr.colorIndex) % tr.palette.length;
+      const idx = Math.floor(t);
+      const frac = t - idx;
+      _ringC1.setHex(tr.palette[idx]);
+      _ringC2.setHex(tr.palette[(idx + 1) % tr.palette.length]);
+      tr.mat.color.copy(_ringC1).lerp(_ringC2, frac);
+      tr.mat.emissive.copy(tr.mat.color);
+    });
+  }
 
   if (!gameOver && falling) {
     // Die Bahn ist entgleist und faellt endgueltig ins dunkle All
@@ -1915,39 +2547,31 @@ function animate() {
         gondolaInfo.box.quaternion.copy(gondolaInfo.entryQuat);
       }
     } else {
-      // speed control
-      if (keys.up) {
-        speedKmh += ACCEL * dt;
-      } else if (keys.down) {
-        speedKmh -= DECEL * dt;
-      } else {
-        speedKmh -= FRICTION * dt; // rollt selbstständig langsamer, sobald ↑ losgelassen wird
-      }
-      speedKmh = THREE.MathUtils.clamp(speedKmh, 0, MAX_SPEED);
+      // speed control (nur während ein Rennen läuft)
+      if (raceActive) {
+        if (keys.up) {
+          speedKmh += ACCEL * dt;
+        } else if (keys.down) {
+          speedKmh -= DECEL * dt;
+        } else {
+          speedKmh -= FRICTION * dt; // rollt selbstständig langsamer, sobald ↑ losgelassen wird
+        }
+        speedKmh = THREE.MathUtils.clamp(speedKmh, 0, MAX_SPEED);
 
-      if (speedKmh > 0 && !started) {
-        started = true;
-        startTime = performance.now();
-      }
-      if (started) {
-        scoreSeconds = Math.floor((performance.now() - startTime) / 1000);
-      }
+        if (speedKmh > 0 && !started) {
+          started = true;
+          startTime = performance.now();
+        }
+        if (started) {
+          scoreSeconds = Math.floor((performance.now() - startTime) / 1000);
+        }
 
-      // move along track
-      const speedMs = speedKmh / 3.6;
-      distanceTraveled += speedMs * dt;
-      if (distanceTraveled >= totalLength) {
-        distanceTraveled = distanceTraveled % totalLength;
-        playerIdx.i = 0;
-        playerPortalState.nextPortal = 0;
-        flashWrap();
-        // Runde abgeschlossen -> nächstes Level (max. 5): Welt + KI-Tempo wechseln
-        playerLap++;
-        const newLevel = Math.min(MAX_LEVEL, playerLap + 1);
-        if (newLevel !== level) {
-          level = newLevel;
-          applyLevelTheme(level);
-          showLevelBanner();
+        // move along track
+        const speedMs = speedKmh / 3.6;
+        distanceTraveled += speedMs * dt;
+        if (distanceTraveled >= totalLength) {
+          flashWrap();
+          finishRace(); // Rennrunde beendet -> auswerten (gewinnt/verliert, ggf. neues Rennen)
         }
       }
 
@@ -1966,43 +2590,45 @@ function animate() {
 
       // Heckdüse: zündet/leuchtet, sobald Gas gegeben wird (Pfeiltaste hoch)
       if (cartFlame) {
-        cartFlame.material.opacity = keys.up ? 0.9 : 0.0;
+        cartFlame.material.opacity = (raceActive && keys.up) ? 0.9 : 0.0;
         const s = keys.up ? 1 + Math.random() * 0.3 : 0.4;
         cartFlame.scale.set(s, 1, s);
       }
 
-      // Fahrzeug-Portal: wechselt das Aussehen der Achterbahn, sobald man hindurchfliegt
-      checkVehiclePortal(distanceTraveled, playerPortalState, playerCartBuilt);
+      if (raceActive) {
+        // In die Seilbahn-Gondel einsteigen, sobald der Eintrittspunkt erreicht ist
+        if (gondolaInfo && distanceTraveled >= gondolaInfo.entryDist && distanceTraveled < gondolaInfo.exitDist) {
+          inGondola = true;
+          gondolaProgress = 0;
+          distanceTraveled = gondolaInfo.entryDist;
+        }
 
-      // In die Seilbahn-Gondel einsteigen, sobald der Eintrittspunkt erreicht ist
-      if (gondolaInfo && distanceTraveled >= gondolaInfo.entryDist && distanceTraveled < gondolaInfo.exitDist) {
-        inGondola = true;
-        gondolaProgress = 0;
-        distanceTraveled = gondolaInfo.entryDist;
-      }
-
-      // Neue Entgleisungs-Regel: erst wenn du mehr als 100 km/h ueber dem Limit bist UND
-      // gerade in eine Kurve faehrst, fliegst du aus der Bahn und faellst ins All.
-      currentLimit = getCurrentLimit(distanceTraveled);
-      const curveRanges = getCurveRanges();
-      const dangerouslyFast = speedKmh > currentLimit + OVERSPEED_MARGIN;
-      if (dangerouslyFast && isInsideCurve(playerIdx.i, curveRanges)) {
-        startFalling();
+        // Entgleisungs-Regel: mehr als 100 km/h ueber dem Limit UND in einer Kurve -> Absturz.
+        currentLimit = getCurrentLimit(distanceTraveled);
+        const curveRanges = getCurveRanges();
+        const dangerouslyFast = speedKmh > currentLimit + OVERSPEED_MARGIN;
+        if (dangerouslyFast && isInsideCurve(playerIdx.i, curveRanges)) {
+          startFalling();
+        }
       }
     }
 
-    // alle vier KI-Achterbahnen aktualisieren
-    aiStates.forEach((s) => updateAiState(s, dt));
+    // Gegner aktualisieren: im Duell nur das Drachenauto, sonst die vier KI (nur während des Rennens)
+    if (raceActive) {
+      if (inDuel) updateAiState(dragonState, dt);
+      else aiStates.forEach((s) => updateAiState(s, dt));
+    }
 
-    // camera follow (third person, banks/flips with track)
-    const camOffset = sample.forward.clone().multiplyScalar(-13).add(sample.up.clone().multiplyScalar(4));
-    const desiredCamPos = cartPos.clone().add(camOffset);
-    camera.position.lerp(desiredCamPos, 1 - Math.pow(0.00005, dt));
+    // camera follow (third person, banks/flips with track) - ohne Pro-Frame-Allokationen
+    _camOffset.copy(sample.forward).multiplyScalar(-13).addScaledVector(sample.up, 4);
+    _camPos.copy(cartPos).add(_camOffset);
+    camera.position.lerp(_camPos, 1 - Math.pow(0.00005, dt));
     camera.up.copy(sample.up);
-    const lookTarget = cartPos.clone().add(sample.forward.clone().multiplyScalar(6));
-    camera.lookAt(lookTarget);
+    _lookTarget.copy(cartPos).addScaledVector(sample.forward, 6);
+    camera.lookAt(_lookTarget);
 
-    updateHUD();
+    // HUD/Rangliste/Minimap nur alle 3 Frames aktualisieren (spart DOM-/Canvas-Arbeit)
+    if (frameCount % 3 === 0) updateHUD();
   }
 
   renderer.render(scene, camera);
@@ -2011,27 +2637,32 @@ function animate() {
 function updateHUD() {
   document.getElementById('speedVal').textContent = Math.round(speedKmh);
   document.getElementById('limitVal').textContent = currentLimit;
-  document.getElementById('scoreVal').textContent = scoreSeconds;
+  document.getElementById('scoreVal').textContent = trophies; // Score-Panel zeigt jetzt Pokale
   aiStates.forEach((s, i) => {
     const el = document.getElementById('aiSpeedVal' + (i + 1));
     if (el) el.textContent = Math.round(s.speedKmh);
   });
 
-  // Level-Anzeige
-  document.getElementById('levelVal').textContent = level;
-  document.getElementById('worldVal').textContent = LEVEL_THEMES[Math.min(level, LEVEL_THEMES.length) - 1].name;
+  // Level-/Welt-Anzeige
+  document.getElementById('levelVal').textContent = inDuel ? '★' : level;
+  document.getElementById('worldVal').textContent = inDuel ? DUEL_THEME.name : LEVEL_THEMES[Math.min(level, LEVEL_THEMES.length) - 1].name;
 
   updateLeaderboard();
+  drawMinimap();
 }
 
-/* Live-Rangliste: sortiert Player + 4 KI nach zurückgelegter Gesamtstrecke (Runde*Länge + Fortschritt). */
+/* Live-Rangliste: sortiert die Renn-Teilnehmer nach zurückgelegter Gesamtstrecke. */
 function updateLeaderboard() {
   const entries = [
     { meta: RACER_META[0], rankDist: playerLap * totalLength + distanceTraveled, speed: speedKmh, isPlayer: true }
   ];
-  aiStates.forEach((s, i) => {
-    entries.push({ meta: RACER_META[i + 1], rankDist: s.lap * totalLength + s.distanceTraveled, speed: s.speedKmh, isPlayer: false });
-  });
+  if (inDuel) {
+    entries.push({ meta: { name: '🐉 Drache', color: '#cc2200' }, rankDist: dragonState.lap * totalLength + dragonState.distanceTraveled, speed: dragonState.speedKmh, isPlayer: false });
+  } else {
+    aiStates.forEach((s, i) => {
+      entries.push({ meta: RACER_META[i + 1], rankDist: s.lap * totalLength + s.distanceTraveled, speed: s.speedKmh, isPlayer: false });
+    });
+  }
   entries.sort((a, b) => b.rankDist - a.rankDist);
 
   const html = entries.map((e, i) =>
