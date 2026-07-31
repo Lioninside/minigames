@@ -5,31 +5,31 @@ endloses Meer, weichst Minen, feindlichen U-Booten und Torpedos aus und sammelst
 mit denen sich in der Hafenwerft immer neue Fahrzeuge freischalten lassen.
 
 Das Spiel läuft vollständig im Browser – keine Installation, kein Build-Schritt, kein Server nötig.
+Teil der [Mini-Games-Sammlung](../../README.md).
 
 ## Lokal starten
 
-Die einfachste Variante ist ein kleiner lokaler Webserver (nötig, weil Browser Skripte von
-`file://` teilweise blockieren):
+Im **Wurzelverzeichnis der Sammlung** einen kleinen Webserver starten (nicht in diesem Ordner,
+sonst wird `shared/three.min.js` nicht gefunden):
 
 ```bash
-cd ubootgame
 python3 -m http.server 8000
 ```
 
-Danach `http://localhost:8000` im Browser öffnen.
+Danach `http://localhost:8000/games/ubootgame/` im Browser öffnen.
 
 Alternativ funktioniert auch jeder andere statische Server, z. B. `npx serve`.
 
 ## Auf einen Webhoster hochladen
 
-Es gibt nichts zu kompilieren – der komplette Ordner wird einfach hochgeladen:
+Es gibt nichts zu kompilieren – die Dateien werden einfach hochgeladen:
 
-1. Den gesamten Ordner `ubootgame/` per FTP/SFTP in das Web-Verzeichnis kopieren
-   (inklusive `three.min.js`, `css/`, `js/` und `assets/`).
-2. Die Seite ist danach unter `https://deine-domain.tld/ubootgame/` spielbar.
+1. Den Ordner `games/ubootgame/` **und** den Ordner `shared/` per FTP/SFTP hochladen, dabei die
+   relative Lage zueinander beibehalten.
+2. Die Seite ist danach unter `https://deine-domain.tld/games/ubootgame/` spielbar.
 
-Wichtig: Die Datei `three.min.js` muss neben der `index.html` liegen. Fehlt sie, versucht das
-Spiel automatisch, Three.js vom CDN nachzuladen – dann ist allerdings eine Internetverbindung nötig.
+Wichtig: Das Spiel erwartet Three.js unter `../../shared/three.min.js`. Fehlt die Datei, versucht
+es automatisch, Three.js vom CDN nachzuladen – dann ist allerdings eine Internetverbindung nötig.
 
 ## Steuerung
 
@@ -76,7 +76,8 @@ Zum Löschen gibt es im Hauptmenü den Punkt **„Fortschritt zurücksetzen"**.
 
 ## Verwendete Bibliotheken
 
-- **[Three.js](https://threejs.org/) r128** – WebGL-Rendering (lokal als `three.min.js`).
+- **[Three.js](https://threejs.org/) r128** – WebGL-Rendering, gemeinsam genutzt aus
+  `shared/three.min.js` im Wurzelverzeichnis der Sammlung.
 
 Sonst keine externen Abhängigkeiten. Sämtliche 3D-Modelle, Wellen, Partikeleffekte und Geräusche
 werden zur Laufzeit erzeugt – Geräusche über die Web Audio API, Modelle prozedural aus Three.js-
@@ -85,9 +86,8 @@ Grundkörpern.
 ## Ordnerstruktur
 
 ```
-ubootgame/
+games/ubootgame/
 ├── index.html            Aufbau der Seite und aller Menüs
-├── three.min.js          Three.js (lokal, damit es offline läuft)
 ├── css/style.css         gesamtes Aussehen von Menüs, HUD und Shop
 ├── js/
 │   ├── save-system.js    localStorage: Münzen, Schiffe, Highscore, Einstellungen
