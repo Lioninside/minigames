@@ -28,6 +28,7 @@ function Player(scene) {
   this.flightLocked = false;        // true nach erzwungener Landung, bis F losgelassen wird
   this.altitude = 0;                // Höhe über der Wasseroberfläche
   this.turretAngle = 0;             // aktueller Turmwinkel (Weltkoordinaten, um Y)
+  this.steerAuthority = 0;          // 0 = Ruder greift nicht (keine Fahrt), 1 = volle Wirkung
   this.alive = true;
 
   this._wakeAccum = 0;
@@ -102,13 +103,15 @@ Player.prototype.update = function (dt, keys) {
   this.speed = THREE.MathUtils.clamp(this.speed, minSpeed, def.maxSpeed);
 
   // ---- Lenkung ----
-  // Ein Schiff dreht nur, wenn Wasser am Ruder vorbeiströmt: bei Stillstand kaum Wirkung.
-  const steerAuth = THREE.MathUtils.clamp(Math.abs(this.speed) / (def.maxSpeed * 0.45), 0, 1);
+  // Ein Ruder wirkt nur, wenn Wasser daran vorbeiströmt: ohne Fahrt im Kiel dreht das Schiff
+  // gar nicht. Sonst würde es auf der Stelle pivotieren - das sieht aus, als drehe sich die
+  // Kamera, statt dass das Schiff einen Kurs fährt.
+  this.steerAuthority = THREE.MathUtils.clamp(Math.abs(this.speed) / (def.maxSpeed * 0.3), 0, 1);
   let turn = 0;
   if (keys.left) turn += 1;
   if (keys.right) turn -= 1;
-  if (turn !== 0) {
-    const rate = def.turn * (this.flying ? 1.25 : 1.0) * (0.25 + 0.75 * steerAuth);
+  if (turn !== 0 && this.steerAuthority > 0) {
+    const rate = def.turn * (this.flying ? 1.3 : 1.0) * this.steerAuthority;
     this.heading += turn * rate * dt * (this.speed < 0 ? -1 : 1);
   }
 

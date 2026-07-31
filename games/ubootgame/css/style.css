@@ -157,6 +157,12 @@ button:disabled:hover { background: rgba(255,255,255,0.05); border-color: rgba(2
   color: #ffcf7a; border-color: rgba(255, 180, 60, 0.55);
   font-weight: 700; animation: pulse 0.9s ease-in-out infinite;
 }
+
+/* Erklärt, warum das Steuern bei stehendem Schiff wirkungslos bleibt. */
+#steerPanel {
+  top: 122px; left: 50%; transform: translateX(-50%);
+  color: #bcd7e6; border-color: rgba(140, 200, 230, 0.45);
+}
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 
 #radarPanel { bottom: 16px; left: 16px; padding: 8px 8px 4px; }

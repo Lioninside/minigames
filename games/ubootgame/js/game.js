@@ -47,6 +47,8 @@ const Game = (function () {
   const waterPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
   const _v = new THREE.Vector3();
+  const _camFwd = new THREE.Vector3(0, 0, -1); // verzögerte Blickrichtung der Verfolgerkamera
+  let camYaw = 0;                              // folgt player.heading mit Verzögerung
   const _camTarget = new THREE.Vector3();
   const _lookTarget = new THREE.Vector3();
   const _playerVel = new THREE.Vector3();
@@ -82,7 +84,7 @@ const Game = (function () {
 
   function initUi() {
     ['coinVal', 'speedVal', 'distVal', 'hsVal', 'vehicleVal', 'flightVal', 'flightPanel',
-     'warnPanel', 'hud', 'menu', 'controls', 'shop', 'pause', 'result', 'loading',
+     'warnPanel', 'steerPanel', 'hud', 'menu', 'controls', 'shop', 'pause', 'result', 'loading',
      'menuCoins', 'menuHighscore', 'menuVehicle', 'resDist', 'resHigh', 'resCoins',
      'resRunCoins', 'resVehicle', 'resultTitle', 'resultCause', 'volume', 'btnMute']
       .forEach(id => { ui[id] = document.getElementById(id); });
@@ -136,6 +138,8 @@ const Game = (function () {
     Ocean.reset();
 
     player.reset(SaveSystem.selectedVehicle);
+    camYaw = player.heading;
+    _camFwd.set(Math.sin(camYaw), 0, -Math.cos(camYaw));
     updateHud(true);
     setState(STATE.RUNNING);
   }
@@ -254,6 +258,13 @@ const Game = (function () {
     const r = player.def.radius;
     const shake = Effects.shake;
 
+    // Kamerakurs zieht dem Schiffskurs auf kürzestem Weg nach
+    let dyaw = player.heading - camYaw;
+    while (dyaw > Math.PI) dyaw -= Math.PI * 2;
+    while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+    camYaw += dyaw * Math.min(1, dt * 1.8);
+    _camFwd.set(Math.sin(camYaw), 0, -Math.cos(camYaw));
+
     if (cameraMode === 1) {
       // Brücke / Cockpit
       player.getBridgeWorld(_camTarget);
@@ -267,19 +278,21 @@ const Game = (function () {
       // Vogelperspektive: hoch über dem Fahrzeug, Bug zeigt nach oben im Bild
       _camTarget.copy(player.position);
       _camTarget.y += 70 + r * 2.4;
-      _camTarget.addScaledVector(player.forward, r * 0.6);
+      _camTarget.addScaledVector(_camFwd, r * 0.6);
       camera.position.lerp(_camTarget, Math.min(1, dt * 4));
-      camera.up.copy(player.forward);
+      camera.up.copy(_camFwd);
       camera.lookAt(player.position);
     } else {
-      // Verfolgerperspektive (Standard)
+      // Verfolgerperspektive (Standard). Die Kamera folgt dem Kurs bewusst verzögert:
+      // Beim Steuern dreht dadurch sichtbar das Schiff im Bild, statt dass sich die ganze
+      // Welt um ein scheinbar stillstehendes Schiff dreht.
       const dist = 20 + r * 1.7;
       const height = 8 + r * 0.75;
       _camTarget.copy(player.position)
-        .addScaledVector(player.forward, -dist)
+        .addScaledVector(_camFwd, -dist)
         .addScaledVector(_v.set(0, 1, 0), height + player.altitude * 0.5);
       camera.position.lerp(_camTarget, 1 - Math.pow(0.0015, dt));
-      _lookTarget.copy(player.position).addScaledVector(player.forward, 22).setY(player.position.y + 3);
+      _lookTarget.copy(player.position).addScaledVector(_camFwd, 22).setY(player.position.y + 3);
       camera.up.set(0, 1, 0);
       camera.lookAt(_lookTarget);
     }
@@ -313,6 +326,10 @@ const Game = (function () {
     if (flying) ui.flightVal.textContent = player.remainingFlight.toFixed(1).replace('.', ',');
 
     show(ui.warnPanel, Enemies.warning);
+
+    // Hinweis, solange gelenkt wird, ohne dass das Ruder greift
+    const steeringWithoutWay = (keys.left || keys.right) && player.steerAuthority < 0.06;
+    show(ui.steerPanel, state === STATE.RUNNING && steeringWithoutWay);
   }
 
   /* ---------------- Hauptschleife ---------------- */
@@ -535,6 +552,7 @@ const Game = (function () {
     STATE,
     get state() { return state; },
     get scene() { return scene; },
+    get camera() { return camera; },
 
     initRenderer, initWorld, initUi, bindUi,
 
