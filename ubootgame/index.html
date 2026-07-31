@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hohe See – Endlosfahrt</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="canvas-wrap"></div>
+
+<!-- ================= LADEBILDSCHIRM ================= -->
+<div id="loading" class="overlay">
+  <div class="card">
+    <h1>⚓ Hohe See</h1>
+    <p class="sub">Endlosfahrt über das offene Meer</p>
+    <div class="progress"><div id="loadingBar"></div></div>
+    <p id="loadingLabel" class="hint">Initialisiere …</p>
+  </div>
+</div>
+
+<!-- ================= HAUPTMENÜ ================= -->
+<div id="menu" class="overlay hidden">
+  <div class="card wide">
+    <h1>⚓ Hohe See</h1>
+    <p class="sub">Weiche Minen, U-Booten und Torpedos aus. Pro 10 Meter gibt es eine Münze.</p>
+
+    <div class="menuStats">
+      <div><span class="statLabel">Münzen</span><span class="statVal" id="menuCoins">0</span></div>
+      <div><span class="statLabel">Highscore</span><span class="statVal" id="menuHighscore">0 m</span></div>
+      <div><span class="statLabel">Fahrzeug</span><span class="statVal" id="menuVehicle">Startboot</span></div>
+    </div>
+
+    <div class="menuButtons">
+      <button id="btnStart" class="primary">Spiel starten</button>
+      <button id="btnSelect">Fahrzeug auswählen</button>
+      <button id="btnControls">Steuerung</button>
+      <button id="btnReset" class="danger">Fortschritt zurücksetzen</button>
+    </div>
+
+    <div class="volumeRow">
+      <label for="volume">Lautstärke</label>
+      <input type="range" id="volume" min="0" max="100" step="1" value="70">
+      <button id="btnMute" class="small">🔊</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= STEUERUNGS-ÜBERSICHT ================= -->
+<div id="controls" class="overlay hidden">
+  <div class="card wide">
+    <h2>Steuerung</h2>
+    <table class="keys">
+      <tr><td><span class="kbd">↑</span></td><td>Beschleunigen</td></tr>
+      <tr><td><span class="kbd">↓</span></td><td>Bremsen / langsam rückwärts</td></tr>
+      <tr><td><span class="kbd">←</span> <span class="kbd">→</span></td><td>Nach links / rechts steuern</td></tr>
+      <tr><td><span class="kbd">P</span></td><td>Kameraperspektive wechseln</td></tr>
+      <tr><td><span class="kbd">K</span></td><td>Shop öffnen (pausiert das Spiel)</td></tr>
+      <tr><td><span class="kbd">C</span></td><td>Shop schliessen</td></tr>
+      <tr><td><span class="kbd">S</span></td><td>Panzerkreuzer: schiessen · im Flug: Bombe abwerfen</td></tr>
+      <tr><td><span class="kbd">F</span> halten</td><td>Wasserflugzeug: fliegen (max. 5 s)</td></tr>
+      <tr><td><span class="kbd">Esc</span></td><td>Pausemenü öffnen / schliessen</td></tr>
+      <tr><td>🖱️ Maus</td><td>Panzerkreuzer: Kanonen zielen dorthin</td></tr>
+    </table>
+    <button id="btnControlsBack" class="primary">Zurück</button>
+  </div>
+</div>
+
+<!-- ================= HUD ================= -->
+<div id="hud" class="hidden">
+  <div id="coinPanel" class="panel">
+    <span class="coinIcon">🪙</span><span id="coinVal">0</span>
+  </div>
+
+  <div id="statPanel" class="panel">
+    <div class="row"><span class="lbl">Geschwindigkeit</span><span class="val" id="speedVal">0 kn</span></div>
+    <div class="row"><span class="lbl">Distanz</span><span class="val" id="distVal">0 m</span></div>
+    <div class="row"><span class="lbl">Highscore</span><span class="val dim" id="hsVal">0 m</span></div>
+  </div>
+
+  <div id="vehiclePanel" class="panel">
+    <span class="lbl">Fahrzeug</span> <span id="vehicleVal">Startboot</span>
+  </div>
+
+  <div id="flightPanel" class="panel hidden">
+    ✈️ Verbleibende Flugzeit: <span id="flightVal">5,0</span> s
+  </div>
+
+  <div id="warnPanel" class="panel hidden">⚠️ Torpedo im Wasser!</div>
+
+  <div id="radarPanel" class="panel">
+    <canvas id="radar" width="200" height="200"></canvas>
+    <div class="radarCaption">Radar · 140 m</div>
+  </div>
+
+  <div id="hintBar">↑ schneller · ↓ langsamer · ← → steuern · P Kamera · K Shop · Esc Pause</div>
+</div>
+
+<!-- ================= SHOP ================= -->
+<div id="shop" class="overlay hidden">
+  <div class="card shopCard">
+    <div class="shopHead">
+      <h2>🛒 Hafenwerft</h2>
+      <div class="shopCoins">🪙 <span id="shopCoins">0</span></div>
+    </div>
+    <p class="hint">Das Spiel ist pausiert. Gekaufte Fahrzeuge lassen sich sofort übernehmen. Schliessen mit <span class="kbd">C</span>.</p>
+    <div id="shopGrid" class="shopGrid"></div>
+    <button id="btnShopClose" class="primary">Schliessen (C)</button>
+  </div>
+</div>
+
+<!-- ================= PAUSE ================= -->
+<div id="pause" class="overlay hidden">
+  <div class="card">
+    <h2>⏸️ Pause</h2>
+    <table class="keys compact">
+      <tr><td><span class="kbd">↑</span><span class="kbd">↓</span><span class="kbd">←</span><span class="kbd">→</span></td><td>Fahren und steuern</td></tr>
+      <tr><td><span class="kbd">P</span></td><td>Kamera wechseln</td></tr>
+      <tr><td><span class="kbd">K</span> / <span class="kbd">C</span></td><td>Shop öffnen / schliessen</td></tr>
+      <tr><td><span class="kbd">S</span></td><td>Schiessen / Bombe</td></tr>
+      <tr><td><span class="kbd">F</span></td><td>Wasserflugzeug fliegen</td></tr>
+    </table>
+    <div class="menuButtons">
+      <button id="btnResume" class="primary">Weiterfahren</button>
+      <button id="btnPauseShop">Shop öffnen</button>
+      <button id="btnPauseMenu">Hauptmenü</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ERGEBNIS ================= -->
+<div id="result" class="overlay hidden">
+  <div class="card">
+    <h2 id="resultTitle">💥 Gesunken!</h2>
+    <p id="resultCause" class="sub">Kollision mit einer Mine.</p>
+    <table class="resultTable">
+      <tr><td>Erreichte Distanz</td><td id="resDist">0 m</td></tr>
+      <tr><td>Highscore</td><td id="resHigh">0 m</td></tr>
+      <tr><td>Münzen dieser Fahrt</td><td id="resRunCoins">0</td></tr>
+      <tr><td>Münzen gesamt</td><td id="resCoins">0</td></tr>
+      <tr><td>Fahrzeug</td><td id="resVehicle">Startboot</td></tr>
+    </table>
+    <div class="menuButtons">
+      <button id="btnRetry" class="primary">Erneut starten</button>
+      <button id="btnResultShop">Fahrzeug / Shop</button>
+      <button id="btnResultMenu">Hauptmenü</button>
+    </div>
+  </div>
+</div>
+
+<div id="loaderr" class="overlay hidden">
+  <div class="card">
+    <h2>3D-Bibliothek fehlt</h2>
+    <p class="sub">Weder <code>three.min.js</code> noch das CDN konnten geladen werden. Bitte die Datei <code>three.min.js</code> neben <code>index.html</code> ablegen.</p>
+  </div>
+</div>
+
+<!-- Three.js: zuerst die lokale Kopie (funktioniert offline), sonst als Rückfall das CDN. -->
+<script src="./three.min.js"></script>
+<script>
+  if (!window.THREE) {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+  }
+</script>
+
+<script src="js/save-system.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ocean.js"></script>
+<script src="js/effects.js"></script>
+<script src="js/vehicles.js"></script>
+<script src="js/player.js"></script>
+<script src="js/mines.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/weapons.js"></script>
+<script src="js/radar.js"></script>
+<script src="js/shop.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
