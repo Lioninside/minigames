@@ -1,0 +1,14 @@
+{
+  "name": "minigames",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sammlung kleiner 3D-Browserspiele. Diese package.json betrifft ausschliesslich das Test-Werkzeug - die Spiele selbst laufen ohne jede Installation.",
+  "type": "module",
+  "scripts": {
+    "test": "node tools/smoke-test.mjs",
+    "serve": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

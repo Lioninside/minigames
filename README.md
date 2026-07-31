@@ -1,4 +1,4 @@
-# Mini-Games
+# Minigames
 
 Eine Sammlung kleiner 3D-Browserspiele. Jedes Spiel ist eigenständig, läuft rein clientseitig und
 braucht weder Installation noch Build-Schritt – die Dateien lassen sich direkt auf jeden statischen
@@ -17,26 +17,27 @@ Details zu Steuerung und Spielregeln stehen jeweils in der README des Spiels.
 
 ```
 /
-├── index.html              Startseite: Übersicht aller Spiele
-├── README.md               diese Datei
-├── .nojekyll               GitHub Pages liefert die Dateien unverändert aus
+├── index.html                  Startseite: Übersicht aller Spiele
+├── README.md                   diese Datei
+├── package.json                nur für den Testlauf – die Spiele brauchen kein npm
+├── .nojekyll                   GitHub Pages liefert die Dateien unverändert aus
+├── .github/workflows/          Smoke-Test bei jedem Push
+├── tools/
+│   └── smoke-test.mjs          lädt jede Seite im Browser und prüft sie
 ├── shared/
-│   └── three.min.js        Three.js r128 – von allen Spielen gemeinsam genutzt
+│   └── three-r128.min.js       Three.js – von allen Spielen gemeinsam genutzt
 └── games/
-    ├── xcoaster/           Endless Coaster (eine einzelne index.html)
-    │   ├── index.html
-    │   └── README.md
-    └── ubootgame/          Hohe See (modular aufgebaut)
-        ├── index.html
-        ├── css/
-        ├── js/
-        ├── assets/
-        └── README.md
+    ├── _template/              Vorlage zum Kopieren (kein echtes Spiel)
+    ├── xcoaster/               Endless Coaster (eine einzelne index.html)
+    └── ubootgame/              Hohe See (modular aufgebaut)
 ```
 
 Grundsatz: **Ein Spiel = ein Ordner unter `games/`.** Die Spiele kennen sich gegenseitig nicht und
 teilen sich ausschliesslich das, was in `shared/` liegt. Dadurch lässt sich ein Spiel jederzeit
 einzeln kopieren, ersetzen oder entfernen, ohne die anderen zu berühren.
+
+Ordner, deren Name mit `_` beginnt, sind Werkzeuge und keine Spiele – sie erscheinen nicht auf der
+Startseite.
 
 ## Lokal starten
 
@@ -50,41 +51,69 @@ python3 -m http.server 8000
 Danach `http://localhost:8000` öffnen und ein Spiel auswählen. Einzelne Spiele sind direkt unter
 `http://localhost:8000/games/<spiel>/` erreichbar.
 
+## Ein neues Spiel hinzufügen
+
+1. Vorlage kopieren – sie enthält bereits Szene, Kamera, Render-Schleife, HUD und Speicherung:
+
+   ```bash
+   cp -r games/_template games/<name>
+   ```
+
+2. In `games/<name>/js/main.js` den `STORAGE_KEY` auf `<name>.save.v1` setzen (siehe Konventionen).
+3. Titel, Überschriften und die README des Spiels anpassen.
+4. Das Spiel in der Tabelle oben **und** als Karte in der `index.html` im Wurzelverzeichnis
+   eintragen.
+5. `npm test` laufen lassen – das neue Spiel wird automatisch mitgeprüft.
+
+## Konventionen
+
+Diese drei Regeln verhindern die Probleme, die entstehen, wenn mehrere Spiele nebeneinander
+ausgeliefert werden:
+
+- **Speicherschlüssel mit Präfix.** Auf GitHub Pages teilen sich alle Spiele dieselbe Origin und
+  damit denselben `localStorage`. Jeder Schlüssel beginnt deshalb mit dem Ordnernamen des Spiels:
+  `xcoaster_progress`, `ubootgame.save.v1`. Ein generischer Name wie `highscore` würde die Daten
+  anderer Spiele überschreiben.
+- **Gemeinsame Bibliotheken mit Version im Dateinamen.** In `shared/` liegt jede Abhängigkeit
+  genau einmal, benannt nach Version (`three-r128.min.js`). Braucht ein Spiel später eine neuere
+  Fassung, kommt sie als eigene Datei daneben – bestehende Spiele laufen unverändert weiter.
+- **Kein Spiel greift in ein anderes hinein.** Gemeinsam genutzt wird nur, was in `shared/` liegt.
+
+Bewusst *nicht* vereinheitlicht sind Speicherung, Audio und Effekte: Beide Spiele haben dafür
+unterschiedliche Anforderungen, und eine gemeinsame Abstraktion würde derzeit mehr kosten als sie
+einbringt. Sobald sich ein Muster über mehrere Spiele hinweg wiederholt, gehört es nach `shared/`.
+
+## Tests
+
+```bash
+npm install          # einmalig, installiert Playwright für den Test
+npm test
+```
+
+Der Smoke-Test startet einen lokalen Server, öffnet die Startseite und **jeden** Ordner unter
+`games/` in einem echten Browser und meldet:
+
+- JavaScript-Fehler und Konsolenfehler
+- fehlende Dateien (404)
+- Spielseiten, auf denen Three.js fehlt oder kein `<canvas>` entsteht
+
+Neue Spiele werden dabei automatisch gefunden – es muss nichts eingetragen werden. Dieselbe
+Prüfung läuft über GitHub Actions bei jedem Push.
+
 ## Veröffentlichen
 
 - **GitHub Pages:** Repository in den Einstellungen als Pages-Quelle aktivieren. Die Startseite
-  liegt danach unter `https://<user>.github.io/<repo>/`, die Spiele unter
-  `…/games/xcoaster/` bzw. `…/games/ubootgame/`. Die Datei `.nojekyll` sorgt dafür, dass alle
-  Dateien unverändert ausgeliefert werden.
+  liegt danach unter `https://<user>.github.io/<repo>/`, die Spiele unter `…/games/xcoaster/`
+  bzw. `…/games/ubootgame/`. Die Datei `.nojekyll` sorgt dafür, dass alle Dateien unverändert
+  ausgeliefert werden.
 - **Eigener Webspace / FTP:** Den gesamten Ordnerinhalt hochladen. Wichtig ist nur, dass `shared/`
-  und `games/` ihre relative Lage zueinander behalten.
-
-## Ein neues Spiel hinzufügen
-
-1. Ordner `games/<name>/` anlegen und dort eine `index.html` erstellen.
-2. Three.js aus der gemeinsamen Kopie einbinden (zwei Ebenen nach oben):
-
-   ```html
-   <script src="../../shared/three.min.js"></script>
-   <script>
-     if (!window.THREE) {
-       document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
-     }
-   </script>
-   ```
-
-   Der zweite Block lädt Three.js notfalls vom CDN nach, falls die lokale Datei fehlt.
-3. Eine `README.md` im Spielordner ergänzen: Steuerung, Spielregeln, Besonderheiten.
-4. Das Spiel in der Tabelle oben **und** als Karte in der `index.html` im Wurzelverzeichnis
-   eintragen.
-
-Wird eine andere Bibliothek gebraucht, kommt sie ebenfalls nach `shared/` – so bleibt jede
-Abhängigkeit nur einmal im Repository.
+  und `games/` ihre relative Lage zueinander behalten. `package.json`, `tools/` und `.github/`
+  werden auf dem Server nicht gebraucht.
 
 ## Technik
 
 - **Three.js r128** (lokal in `shared/`, CDN nur als Rückfall) – sonst keine Abhängigkeiten.
-- Kein Bundler, kein Transpiler, kein `npm install`. Was im Repository liegt, ist genau das, was
-  im Browser läuft.
+- Kein Bundler, kein Transpiler. Was im Repository liegt, ist genau das, was im Browser läuft.
+  Die einzige npm-Abhängigkeit ist Playwright für den Testlauf.
 - Fortschritt (Münzen, freigeschaltete Fahrzeuge, Highscores) speichert jedes Spiel für sich im
   `localStorage` des Browsers.

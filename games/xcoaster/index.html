@@ -205,14 +205,14 @@
 <div id="loaderr">
   <div class="titleCard">
     <h1>⚠️ 3D-Engine konnte nicht geladen werden</h1>
-    <p>Die Grafikbibliothek <b>Three.js</b> wurde weder lokal (<code>shared/three.min.js</code>) noch über das Internet gefunden, deshalb kann die Achterbahn nicht starten.</p>
-    <p>Stelle sicher, dass die Datei <code>shared/three.min.js</code> im Wurzelverzeichnis der Sammlung liegt, oder öffne die Seite mit einer aktiven Internetverbindung.</p>
+    <p>Die Grafikbibliothek <b>Three.js</b> wurde weder lokal (<code>shared/three-r128.min.js</code>) noch über das Internet gefunden, deshalb kann die Achterbahn nicht starten.</p>
+    <p>Stelle sicher, dass die Datei <code>shared/three-r128.min.js</code> im Wurzelverzeichnis der Sammlung liegt, oder öffne die Seite mit einer aktiven Internetverbindung.</p>
   </div>
 </div>
 
 <!-- Three.js: zuerst die gemeinsame Kopie aus /shared (funktioniert offline / ohne CDN),
      nur wenn die fehlt, wird als Rückfall das CDN nachgeladen. -->
-<script src="../../shared/three.min.js"></script>
+<script src="../../shared/three-r128.min.js"></script>
 <script>
   if (!window.THREE) {
     document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');

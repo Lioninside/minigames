@@ -1,16 +1,16 @@
 # 🎢 Endless Coaster
 
 Eine browserbasierte 3D-Achterbahnfahrt (Three.js), die komplett clientseitig in `index.html` läuft.
-Teil der [Mini-Games-Sammlung](../../README.md).
+Teil der [Minigames-Sammlung](../../README.md).
 
-Three.js kommt aus der gemeinsamen Kopie `shared/three.min.js` im Wurzelverzeichnis der Sammlung,
+Three.js kommt aus der gemeinsamen Kopie `shared/three-r128.min.js` im Wurzelverzeichnis der Sammlung,
 das Spiel funktioniert also **offline** und ohne CDN. Fehlt die Datei, wird als Rückfall
 automatisch das CDN versucht.
 
 ## Spielen
 
 Im **Wurzelverzeichnis der Sammlung** einen kleinen Webserver starten (nicht in diesem Ordner,
-sonst wird `shared/three.min.js` nicht gefunden):
+sonst wird `shared/three-r128.min.js` nicht gefunden):
 
 ```bash
 python3 -m http.server 8000

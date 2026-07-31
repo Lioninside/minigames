@@ -5,12 +5,12 @@ endloses Meer, weichst Minen, feindlichen U-Booten und Torpedos aus und sammelst
 mit denen sich in der Hafenwerft immer neue Fahrzeuge freischalten lassen.
 
 Das Spiel läuft vollständig im Browser – keine Installation, kein Build-Schritt, kein Server nötig.
-Teil der [Mini-Games-Sammlung](../../README.md).
+Teil der [Minigames-Sammlung](../../README.md).
 
 ## Lokal starten
 
 Im **Wurzelverzeichnis der Sammlung** einen kleinen Webserver starten (nicht in diesem Ordner,
-sonst wird `shared/three.min.js` nicht gefunden):
+sonst wird `shared/three-r128.min.js` nicht gefunden):
 
 ```bash
 python3 -m http.server 8000
@@ -28,7 +28,7 @@ Es gibt nichts zu kompilieren – die Dateien werden einfach hochgeladen:
    relative Lage zueinander beibehalten.
 2. Die Seite ist danach unter `https://deine-domain.tld/games/ubootgame/` spielbar.
 
-Wichtig: Das Spiel erwartet Three.js unter `../../shared/three.min.js`. Fehlt die Datei, versucht
+Wichtig: Das Spiel erwartet Three.js unter `../../shared/three-r128.min.js`. Fehlt die Datei, versucht
 es automatisch, Three.js vom CDN nachzuladen – dann ist allerdings eine Internetverbindung nötig.
 
 ## Steuerung
@@ -77,7 +77,7 @@ Zum Löschen gibt es im Hauptmenü den Punkt **„Fortschritt zurücksetzen"**.
 ## Verwendete Bibliotheken
 
 - **[Three.js](https://threejs.org/) r128** – WebGL-Rendering, gemeinsam genutzt aus
-  `shared/three.min.js` im Wurzelverzeichnis der Sammlung.
+  `shared/three-r128.min.js` im Wurzelverzeichnis der Sammlung.
 
 Sonst keine externen Abhängigkeiten. Sämtliche 3D-Modelle, Wellen, Partikeleffekte und Geräusche
 werden zur Laufzeit erzeugt – Geräusche über die Web Audio API, Modelle prozedural aus Three.js-
