@@ -1,18 +1,17 @@
 /* ================= KAMERAFÜHRUNG =================
    Drei Perspektiven (Verfolger, Brücke, Vogelperspektive) und der Kameraschwenk beim Absturz.
 
-   Wichtigster Kniff: Die Kamera folgt dem Schiffskurs *verzögert*. Wäre sie starr an die
-   Blickrichtung des Schiffs gekoppelt, sähe jedes Lenkmanöver so aus, als drehe sich die Welt
-   um ein stillstehendes Schiff - statt dass das Schiff sichtbar einen Kurs fährt.
+   Leitgedanke: Die Kamera sitzt starr hinter dem Schiff. Beim Lenken bleibt das Schiff also
+   ruhig in der Bildmitte und die Umgebung dreht sich um es herum - so ist auf einen Blick klar,
+   dass gesteuert wird. Es gibt bewusst keinen Kamera-Nachlauf, der das Schiff im Bild
+   seitwärts wandern liesse.
 
    Das Modul kennt nur camera und player; es greift auf keinen Spielzustand zu. */
 
 const CameraRig = (function () {
   const MODES = 3;              // 0 = Verfolger, 1 = Brücke, 2 = Vogelperspektive
-  const YAW_FOLLOW = 1.8;       // wie schnell der Kamerakurs nachzieht (höher = starrer)
 
   let mode = 0;
-  let yaw = 0;                  // folgt player.heading verzögert
 
   const _fwd = new THREE.Vector3(0, 0, -1);
   const _up = new THREE.Vector3(0, 1, 0);
@@ -21,22 +20,17 @@ const CameraRig = (function () {
 
   function reset(heading) {
     mode = 0;
-    yaw = heading || 0;
-    _fwd.set(Math.sin(yaw), 0, -Math.cos(yaw));
+    setForward(heading || 0);
+  }
+
+  /* Blickrichtung der Kamera = Blickrichtung des Schiffs, ohne Verzögerung. */
+  function setForward(heading) {
+    _fwd.set(Math.sin(heading), 0, -Math.cos(heading));
   }
 
   function cycleMode() {
     mode = (mode + 1) % MODES;
     return mode;
-  }
-
-  /* Kamerakurs auf kürzestem Weg an den Schiffskurs heranführen. */
-  function followYaw(heading, dt) {
-    let d = heading - yaw;
-    while (d > Math.PI) d -= Math.PI * 2;
-    while (d < -Math.PI) d += Math.PI * 2;
-    yaw += d * Math.min(1, dt * YAW_FOLLOW);
-    _fwd.set(Math.sin(yaw), 0, -Math.cos(yaw));
   }
 
   function applyShake(camera, shake) {
@@ -49,7 +43,7 @@ const CameraRig = (function () {
   /* Normale Fahrt: Perspektive je nach Modus. */
   function update(camera, player, dt, shake) {
     const r = player.def.radius;
-    followYaw(player.heading, dt);
+    setForward(player.heading);
 
     if (mode === 1) {
       // Brücke / Cockpit - hier gilt die echte Blickrichtung des Schiffs
@@ -71,13 +65,14 @@ const CameraRig = (function () {
       camera.lookAt(player.position);
 
     } else {
-      // Verfolgerperspektive (Standard)
+      // Verfolgerperspektive (Standard): fest hinter dem Bug, ohne Nachlauf.
+      // Dadurch steht das Schiff immer an derselben Stelle im Bild und die Umgebung dreht sich.
       const dist = 20 + r * 1.7;
       const height = 8 + r * 0.75;
       _target.copy(player.position)
         .addScaledVector(_fwd, -dist)
         .addScaledVector(_up, height + player.altitude * 0.5);
-      camera.position.lerp(_target, 1 - Math.pow(0.0015, dt));
+      camera.position.copy(_target);
       _look.copy(player.position).addScaledVector(_fwd, 22).setY(player.position.y + 3);
       camera.up.set(0, 1, 0);
       camera.lookAt(_look);
@@ -99,7 +94,6 @@ const CameraRig = (function () {
 
   return {
     reset, cycleMode, update, updateDeath,
-    get mode() { return mode; },
-    get yaw() { return yaw; }
+    get mode() { return mode; }
   };
 })();

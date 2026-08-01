@@ -28,7 +28,8 @@ function Player(scene) {
   this.flightLocked = false;        // true nach erzwungener Landung, bis F losgelassen wird
   this.altitude = 0;                // Höhe über der Wasseroberfläche
   this.turretAngle = 0;             // aktueller Turmwinkel (Weltkoordinaten, um Y)
-  this.steerAuthority = 0;          // 0 = Ruder greift nicht (keine Fahrt), 1 = volle Wirkung
+  this.steerAuthority = 0;          // 0 = steht still (keine Lenkung), 1 = lenkbar
+  this.turnInput = 0;               // -1 / 0 / +1, treibt auch die Krängung
   this.alive = true;
 
   this._wakeAccum = 0;
@@ -38,6 +39,8 @@ function Player(scene) {
 
 Player.MAX_FLIGHT = 5.0;            // Sekunden, siehe Kernregel 27
 Player.FLIGHT_HEIGHT = 16;
+Player.WAVE_TILT = 0.28;            // wie stark der Seegang das Schiff wiegt (reine Optik)
+Player.TURN_BANK = 0.20;            // Krängung in der Kurve, rund 11 Grad
 
 /* Setzt ein neues Fahrzeug ein. Position und Kurs bleiben erhalten (Wechsel mitten in der Fahrt). */
 Player.prototype.setVehicle = function (id) {
@@ -103,16 +106,14 @@ Player.prototype.update = function (dt, keys) {
   this.speed = THREE.MathUtils.clamp(this.speed, minSpeed, def.maxSpeed);
 
   // ---- Lenkung ----
-  // Ein Ruder wirkt nur, wenn Wasser daran vorbeiströmt: ohne Fahrt im Kiel dreht das Schiff
-  // gar nicht. Sonst würde es auf der Stelle pivotieren - das sieht aus, als drehe sich die
-  // Kamera, statt dass das Schiff einen Kurs fährt.
-  this.steerAuthority = THREE.MathUtils.clamp(Math.abs(this.speed) / (def.maxSpeed * 0.3), 0, 1);
-  let turn = 0;
-  if (keys.left) turn += 1;
-  if (keys.right) turn -= 1;
-  if (turn !== 0 && this.steerAuthority > 0) {
-    const rate = def.turn * (this.flying ? 1.3 : 1.0) * this.steerAuthority;
-    this.heading += turn * rate * dt * (this.speed < 0 ? -1 : 1);
+  // Bewusst einfach: eine feste Wenderate je Fahrzeug, sobald das Schiff überhaupt fährt.
+  // Kein Trägheits- oder Ruderwirkungsmodell - links/rechts ändert unmittelbar den Kurs.
+  // Ein Schiff gleitet dabei nie seitwärts: Es fährt immer exakt dorthin, wohin der Bug zeigt.
+  this.steerAuthority = Math.abs(this.speed) > 0.5 ? 1 : 0;
+  const turn = (keys.left ? 1 : 0) - (keys.right ? 1 : 0);
+  this.turnInput = turn * this.steerAuthority;
+  if (this.turnInput !== 0) {
+    this.heading += this.turnInput * def.turn * dt * (this.speed < 0 ? -1 : 1);
   }
 
   this.forward.set(Math.sin(this.heading), 0, -Math.cos(this.heading));
@@ -149,17 +150,18 @@ Player.prototype.update = function (dt, keys) {
 
   this.group.position.copy(this.position);
 
-  // Neigung folgt der Wasseroberfläche; im Flug richtet sich das Flugzeug gerade aus.
+  // Neigung ist reine Optik. Der Seegang wiegt das Schiff nur noch dezent, damit es im Bild
+  // ruhig steht; die Krängung in der Kurve ist der sichtbare Hinweis darauf, dass gelenkt wird.
   Ocean.normalAt(this.position.x, this.position.z, this._normal);
-  const wobble = this.altitude > 1 ? 0 : 1;
-  const pitch = Math.atan2(-this._normal.z, this._normal.y) * wobble * 0.75;
-  const roll = Math.atan2(this._normal.x, this._normal.y) * wobble * 0.75;
-  const bank = -(keys.left ? 1 : 0) * 0.12 + (keys.right ? 1 : 0) * 0.12; // leichte Krängung in der Kurve
+  const wobble = this.altitude > 1 ? 0 : Player.WAVE_TILT;
+  const pitch = Math.atan2(-this._normal.z, this._normal.y) * wobble;
+  const roll = Math.atan2(this._normal.x, this._normal.y) * wobble;
+  const bank = this.turnInput * Player.TURN_BANK;
 
   this.group.rotation.order = 'YXZ';
   this.group.rotation.y = this.heading;
   this.group.rotation.x += (pitch - this.group.rotation.x) * Math.min(1, dt * 3);
-  this.group.rotation.z += ((roll + bank * (this.flying ? 3 : 1)) - this.group.rotation.z) * Math.min(1, dt * 3);
+  this.group.rotation.z += ((roll + bank) - this.group.rotation.z) * Math.min(1, dt * 4);
 
   // ---- Propeller des Wasserflugzeugs ----
   if (this.propellers.length) {
