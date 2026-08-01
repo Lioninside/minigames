@@ -28,10 +28,13 @@ const Spawner = (function () {
     return 0.85;
   }
 
-  /* Punkt 50-100 m voraus, seitlich versetzt. */
+  /* Punkt 50-100 m voraus, verteilt über den befahrbaren Korridor.
+     Die Breite richtet sich nach Player.CORRIDOR, damit Gefahren erreichbar und
+     ausweichbar bleiben, statt weit neben der Fahrspur zu liegen. */
   function pointAhead(player) {
+    const half = Player.CORRIDOR + 8;
     return {
-      x: player.position.x + (Math.random() - 0.5) * 110,
+      x: (Math.random() * 2 - 1) * half,
       z: player.position.z - (SPAWN_MIN + Math.random() * (SPAWN_MAX - SPAWN_MIN))
     };
   }

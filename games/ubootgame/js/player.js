@@ -2,10 +2,23 @@
    Bewegung, Auftrieb auf den Wellen, Kielwasser, Fahrzeugwechsel sowie die Sonderfähigkeiten
    von Panzerkreuzer (drehbare Türme) und Wasserflugzeug (kurzer Flug).
 
-   Die Steuerung ist bewusst träge: Beschleunigung, Bremsweg und Wenderate hängen vom Fahrzeug ab,
-   ein Schiff gleitet nie seitwärts, sondern dreht sich und fährt vorwärts. */
+   Steuermodell (Retro-Arcade, wie in einem Formel-Rennspiel):
+   Das Schiff fährt immer entlang der Kursachse (-Z) und bewegt sich beim Lenken nur seitlich
+   innerhalb eines Korridors. Es dreht sich dabei ausschliesslich OPTISCH um bis zu 10 Grad in
+   die gesteuerte Richtung und neigt sich um bis zu 4 Grad - beides ohne Einfluss auf die
+   Fahrtrichtung. Es gibt keine Trägheit, kein Driften und kein Nachrutschen: Die seitliche
+   Position folgt unmittelbar der Eingabe und bleibt beim Loslassen stehen, während sich der
+   Bug weich wieder gerade ausrichtet. Der Eindruck der Kursänderung entsteht dadurch, dass
+   sich die Umgebung deutlich stärker bewegt als das Schiff (siehe camera-rig.js). */
 
 const KNOTS_TO_MS = 0.5144;
+
+/* Bewegt einen Wert um höchstens maxStep in Richtung target - ohne Überschwingen. */
+function moveTowards(current, target, maxStep) {
+  if (current < target) return Math.min(current + maxStep, target);
+  if (current > target) return Math.max(current - maxStep, target);
+  return target;
+}
 
 function Player(scene) {
   this.scene = scene;
@@ -29,7 +42,9 @@ function Player(scene) {
   this.altitude = 0;                // Höhe über der Wasseroberfläche
   this.turretAngle = 0;             // aktueller Turmwinkel (Weltkoordinaten, um Y)
   this.steerAuthority = 0;          // 0 = steht still (keine Lenkung), 1 = lenkbar
-  this.turnInput = 0;               // -1 / 0 / +1, treibt auch die Krängung
+  this.turnInput = 0;               // -1 = links, 0 = geradeaus, +1 = rechts
+  this.lateral = 0;                 // seitliche Position im Korridor (Meter, 0 = Mitte)
+  this.visualYaw = 0;               // rein optische Bugdrehung
   this.alive = true;
 
   this._wakeAccum = 0;
@@ -39,8 +54,13 @@ function Player(scene) {
 
 Player.MAX_FLIGHT = 5.0;            // Sekunden, siehe Kernregel 27
 Player.FLIGHT_HEIGHT = 16;
-Player.WAVE_TILT = 0.28;            // wie stark der Seegang das Schiff wiegt (reine Optik)
-Player.TURN_BANK = 0.20;            // Krängung in der Kurve, rund 11 Grad
+Player.CORRIDOR = 22;               // befahrbare Breite je Seite in Metern
+Player.LATERAL_PER_TURN = 15;       // seitliches Tempo = def.turn * dieser Faktor (m/s)
+Player.MAX_VISUAL_YAW = THREE.MathUtils.degToRad(10);  // sichtbare Bugdrehung, max. 10 Grad
+Player.YAW_TO_SPEED = THREE.MathUtils.degToRad(120);   // Einlenken: 120 Grad pro Sekunde
+Player.YAW_BACK_SPEED = THREE.MathUtils.degToRad(80);  // Rückstellung: 80 Grad pro Sekunde
+Player.MAX_BANK = THREE.MathUtils.degToRad(4);         // Neigung zur Kurveninnenseite, max. 4 Grad
+Player.WAVE_TILT = 0.10;            // ganz dezentes Wiegen im Seegang - kein Schlingern
 
 /* Setzt ein neues Fahrzeug ein. Position und Kurs bleiben erhalten (Wechsel mitten in der Fahrt). */
 Player.prototype.setVehicle = function (id) {
@@ -71,6 +91,9 @@ Player.prototype.setVehicle = function (id) {
 Player.prototype.reset = function (id) {
   this.position.set(0, 0, 0);
   this.heading = 0;
+  this.lateral = 0;
+  this.visualYaw = 0;
+  this.turnInput = 0;
   this.speed = 0;
   this.alive = true;
   this.flying = false;
@@ -105,23 +128,32 @@ Player.prototype.update = function (dt, keys) {
   const minSpeed = -def.maxSpeed * 0.15; // sehr langsame Rückwärtsfahrt
   this.speed = THREE.MathUtils.clamp(this.speed, minSpeed, def.maxSpeed);
 
-  // ---- Lenkung ----
-  // Bewusst einfach: eine feste Wenderate je Fahrzeug, sobald das Schiff überhaupt fährt.
-  // Kein Trägheits- oder Ruderwirkungsmodell - links/rechts ändert unmittelbar den Kurs.
-  // Ein Schiff gleitet dabei nie seitwärts: Es fährt immer exakt dorthin, wohin der Bug zeigt.
+  // ---- Lenkung: nur seitlich, ohne Trägheit ----
+  // +1 = rechts, -1 = links. Die Eingabe wirkt unmittelbar auf die seitliche Position;
+  // beim Loslassen stoppt die Bewegung sofort und das Schiff bleibt, wo es ist.
   this.steerAuthority = Math.abs(this.speed) > 0.5 ? 1 : 0;
-  const turn = (keys.left ? 1 : 0) - (keys.right ? 1 : 0);
-  this.turnInput = turn * this.steerAuthority;
-  if (this.turnInput !== 0) {
-    this.heading += this.turnInput * def.turn * dt * (this.speed < 0 ? -1 : 1);
-  }
+  this.turnInput = ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) * this.steerAuthority;
+
+  const lateralSpeed = def.turn * Player.LATERAL_PER_TURN;
+  this.lateral = THREE.MathUtils.clamp(
+    this.lateral + this.turnInput * lateralSpeed * dt,
+    -Player.CORRIDOR, Player.CORRIDOR
+  );
+
+  // Sichtbare Bugdrehung: zügig in die Eingaberichtung, beim Loslassen weich zurück auf 0.
+  const targetYaw = this.turnInput * Player.MAX_VISUAL_YAW;
+  const yawStep = (this.turnInput === 0 ? Player.YAW_BACK_SPEED : Player.YAW_TO_SPEED) * dt;
+  this.visualYaw = moveTowards(this.visualYaw, targetYaw, yawStep);
+  this.heading = this.visualYaw;
 
   this.forward.set(Math.sin(this.heading), 0, -Math.cos(this.heading));
   this.right.set(Math.cos(this.heading), 0, Math.sin(this.heading));
 
   // ---- Fortbewegung ----
+  // Der Kurs zeigt immer entlang -Z; gelenkt wird ausschliesslich über die seitliche Position.
   const ms = this.speed * KNOTS_TO_MS * (this.flying ? 1.6 : 1.0);
-  this.position.addScaledVector(this.forward, ms * dt);
+  this.position.z -= ms * dt;
+  this.position.x = this.lateral;
 
   // ---- Flug (nur Wasserflugzeug) ----
   if (this.flying) {
@@ -156,12 +188,14 @@ Player.prototype.update = function (dt, keys) {
   const wobble = this.altitude > 1 ? 0 : Player.WAVE_TILT;
   const pitch = Math.atan2(-this._normal.z, this._normal.y) * wobble;
   const roll = Math.atan2(this._normal.x, this._normal.y) * wobble;
-  const bank = this.turnInput * Player.TURN_BANK;
+  // Wellen- und Kurvenneigung zusammen bleiben hart auf MAX_BANK begrenzt - kein Schlingern.
+  const bank = THREE.MathUtils.clamp(roll + this.turnInput * Player.MAX_BANK,
+                                     -Player.MAX_BANK, Player.MAX_BANK);
 
   this.group.rotation.order = 'YXZ';
   this.group.rotation.y = this.heading;
   this.group.rotation.x += (pitch - this.group.rotation.x) * Math.min(1, dt * 3);
-  this.group.rotation.z += ((roll + bank) - this.group.rotation.z) * Math.min(1, dt * 4);
+  this.group.rotation.z += (bank - this.group.rotation.z) * Math.min(1, dt * 4);
 
   // ---- Propeller des Wasserflugzeugs ----
   if (this.propellers.length) {

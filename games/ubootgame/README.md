@@ -126,3 +126,21 @@ Alles ist bewusst so gebaut, dass sich die Platzhalter später leicht ersetzen l
 Das Spiel nutzt Objekt-Pooling für Partikel, Minen, U-Boote, Torpedos und Projektile – während
 der Fahrt werden keine Geometrien oder Materialien neu erzeugt. Weit hinter dem Spieler liegende
 Objekte werden automatisch freigegeben und wiederverwendet.
+
+## Steuermodell
+
+Bewusst als Retro-Arcade-Steuerung ausgelegt, nicht als Schiffssimulation:
+
+- Das Schiff fährt immer entlang der Kursachse und bewegt sich beim Lenken **seitlich** innerhalb
+  eines Korridors (±22 m). Es bleibt dabei im unteren Bilddrittel.
+- Der Bug dreht sich **nur optisch** um bis zu 10° in die gesteuerte Richtung und neigt sich um
+  bis zu 4° – beides ohne Einfluss auf die Fahrtrichtung.
+- **Kein Driften, keine Trägheit:** Die seitliche Position folgt unmittelbar der Eingabe. Beim
+  Loslassen stoppt sie sofort, das Schiff bleibt wo es ist, und nur die Drehung geht weich auf 0°
+  zurück. Man kann also dauerhaft links oder rechts im Korridor fahren.
+- Die Kamera blickt fest nach vorn und folgt der Seitwärtsbewegung nur zu 45 %. Dadurch bewegt
+  sich die Umgebung deutlich stärker als das Schiff – das erzeugt den Eindruck der Kursänderung.
+
+Alle Werte stehen als Konstanten oben in `js/player.js` (`CORRIDOR`, `MAX_VISUAL_YAW`,
+`YAW_TO_SPEED`, `YAW_BACK_SPEED`, `MAX_BANK`, `WAVE_TILT`) und in `js/camera-rig.js`
+(`CHASE_FOLLOW`).
