@@ -28,8 +28,8 @@ Details zu Steuerung und Spielregeln stehen jeweils in der README des Spiels.
 │   └── three-r128.min.js       Three.js – von allen Spielen gemeinsam genutzt
 └── games/
     ├── _template/              Vorlage zum Kopieren (kein echtes Spiel)
-    ├── xcoaster/               Endless Coaster (eine einzelne index.html)
-    └── ubootgame/              Hohe See (modular aufgebaut)
+    ├── xcoaster/               Endless Coaster (index.html + js/-Module)
+    └── ubootgame/              Hohe See (index.html + js/-Module)
 ```
 
 Grundsatz: **Ein Spiel = ein Ordner unter `games/`.** Die Spiele kennen sich gegenseitig nicht und
@@ -67,7 +67,7 @@ Danach `http://localhost:8000` öffnen und ein Spiel auswählen. Einzelne Spiele
 
 ## Konventionen
 
-Diese drei Regeln verhindern die Probleme, die entstehen, wenn mehrere Spiele nebeneinander
+Diese Regeln verhindern die Probleme, die entstehen, wenn mehrere Spiele nebeneinander
 ausgeliefert werden:
 
 - **Speicherschlüssel mit Präfix.** Auf GitHub Pages teilen sich alle Spiele dieselbe Origin und
@@ -78,6 +78,10 @@ ausgeliefert werden:
   genau einmal, benannt nach Version (`three-r128.min.js`). Braucht ein Spiel später eine neuere
   Fassung, kommt sie als eigene Datei daneben – bestehende Spiele laufen unverändert weiter.
 - **Kein Spiel greift in ein anderes hinein.** Gemeinsam genutzt wird nur, was in `shared/` liegt.
+- **Ein Thema, eine Datei.** Beide Spiele sind so geschnitten, dass eine typische Änderung genau
+  eine Datei betrifft: Fahrzeuge, Strecke, Wasser, Gegner, Shop und Anzeigen liegen jeweils in
+  einem eigenen Modul. Nur `main.js` führt beim Laden Code aus, alle anderen Dateien definieren
+  ausschliesslich Funktionen und Variablen – dadurch ist die Ladereihenfolge unkritisch.
 
 Bewusst *nicht* vereinheitlicht sind Speicherung, Audio und Effekte: Beide Spiele haben dafür
 unterschiedliche Anforderungen, und eine gemeinsame Abstraktion würde derzeit mehr kosten als sie
