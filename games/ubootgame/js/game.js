@@ -1,5 +1,8 @@
 /* ================= SPIELSTEUERUNG =================
-   Zustandsautomat, Weltaufbau, Spawnlogik, Kollisionen, Kameras und HUD.
+   Zustandsautomat, Weltaufbau, Kollisionen, Eingabe und Hauptschleife.
+
+   Bewusst ausgelagert: Kameraführung -> camera-rig.js, Anzeigen -> hud.js,
+   Spawnrhythmus und Schwierigkeit -> spawner.js.
 
    Kurs: Der Spieler fährt grundsätzlich in Richtung -Z. Der "Fortschritt" ist der jemals
    erreichte Höchstwert in dieser Richtung - dadurch bringt Im-Kreis-Fahren keine zusätzlichen
@@ -18,10 +21,6 @@ const Game = (function () {
   };
 
   const COIN_PER_METERS = 10;
-  const MINE_INTERVAL = 20;        // pro 20 m Fortschritt 1-3 Minen
-  const SPAWN_MIN = 50;            // Gefahren erscheinen 50-100 m voraus
-  const SPAWN_MAX = 100;
-  const MAX_ACTIVE_MINES = 42;
   const DEATH_DELAY = 2.4;
 
   let scene, camera, renderer, clock;
@@ -32,25 +31,17 @@ const Game = (function () {
   // Fahrt-Statistik
   let progress = 0;                // Meter Fortschritt der aktuellen Fahrt
   let lastCoinProgress = 0;
-  let nextMineProgress = MINE_INTERVAL;
-  let nextSubProgress = 60;
   let runCoins = 0;
   let deathTimer = 0;
   let deathCause = '';
 
   // Eingaben
   const keys = { up: false, down: false, left: false, right: false, fly: false };
-  let cameraMode = 0;              // 0 = Verfolger, 1 = Brücke, 2 = Vogelperspektive
   const mouseNdc = new THREE.Vector2(0, 0);
   const aimPoint = new THREE.Vector3(0, 0, -50);
   const raycaster = new THREE.Raycaster();
   const waterPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
-  const _v = new THREE.Vector3();
-  const _camFwd = new THREE.Vector3(0, 0, -1); // verzögerte Blickrichtung der Verfolgerkamera
-  let camYaw = 0;                              // folgt player.heading mit Verzögerung
-  const _camTarget = new THREE.Vector3();
-  const _lookTarget = new THREE.Vector3();
   const _playerVel = new THREE.Vector3();
 
   const ui = {};
@@ -83,11 +74,12 @@ const Game = (function () {
   }
 
   function initUi() {
-    ['coinVal', 'speedVal', 'distVal', 'hsVal', 'vehicleVal', 'flightVal', 'flightPanel',
-     'warnPanel', 'steerPanel', 'hud', 'menu', 'controls', 'shop', 'pause', 'result', 'loading',
+    // Overlays und Menüs; die Fahrt-Anzeigen selbst verwaltet hud.js
+    ['hud', 'menu', 'controls', 'shop', 'pause', 'result', 'loading',
      'menuCoins', 'menuHighscore', 'menuVehicle', 'resDist', 'resHigh', 'resCoins',
      'resRunCoins', 'resVehicle', 'resultTitle', 'resultCause', 'volume', 'btnMute']
       .forEach(id => { ui[id] = document.getElementById(id); });
+    Hud.init();
   }
 
   /* ---------------- Zustandswechsel ---------------- */
@@ -124,13 +116,11 @@ const Game = (function () {
   function startRun() {
     progress = 0;
     lastCoinProgress = 0;
-    nextMineProgress = MINE_INTERVAL;
-    nextSubProgress = 60;
     runCoins = 0;
     deathTimer = 0;
     deathCause = '';
-    cameraMode = 0;
 
+    Spawner.reset();
     Mines.reset();
     Enemies.reset();
     Weapons.reset();
@@ -138,8 +128,7 @@ const Game = (function () {
     Ocean.reset();
 
     player.reset(SaveSystem.selectedVehicle);
-    camYaw = player.heading;
-    _camFwd.set(Math.sin(camYaw), 0, -Math.cos(camYaw));
+    CameraRig.reset(player.heading);
     updateHud(true);
     setState(STATE.RUNNING);
   }
@@ -169,44 +158,6 @@ const Game = (function () {
     ui.resCoins.textContent = SaveSystem.coins;
     ui.resVehicle.textContent = player.def.name;
     setState(STATE.RESULT);
-  }
-
-  /* ---------------- Spawnlogik ---------------- */
-
-  function difficultyFor(dist) {
-    // 0 bis 500 m einfach, danach stufenweise anspruchsvoller, aber gedeckelt
-    if (dist < 500) return 0.0;
-    if (dist < 1500) return 0.3;
-    if (dist < 3000) return 0.6;
-    return 0.85;
-  }
-
-  /* Sucht einen Platz 50-100 m voraus, der nicht zu dicht am Spieler liegt. */
-  function spawnPointAhead() {
-    const ahead = SPAWN_MIN + Math.random() * (SPAWN_MAX - SPAWN_MIN);
-    const lateral = (Math.random() - 0.5) * 110;
-    return {
-      x: player.position.x + lateral,
-      z: player.position.z - ahead
-    };
-  }
-
-  function spawnMines() {
-    const count = 1 + Math.floor(Math.random() * 3); // 1 bis 3 Minen je Abschnitt
-    for (let i = 0; i < count; i++) {
-      if (Mines.activeCount >= MAX_ACTIVE_MINES) return;
-      const p = spawnPointAhead();
-      // Sicherheitsabstand: nie direkt vor dem Bug ohne Reaktionszeit
-      if (Math.hypot(p.x - player.position.x, p.z - player.position.z) < SPAWN_MIN * 0.8) continue;
-      Mines.spawn(p.x, p.z, Math.random() < 0.45);
-    }
-  }
-
-  function spawnSub(difficulty) {
-    const maxSubs = 2 + Math.round(difficulty * 3); // gedeckelt, damit es spielbar bleibt
-    if (Enemies.activeSubs >= maxSubs) return;
-    const p = spawnPointAhead();
-    Enemies.spawnSub(p.x, p.z, difficulty);
   }
 
   /* ---------------- Kollisionen ---------------- */
@@ -252,58 +203,6 @@ const Game = (function () {
     }
   }
 
-  /* ---------------- Kamera ---------------- */
-
-  function updateCamera(dt) {
-    const r = player.def.radius;
-    const shake = Effects.shake;
-
-    // Kamerakurs zieht dem Schiffskurs auf kürzestem Weg nach
-    let dyaw = player.heading - camYaw;
-    while (dyaw > Math.PI) dyaw -= Math.PI * 2;
-    while (dyaw < -Math.PI) dyaw += Math.PI * 2;
-    camYaw += dyaw * Math.min(1, dt * 1.8);
-    _camFwd.set(Math.sin(camYaw), 0, -Math.cos(camYaw));
-
-    if (cameraMode === 1) {
-      // Brücke / Cockpit
-      player.getBridgeWorld(_camTarget);
-      camera.position.lerp(_camTarget, Math.min(1, dt * 14));
-      _lookTarget.copy(player.position)
-        .addScaledVector(player.forward, 60)
-        .setY(player.position.y + player.bridgeOffset.y * 0.6);
-      camera.up.set(0, 1, 0);
-      camera.lookAt(_lookTarget);
-    } else if (cameraMode === 2) {
-      // Vogelperspektive: hoch über dem Fahrzeug, Bug zeigt nach oben im Bild
-      _camTarget.copy(player.position);
-      _camTarget.y += 70 + r * 2.4;
-      _camTarget.addScaledVector(_camFwd, r * 0.6);
-      camera.position.lerp(_camTarget, Math.min(1, dt * 4));
-      camera.up.copy(_camFwd);
-      camera.lookAt(player.position);
-    } else {
-      // Verfolgerperspektive (Standard). Die Kamera folgt dem Kurs bewusst verzögert:
-      // Beim Steuern dreht dadurch sichtbar das Schiff im Bild, statt dass sich die ganze
-      // Welt um ein scheinbar stillstehendes Schiff dreht.
-      const dist = 20 + r * 1.7;
-      const height = 8 + r * 0.75;
-      _camTarget.copy(player.position)
-        .addScaledVector(_camFwd, -dist)
-        .addScaledVector(_v.set(0, 1, 0), height + player.altitude * 0.5);
-      camera.position.lerp(_camTarget, 1 - Math.pow(0.0015, dt));
-      _lookTarget.copy(player.position).addScaledVector(_camFwd, 22).setY(player.position.y + 3);
-      camera.up.set(0, 1, 0);
-      camera.lookAt(_lookTarget);
-    }
-
-    if (shake > 0.01) {
-      camera.position.x += (Math.random() - 0.5) * shake * 3;
-      camera.position.y += (Math.random() - 0.5) * shake * 3;
-      camera.position.z += (Math.random() - 0.5) * shake * 3;
-    }
-  }
-
   /* Mausposition auf die Wasserfläche projizieren - Zielpunkt der Panzerkreuzer-Kanonen. */
   function updateAimPoint() {
     raycaster.setFromCamera(mouseNdc, camera);
@@ -312,24 +211,8 @@ const Game = (function () {
     }
   }
 
-  /* ---------------- HUD ---------------- */
-
   function updateHud(force) {
-    ui.coinVal.textContent = SaveSystem.coins;
-    ui.speedVal.textContent = Math.round(Math.abs(player.speed)) + ' kn';
-    ui.distVal.textContent = Math.floor(progress) + ' m';
-    ui.hsVal.textContent = SaveSystem.highscore + ' m';
-    if (force) ui.vehicleVal.textContent = player.def.name;
-
-    const flying = player.def.seaplane && (player.flying || player.altitude > 0.5);
-    show(ui.flightPanel, flying);
-    if (flying) ui.flightVal.textContent = player.remainingFlight.toFixed(1).replace('.', ',');
-
-    show(ui.warnPanel, Enemies.warning);
-
-    // Hinweis, solange gelenkt wird, ohne dass das Ruder greift
-    const steeringWithoutWay = (keys.left || keys.right) && player.steerAuthority < 0.06;
-    show(ui.steerPanel, state === STATE.RUNNING && steeringWithoutWay);
+    Hud.update(player, progress, keys, state === STATE.RUNNING, force);
   }
 
   /* ---------------- Hauptschleife ---------------- */
@@ -359,24 +242,14 @@ const Game = (function () {
         AudioEngine.coin();
       }
 
-      const dist = progress;
-      const difficulty = difficultyFor(dist);
-
-      // --- Gefahren erzeugen ---
-      while (progress >= nextMineProgress) {
-        nextMineProgress += MINE_INTERVAL;
-        spawnMines();
-      }
-      if (progress >= nextSubProgress) {
-        nextSubProgress = progress + THREE.MathUtils.lerp(90, 55, difficulty) + Math.random() * 45;
-        spawnSub(difficulty);
-      }
+      // --- Gefahren erzeugen (Rhythmus und Schwierigkeit siehe spawner.js) ---
+      const difficulty = Spawner.update(progress, player);
 
       Mines.update(dt, player.position);
       Enemies.update(dt, player.position, _playerVel, difficulty);
 
       // --- Waffen ---
-      if (player.def.armed === 'guns') {
+      if (Weapons.usesMouseAim(player)) {
         updateAimPoint();
         player.aimTurrets(aimPoint, dt);
       }
@@ -390,16 +263,12 @@ const Game = (function () {
 
     } else if (state === STATE.DYING) {
       deathTimer += dt;
-      // Kamera zieht sich vom Unglücksort zurück
-      _camTarget.copy(player.position).add(_v.set(0, 26 + deathTimer * 6, 46 + deathTimer * 8));
-      camera.position.lerp(_camTarget, Math.min(1, dt * 2));
-      camera.up.set(0, 1, 0);
-      camera.lookAt(player.position);
+      CameraRig.updateDeath(camera, player, dt, deathTimer);
       Mines.update(dt, player.position);
       if (deathTimer >= DEATH_DELAY) finishRun();
     }
 
-    if (state === STATE.RUNNING) updateCamera(dt);
+    if (state === STATE.RUNNING) CameraRig.update(camera, player, dt, Effects.shake);
 
     renderer.render(scene, camera);
   }
@@ -442,8 +311,8 @@ const Game = (function () {
 
     if (code === 'KeyF') { keys.fly = true; e.preventDefault(); }
 
-    if (code === 'KeyP' && (state === STATE.RUNNING)) {
-      cameraMode = (cameraMode + 1) % 3;
+    if (code === 'KeyP' && state === STATE.RUNNING) {
+      CameraRig.cycleMode();
       AudioEngine.menuClick();
     }
 
@@ -452,8 +321,7 @@ const Game = (function () {
     if (code === 'Escape') { togglePause(); }
 
     if (code === 'KeyS' && state === STATE.RUNNING) {
-      if (player.def.armed === 'guns') Weapons.fireGuns(player);
-      else if (player.def.armed === 'bombs') Weapons.dropBomb(player);
+      Weapons.fire(player);
     }
 
     if (code === 'Space' || code === 'Enter') {
@@ -486,7 +354,7 @@ const Game = (function () {
   function applyVehicle(id) {
     const def = Vehicles.get(id);
     player.setVehicle(id);
-    ui.vehicleVal.textContent = def.name;
+    Hud.setVehicleName(def.name);
     refreshMenu();
 
     // Hindernisse im neuen (grösseren) Rumpfbereich vorsichtshalber entfernen
@@ -510,7 +378,7 @@ const Game = (function () {
     document.getElementById('btnReset').onclick = () => {
       if (!confirm('Wirklich den gesamten Fortschritt (Münzen, Schiffe, Highscore) löschen?')) return;
       SaveSystem.resetProgress();
-      applyVehicle('startboat');
+      applyVehicle(Vehicles.DEFAULT_ID);
       refreshMenu();
       Shop.render();
     };

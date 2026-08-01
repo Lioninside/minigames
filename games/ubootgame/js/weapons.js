@@ -238,5 +238,21 @@ const Weapons = (function () {
     bombTimer = 0;
   }
 
-  return { init, update, reset, fireGuns, dropBomb };
+  /* Ein einziger Einstiegspunkt für die Angriffstaste: Welche Waffe ein Fahrzeug führt,
+     entscheidet allein dieses Modul anhand von def.armed. Ein neuer Waffentyp braucht damit
+     nur hier einen Zweig - Game und Player bleiben unverändert. */
+  function fire(player) {
+    switch (player.def.armed) {
+      case 'guns': return fireGuns(player);
+      case 'bombs': return dropBomb(player);
+      default: return false; // unbewaffnet
+    }
+  }
+
+  /* Braucht das Fahrzeug einen Mauszielpunkt (und damit drehbare Türme)? */
+  function usesMouseAim(player) {
+    return player.def.armed === 'guns';
+  }
+
+  return { init, update, reset, fire, usesMouseAim, fireGuns, dropBomb };
 })();

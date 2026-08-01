@@ -467,12 +467,19 @@ const Vehicles = (function () {
   const BY_ID = {};
   LIST.forEach(v => { BY_ID[v.id] = v; });
 
+  // Welches Fahrzeug man von Anfang an besitzt, entscheidet die Fahrzeugliste - nicht das
+  // Speichersystem. So genügt eine Änderung hier, um das Startfahrzeug auszutauschen.
+  const DEFAULT_ID = LIST.find(v => v.price === 0).id;
+
   return {
     list: LIST,
-    get(id) { return BY_ID[id] || BY_ID.startboat; },
+    DEFAULT_ID,
+    /* Alle Fahrzeuge, die ohne Kauf zur Verfügung stehen. */
+    freeIds() { return LIST.filter(v => v.price === 0).map(v => v.id); },
+    get(id) { return BY_ID[id] || BY_ID[DEFAULT_ID]; },
     /* Baut ein frisches Modell für eine Fahrzeug-ID (auch für die Shop-Vorschau genutzt). */
     create(id) {
-      const def = BY_ID[id] || BY_ID.startboat;
+      const def = BY_ID[id] || BY_ID[DEFAULT_ID];
       const built = def.build();
       built.def = def;
       return built;

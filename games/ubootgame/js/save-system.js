@@ -6,16 +6,19 @@
 const SaveSystem = (function () {
   const KEY = 'ubootgame.save.v1';
 
-  const DEFAULTS = {
-    coins: 0,
-    ownedVehicles: ['startboat'], // das Startboot gehört dem Spieler immer
-    selectedVehicle: 'startboat',
-    highscore: 0,
-    volume: 0.7,
-    muted: false
-  };
+  // Welche Fahrzeuge gratis sind, steht in vehicles.js - hier wird nichts hartcodiert.
+  function defaults() {
+    return {
+      coins: 0,
+      ownedVehicles: Vehicles.freeIds(),
+      selectedVehicle: Vehicles.DEFAULT_ID,
+      highscore: 0,
+      volume: 0.7,
+      muted: false
+    };
+  }
 
-  let data = Object.assign({}, DEFAULTS, { ownedVehicles: DEFAULTS.ownedVehicles.slice() });
+  let data = null; // wird in load() gefüllt (Vehicles ist dann sicher geladen)
 
   function write() {
     try {
@@ -26,6 +29,7 @@ const SaveSystem = (function () {
   }
 
   function load() {
+    data = defaults();
     let stored = null;
     try {
       stored = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -35,11 +39,14 @@ const SaveSystem = (function () {
     if (stored && typeof stored === 'object') {
       data.coins = Math.max(0, Math.floor(stored.coins) || 0);
       data.highscore = Math.max(0, Math.floor(stored.highscore) || 0);
-      data.volume = typeof stored.volume === 'number' ? THREE.MathUtils.clamp(stored.volume, 0, 1) : DEFAULTS.volume;
+      data.volume = typeof stored.volume === 'number' ? THREE.MathUtils.clamp(stored.volume, 0, 1) : data.volume;
       data.muted = !!stored.muted;
+      const free = Vehicles.freeIds();
       const owned = Array.isArray(stored.ownedVehicles) ? stored.ownedVehicles.filter(id => typeof id === 'string') : [];
-      data.ownedVehicles = ['startboat'].concat(owned.filter(id => id !== 'startboat'));
-      data.selectedVehicle = data.ownedVehicles.includes(stored.selectedVehicle) ? stored.selectedVehicle : 'startboat';
+      // Gratisfahrzeuge sind immer dabei, egal was gespeichert war
+      data.ownedVehicles = free.concat(owned.filter(id => !free.includes(id)));
+      data.selectedVehicle = data.ownedVehicles.includes(stored.selectedVehicle)
+        ? stored.selectedVehicle : Vehicles.DEFAULT_ID;
     }
     return data;
   }
@@ -85,7 +92,7 @@ const SaveSystem = (function () {
     setMuted(m) { data.muted = !!m; write(); },
 
     resetProgress() {
-      data = Object.assign({}, DEFAULTS, { ownedVehicles: DEFAULTS.ownedVehicles.slice() });
+      data = defaults();
       write();
     }
   };
