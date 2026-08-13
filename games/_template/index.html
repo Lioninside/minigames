@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neues Spiel – Vorlage</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="canvas-wrap"></div>
+
+<!-- Startbildschirm: jedes Spiel sollte mit einem eigenen Menü beginnen. -->
+<div id="menu" class="overlay">
+  <div class="card">
+    <h1>🎮 Neues Spiel</h1>
+    <p class="sub">
+      Diese Vorlage ist ein lauffähiges Grundgerüst: Szene, Kamera, Licht, Render-Schleife,
+      Fenstergrösse und gespeicherter Fortschritt sind bereits eingerichtet.
+    </p>
+    <button id="btnStart" class="primary">Starten</button>
+  </div>
+</div>
+
+<!-- HUD: wird erst nach dem Start eingeblendet. -->
+<div id="hud" class="hidden">
+  <div id="scorePanel" class="panel">
+    <span class="lbl">Punkte</span> <span id="scoreVal">0</span>
+  </div>
+  <div id="hintBar">← → drehen · Leertaste Punkt sammeln</div>
+</div>
+
+<div id="loaderr" class="overlay hidden">
+  <div class="card">
+    <h2>3D-Bibliothek fehlt</h2>
+    <p class="sub">Weder <code>shared/three-r128.min.js</code> noch das CDN konnten geladen werden.</p>
+  </div>
+</div>
+
+<!-- Three.js: zuerst die gemeinsame Kopie aus /shared (funktioniert offline), sonst das CDN. -->
+<script src="../../shared/three-r128.min.js"></script>
+<script>
+  if (!window.THREE) {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+  }
+</script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

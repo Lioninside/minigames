@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Endless Coaster</title>
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #ffffff; font-family: 'Segoe UI', Arial, sans-serif; }
+  #canvas-wrap { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  #hud { position: fixed; inset: 0; pointer-events: none; color: #111; }
+
+  .panel {
+    position: absolute;
+    background: rgba(255,255,255,0.85);
+    border: 1px solid #dcdce8;
+    border-radius: 12px;
+    padding: 10px 16px;
+    box-shadow: 0 4px 14px rgba(20,20,60,0.08);
+  }
+
+  #speedPanel { top: 18px; left: 18px; min-width: 180px; }
+  #speedPanel .row { font-size: 15px; margin: 2px 0; }
+  #speedPanel .big { font-size: 30px; font-weight: 700; color: #16209c; }
+  #speedPanel .limit { font-weight: 700; color: #d1272c; }
+
+  #scorePanel { top: 18px; right: 18px; text-align: right; }
+  #scorePanel .big { font-size: 30px; font-weight: 700; color: #16209c; }
+
+  #hint {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    font-size: 14px; color: #555; background: rgba(255,255,255,0.8);
+    padding: 6px 14px; border-radius: 10px; border: 1px solid #e2e2ee;
+  }
+
+  #intro, #gameover, #raceresult, #shop {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center; background: rgba(255,255,255,0.92);
+    z-index: 10;
+  }
+  #gameover, #raceresult, #shop { display: none; }
+
+  #shopCards { display: flex; gap: 14px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+  .shopCard {
+    width: 150px; padding: 16px 12px; border-radius: 14px; border: 2px solid #dcdce8;
+    background: #f7f8fc; cursor: pointer; pointer-events: auto; transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  }
+  .shopCard:hover { transform: translateY(-3px); border-color: #16209c; box-shadow: 0 8px 22px rgba(20,20,60,0.15); }
+  .shopCard.owned { border-color: #22aa44; background: #f0fbf3; }
+  .shopCard.selected { border-color: #16209c; box-shadow: 0 0 0 3px rgba(22,32,156,0.18); }
+  .shopCard .shopIcon { font-size: 42px; }
+  .shopCard .shopName { font-weight: 700; color: #16209c; margin: 6px 0 4px; }
+  .shopCard .shopStatus { font-size: 13px; color: #555; }
+
+  #miniPanel canvas { display: block; background: rgba(245,246,252,0.6); border-radius: 8px; }
+  .titleCard { max-width: 520px; padding: 30px 36px; border-radius: 18px;
+    background: #ffffff; border: 1px solid #e4e4f2; box-shadow: 0 10px 40px rgba(20,20,60,0.12); }
+  .titleCard h1 { margin: 0 0 10px; color: #16209c; font-size: 26px; }
+  .titleCard p { color: #333; font-size: 15px; line-height: 1.5; }
+  .titleCard .kbd { display: inline-block; padding: 2px 8px; border: 1px solid #bbb; border-radius: 6px; background: #f4f4f8; font-weight: 700; }
+
+  #flash {
+    position: fixed; inset: 0; background: #ffffff; opacity: 0;
+    transition: opacity 0.15s ease; pointer-events: none; z-index: 5;
+  }
+
+  #loaderr {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center; background: #ffffff; z-index: 20;
+  }
+  #loaderr .titleCard h1 { color: #d1272c; }
+
+  #rankList .rankRow {
+    display: flex; align-items: center; font-size: 14px; margin: 3px 0; white-space: nowrap;
+  }
+  #rankList .rankPos { width: 20px; font-weight: 700; color: #16209c; }
+  #rankList .rankDot { width: 10px; height: 10px; border-radius: 50%; margin: 0 7px 0 2px; flex: none; }
+  #rankList .rankName { flex: 1; }
+  #rankList .rankSpeed { font-variant-numeric: tabular-nums; color: #555; margin-left: 8px; }
+  #rankList .rankRow.me .rankName { font-weight: 700; color: #16209c; }
+
+  #levelBanner {
+    position: fixed; top: 34%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+    font-size: 40px; font-weight: 800; color: #16209c; text-align: center;
+    background: rgba(255,255,255,0.9); padding: 18px 40px; border-radius: 18px;
+    border: 1px solid #d7d7ec; box-shadow: 0 10px 40px rgba(20,20,60,0.18);
+    opacity: 0; pointer-events: none; z-index: 8; transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  #levelBanner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+</style>
+</head>
+<body>
+
+<div id="canvas-wrap"></div>
+<div id="flash"></div>
+
+<div id="hud">
+  <div id="speedPanel" class="panel">
+    <div class="row big"><span id="speedVal">0</span> km/h</div>
+    <div class="row">Limit: <span class="limit" id="limitVal">100</span> km/h</div>
+  </div>
+
+  <div id="aiPanel" class="panel" style="top: 110px; left: 18px; border-color:#f0c9c2;">
+    <div class="row" style="color:#b3341a;">🤖 KI-Gegner (rot)</div>
+    <div class="row"><span id="aiSpeedVal1">0</span> km/h</div>
+  </div>
+
+  <div id="aiPanel2" class="panel" style="top: 172px; left: 18px; border-color:#c2f0d0;">
+    <div class="row" style="color:#1a8a3e;">🤖 KI-Gegner (grün)</div>
+    <div class="row"><span id="aiSpeedVal2">0</span> km/h</div>
+  </div>
+
+  <div id="aiPanel3" class="panel" style="top: 234px; left: 18px; border-color:#ddc2f0;">
+    <div class="row" style="color:#6a1ab3;">🤖 KI-Gegner (lila)</div>
+    <div class="row"><span id="aiSpeedVal3">0</span> km/h</div>
+  </div>
+
+  <div id="aiPanel4" class="panel" style="top: 296px; left: 18px; border-color:#f0ddc2;">
+    <div class="row" style="color:#b3701a;">🤖 KI-Gegner (orange)</div>
+    <div class="row"><span id="aiSpeedVal4">0</span> km/h</div>
+  </div>
+
+  <div id="scorePanel" class="panel">
+    <div class="row">🏆 Pokale</div>
+    <div class="big"><span id="scoreVal">0</span></div>
+  </div>
+
+  <div id="levelPanel" class="panel" style="top: 96px; right: 18px; text-align:right; min-width: 150px;">
+    <div class="row">Level <span id="levelVal" style="font-weight:700; color:#16209c;">1</span> / 7</div>
+    <div class="row" style="font-weight:700;" id="worldVal">🌌 Weltall</div>
+  </div>
+
+  <div id="rankPanel" class="panel" style="top: 168px; right: 18px; min-width: 210px;">
+    <div class="row" style="font-weight:700; margin-bottom:6px;">🏁 Rangliste</div>
+    <div id="rankList"></div>
+  </div>
+
+  <div id="miniPanel" class="panel" style="left: 18px; bottom: 18px; padding: 8px;">
+    <div class="row" style="font-size:12px; color:#555; margin-bottom:4px;">🗺️ Streckenübersicht</div>
+    <canvas id="minimap" width="180" height="150"></canvas>
+  </div>
+
+  <div id="hint">⬆ schneller &nbsp;·&nbsp; ⬇ langsamer &nbsp;·&nbsp; Werde <b>Erster</b> pro Runde – sonst zurück zu Level 1!</div>
+</div>
+
+<div id="levelBanner"></div>
+
+<div id="intro">
+  <div class="titleCard">
+    <h1>🎢 Endless Coaster</h1>
+    <p>Eine futuristische Achterbahn rast durchs finstere Weltall, umgeben von leuchtenden Sternen – mit weiträumigen, ausladenden Kurven, grosszügigen Loopings und seitlichen Loopings, zwei sehr langen, steilen Abhängen, futuristisch beleuchteten Tunneln, einem Goldminen-Tunnel, einer hügeligen Strecke, einer Schanze mit doppelt so langer Flugphase, einer nochmals verlängerten Seilbahn-Passage, einer senkrecht ausgelegten Schienenstrecke, einer Teilstrecke, auf der alle fünf Schienen kurz zu einer einzigen zusammenlaufen, vier goldenen Portalen, die dein Fahrzeug verwandeln, einem schwarzen Loch zu einem völlig anderen Universum voller Planeten (mit eigenem Looping, Schraubenlooping, einer Spirale, die sich hoch ins All hinaufbohrt und an ihrer Spitze senkrecht zurück nach unten stürzt, und einer Schanze hoch über den Planeten!) und einem innen beleuchteten, breiten Zieltunnel statt einer offenen Geraden, in dem alle fünf Achterbahnen nebeneinander Platz haben.</p>
+    <p><span class="kbd">↑</span> gibt Gas (die Heckdüse zündet!), <span class="kbd">↓</span> bremst aktiv. Lässt du <span class="kbd">↑</span> los, wird die Bahn von allein langsamer.<br>
+    Bist du mehr als 100 km/h über dem Tempolimit UND fährst dabei in eine Kurve, verlässt die Bahn die Schienen und du stürzt ab – das bedeutet: zurück zu Level 1!<br>
+    Neben dir fahren <b>vier</b> Gegner (rot, grün, lila, orange). Rechts die <b>Live-Rangliste</b>, unten links eine <b>Navi-Streckenübersicht</b> mit allen Positionen.</p>
+    <p><b>Jedes Level ist ein Rennen über eine Runde:</b> Wirst du <b>Erster</b>, geht es ins nächste Level – sonst zurück zu Level 1.<br>
+    <b>7 Welten:</b> 1) Weltall · 2) Grossstadt · 3) Wüste · 4) Dschungel · 5) Meer (mit Haien!) · 6) Mondlandschaft · 7) Eislandschaft (mit Eisbären). In den Leveln 1–6 sind alle gleich schnell (850 km/h), im 7. Level sind die Gegner 100 km/h schneller.<br>
+    Danach das <b>Schloss-Duell 🐉</b> gegen das Drachenauto (bis zu 200 km/h schneller!). Gewinnst du, bekommst du einen <b>Pokal</b> und kannst dir im Shop ein neues Auto kaufen: 🏎️ Formel 1, 🚙 Monstertruck oder 🟡 U-Boot.</p>
+    <p style="margin-top:16px;"><b>Drücke <span class="kbd">Leertaste</span>, um zu starten.</b></p>
+  </div>
+</div>
+
+<div id="gameover">
+  <div class="titleCard">
+    <h1>💫 Abgestürzt!</h1>
+    <p>Du warst zu weit über dem Tempolimit, als die nächste Kurve kam – die Achterbahn hat die Schienen verlassen. Das Rennen ist verloren.</p>
+    <p style="font-size:22px; font-weight:700; color:#16209c;">Erreicht: <span id="finalScore">Level 1</span></p>
+    <p>Drücke <span class="kbd">Enter</span> oder <span class="kbd">Leertaste</span> für einen Neustart ab <b>Level 1</b>.</p>
+  </div>
+</div>
+
+<div id="raceresult">
+  <div class="titleCard">
+    <h1 id="raceResultTitle">Rennen</h1>
+    <p id="raceResultMsg"></p>
+    <p>Drücke <span class="kbd">Enter</span> oder <span class="kbd">Leertaste</span>, um ab <b>Level 1</b> neu zu starten.</p>
+  </div>
+</div>
+
+<div id="shop">
+  <div class="titleCard" style="max-width: 720px;">
+    <h1>🏆 Duell gewonnen!</h1>
+    <p>Du hast das Drachenauto geschlagen und einen Pokal erhalten. Pokale: <b><span id="shopTrophies">0</span> 🏆</b><br>
+    Klicke ein Auto an, um es für <b>1 Pokal</b> zu kaufen (danach fährst du damit weiter). Bereits gekaufte Autos kannst du einfach auswählen.</p>
+    <div id="shopCards">
+      <div class="shopCard" id="shopcard-formel1">
+        <div class="shopIcon">🏎️</div>
+        <div class="shopName">Formel 1</div>
+        <div class="shopStatus">1 🏆 kaufen</div>
+      </div>
+      <div class="shopCard" id="shopcard-monstertruck">
+        <div class="shopIcon">🚙</div>
+        <div class="shopName">Monstertruck</div>
+        <div class="shopStatus">1 🏆 kaufen</div>
+      </div>
+      <div class="shopCard" id="shopcard-uboot">
+        <div class="shopIcon">🟡</div>
+        <div class="shopName">U-Boot</div>
+        <div class="shopStatus">1 🏆 kaufen</div>
+      </div>
+    </div>
+    <p style="margin-top:16px;"><span class="kbd" id="shopClose" style="cursor:pointer; pointer-events:auto;">Weiter ab Level 1 ▶</span> &nbsp; (oder <span class="kbd">Leertaste</span>)</p>
+  </div>
+</div>
+
+<div id="loaderr">
+  <div class="titleCard">
+    <h1>⚠️ 3D-Engine konnte nicht geladen werden</h1>
+    <p>Die Grafikbibliothek <b>Three.js</b> wurde weder lokal (<code>shared/three-r128.min.js</code>) noch über das Internet gefunden, deshalb kann die Achterbahn nicht starten.</p>
+    <p>Stelle sicher, dass die Datei <code>shared/three-r128.min.js</code> im Wurzelverzeichnis der Sammlung liegt, oder öffne die Seite mit einer aktiven Internetverbindung.</p>
+  </div>
+</div>
+
+<!-- Three.js: zuerst die gemeinsame Kopie aus /shared (funktioniert offline / ohne CDN),
+     nur wenn die fehlt, wird als Rückfall das CDN nachgeladen. -->
+<script src="../../shared/three-r128.min.js"></script>
+<script>
+  if (!window.THREE) {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+  }
+</script>
+<!-- Spielcode: nur main.js führt beim Laden Code aus, alle anderen Dateien
+     definieren ausschliesslich Funktionen und Variablen. -->
+<script src="js/config.js"></script>
+<script src="js/save.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/track.js"></script>
+<script src="js/scenery.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/worlds.js"></script>
+<script src="js/vehicles.js"></script>
+<script src="js/race.js"></script>
+<script src="js/shop.js"></script>
+<script src="js/minimap.js"></script>
+<script src="js/effects.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

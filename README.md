@@ -1,36 +1,123 @@
-# Xcoaster – Endless Coaster
+# Minigames
 
-Eine browserbasierte 3D-Achterbahnfahrt (Three.js), die komplett clientseitig in `index.html` läuft.
+Eine Sammlung kleiner 3D-Browserspiele. Jedes Spiel ist eigenständig, läuft rein clientseitig und
+braucht weder Installation noch Build-Schritt – die Dateien lassen sich direkt auf jeden statischen
+Webspace hochladen.
 
-Three.js wird lokal aus `three.min.js` geladen, das Spiel funktioniert also **offline** und ohne CDN. Fehlt die Datei, wird als Rückfall automatisch das CDN versucht.
+## Spiele
 
-## Spielen
+| Spiel | Ordner | Kurz |
+|---|---|---|
+| 🎢 **Endless Coaster** | [`games/xcoaster/`](games/xcoaster/) | Achterbahn-Rennen durch 7 Welten, Fahrzeug-Shop, Schloss-Duell |
+| ⚓ **Hohe See** | [`games/ubootgame/`](games/ubootgame/) | Endlosfahrt über das Meer, Minen und U-Boote ausweichen, 12 Schiffe freischalten |
 
-Einfach `index.html` in einem modernen Browser öffnen (die Datei `three.min.js` muss daneben liegen), oder lokal servieren:
+Details zu Steuerung und Spielregeln stehen jeweils in der README des Spiels.
+
+## Struktur
+
+```
+/
+├── index.html                  Startseite: Übersicht aller Spiele
+├── README.md                   diese Datei
+├── package.json                nur für den Testlauf – die Spiele brauchen kein npm
+├── .nojekyll                   GitHub Pages liefert die Dateien unverändert aus
+├── .github/workflows/          Smoke-Test bei jedem Push
+├── tools/
+│   └── smoke-test.mjs          lädt jede Seite im Browser und prüft sie
+├── shared/
+│   └── three-r128.min.js       Three.js – von allen Spielen gemeinsam genutzt
+└── games/
+    ├── _template/              Vorlage zum Kopieren (kein echtes Spiel)
+    ├── xcoaster/               Endless Coaster (index.html + js/-Module)
+    └── ubootgame/              Hohe See (index.html + js/-Module)
+```
+
+Grundsatz: **Ein Spiel = ein Ordner unter `games/`.** Die Spiele kennen sich gegenseitig nicht und
+teilen sich ausschliesslich das, was in `shared/` liegt. Dadurch lässt sich ein Spiel jederzeit
+einzeln kopieren, ersetzen oder entfernen, ohne die anderen zu berühren.
+
+Ordner, deren Name mit `_` beginnt, sind Werkzeuge und keine Spiele – sie erscheinen nicht auf der
+Startseite.
+
+## Lokal starten
+
+Ein kleiner Webserver im Wurzelverzeichnis genügt – nötig, weil Browser Skripte von `file://`
+teilweise blockieren:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Danach `http://localhost:8000` aufrufen.
+Danach `http://localhost:8000` öffnen und ein Spiel auswählen. Einzelne Spiele sind direkt unter
+`http://localhost:8000/games/<spiel>/` erreichbar.
 
-## Steuerung
+## Ein neues Spiel hinzufügen
 
-- `↑` – Gas geben
-- `↓` – Bremsen
-- `Leertaste` – Spiel starten / neustarten
-- `Enter` – Neustart nach Absturz
+1. Vorlage kopieren – sie enthält bereits Szene, Kamera, Render-Schleife, HUD und Speicherung:
 
-## Rennen, Level & Duell
+   ```bash
+   cp -r games/_template games/<name>
+   ```
 
-- **Jedes Level ist ein Rennen über eine Runde.** Alle Autos starten gemeinsam an der Startlinie. Wirst du **Erster**, geht es ins nächste Level – wirst du nicht Erster (oder stürzt ab), geht es zurück zu **Level 1**.
-- Rechts eine **Live-Rangliste**, unten links eine **Navi-Streckenübersicht** (Minimap) mit den Positionen aller Autos.
-- **7 Welten** (Hintergrund, Auto, Bahn und Umgebung wechseln pro Level):
-  1. **Weltall** · 2. **Grossstadt** · 3. **Wüste** · 4. **Dschungel** · 5. **Meer** (mit Haien) · 6. **Mondlandschaft** · 7. **Eislandschaft** (mit Eisbären)
-- Tempo der Gegner: In den Leveln **1–6 gleich schnell** wie der Player (850 km/h), im **7. Level 100 km/h schneller**.
+2. In `games/<name>/js/main.js` den `STORAGE_KEY` auf `<name>.save.v1` setzen (siehe Konventionen).
+3. Titel, Überschriften und die README des Spiels anpassen.
+4. Das Spiel in der Tabelle oben **und** als Karte in der `index.html` im Wurzelverzeichnis
+   eintragen.
+5. `npm test` laufen lassen – das neue Spiel wird automatisch mitgeprüft.
 
-## Schloss-Duell & Fahrzeug-Shop
+## Konventionen
 
-- Nach Level 7 folgt das **Schloss-Duell 🐉**: ein 1-gegen-1-Rennen gegen das Drachenauto (bis zu **200 km/h schneller**) über eine Runde in einem riesigen Ritterschloss.
-- Gewinnst du, bekommst du einen **Pokal**. Mit mindestens einem Pokal kannst du im **Shop** ein neues Auto kaufen (kostet 1 Pokal): 🏎️ **Formel 1**, 🚙 **Monstertruck** oder 🟡 **U-Boot**. Pokale und Autos werden lokal gespeichert.
-- Verlierst du irgendein Rennen, beginnst du wieder bei Level 1.
+Diese Regeln verhindern die Probleme, die entstehen, wenn mehrere Spiele nebeneinander
+ausgeliefert werden:
+
+- **Speicherschlüssel mit Präfix.** Auf GitHub Pages teilen sich alle Spiele dieselbe Origin und
+  damit denselben `localStorage`. Jeder Schlüssel beginnt deshalb mit dem Ordnernamen des Spiels:
+  `xcoaster_progress`, `ubootgame.save.v1`. Ein generischer Name wie `highscore` würde die Daten
+  anderer Spiele überschreiben.
+- **Gemeinsame Bibliotheken mit Version im Dateinamen.** In `shared/` liegt jede Abhängigkeit
+  genau einmal, benannt nach Version (`three-r128.min.js`). Braucht ein Spiel später eine neuere
+  Fassung, kommt sie als eigene Datei daneben – bestehende Spiele laufen unverändert weiter.
+- **Kein Spiel greift in ein anderes hinein.** Gemeinsam genutzt wird nur, was in `shared/` liegt.
+- **Ein Thema, eine Datei.** Beide Spiele sind so geschnitten, dass eine typische Änderung genau
+  eine Datei betrifft: Fahrzeuge, Strecke, Wasser, Gegner, Shop und Anzeigen liegen jeweils in
+  einem eigenen Modul. Nur `main.js` führt beim Laden Code aus, alle anderen Dateien definieren
+  ausschliesslich Funktionen und Variablen – dadurch ist die Ladereihenfolge unkritisch.
+
+Bewusst *nicht* vereinheitlicht sind Speicherung, Audio und Effekte: Beide Spiele haben dafür
+unterschiedliche Anforderungen, und eine gemeinsame Abstraktion würde derzeit mehr kosten als sie
+einbringt. Sobald sich ein Muster über mehrere Spiele hinweg wiederholt, gehört es nach `shared/`.
+
+## Tests
+
+```bash
+npm install          # einmalig, installiert Playwright für den Test
+npm test
+```
+
+Der Smoke-Test startet einen lokalen Server, öffnet die Startseite und **jeden** Ordner unter
+`games/` in einem echten Browser und meldet:
+
+- JavaScript-Fehler und Konsolenfehler
+- fehlende Dateien (404)
+- Spielseiten, auf denen Three.js fehlt oder kein `<canvas>` entsteht
+
+Neue Spiele werden dabei automatisch gefunden – es muss nichts eingetragen werden. Dieselbe
+Prüfung läuft über GitHub Actions bei jedem Push.
+
+## Veröffentlichen
+
+- **GitHub Pages:** Repository in den Einstellungen als Pages-Quelle aktivieren. Die Startseite
+  liegt danach unter `https://<user>.github.io/<repo>/`, die Spiele unter `…/games/xcoaster/`
+  bzw. `…/games/ubootgame/`. Die Datei `.nojekyll` sorgt dafür, dass alle Dateien unverändert
+  ausgeliefert werden.
+- **Eigener Webspace / FTP:** Den gesamten Ordnerinhalt hochladen. Wichtig ist nur, dass `shared/`
+  und `games/` ihre relative Lage zueinander behalten. `package.json`, `tools/` und `.github/`
+  werden auf dem Server nicht gebraucht.
+
+## Technik
+
+- **Three.js r128** (lokal in `shared/`, CDN nur als Rückfall) – sonst keine Abhängigkeiten.
+- Kein Bundler, kein Transpiler. Was im Repository liegt, ist genau das, was im Browser läuft.
+  Die einzige npm-Abhängigkeit ist Playwright für den Testlauf.
+- Fortschritt (Münzen, freigeschaltete Fahrzeuge, Highscores) speichert jedes Spiel für sich im
+  `localStorage` des Browsers.
