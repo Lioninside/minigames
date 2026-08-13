@@ -2,6 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
+  const SIDING_BRANCH_ANGLE_DEGREES = 24;
 
   function svgElement(name, attributes) {
     const element = document.createElementNS(SVG_NS, name);
@@ -43,6 +44,23 @@
     const count = closed ? segmentCount : segmentCount + 1;
     for (let index = 0; index < count; index += 1) {
       sampled.push(pointOnPolyline(points, cumulative, total, (index / segmentCount) * total));
+    }
+    return sampled;
+  }
+
+  function resampleOpenPolylineByLegs(sourcePoints, targetLength) {
+    const sampled = [{ ...sourcePoints[0] }];
+    for (let index = 0; index < sourcePoints.length - 1; index += 1) {
+      const start = sourcePoints[index];
+      const end = sourcePoints[index + 1];
+      const segmentCount = Math.max(1, Math.ceil(distance(start, end) / targetLength));
+      for (let step = 1; step <= segmentCount; step += 1) {
+        const progress = step / segmentCount;
+        sampled.push({
+          x: start.x + (end.x - start.x) * progress,
+          y: start.y + (end.y - start.y) * progress
+        });
+      }
     }
     return sampled;
   }
@@ -108,8 +126,10 @@
       if (this.config.debug) this.renderDebugLabels();
     }
 
-    addRoute(id, points, closed, targetLength) {
-      const sampled = resamplePolyline(points, closed, targetLength);
+    addRoute(id, points, closed, targetLength, preserveVertices) {
+      const sampled = preserveVertices && !closed
+        ? resampleOpenPolylineByLegs(points, targetLength)
+        : resamplePolyline(points, closed, targetLength);
       const route = { id, segmentIds: [], closed };
       const segmentCount = closed ? sampled.length : sampled.length - 1;
 
@@ -239,20 +259,25 @@
 
     addStorageSidings() {
       const specs = [
-        { id: "siding-alpha", label: "A1", side: "left", x: 48, top: 412, bottom: 830, joinY: 1030 },
-        { id: "siding-bravo", label: "A2", side: "left", x: 78, top: 500, bottom: 870, joinY: 1060 },
-        { id: "siding-charlie", label: "A3", side: "left", x: 108, top: 588, bottom: 910, joinY: 1090 },
-        { id: "siding-delta", label: "A4", side: "right", x: 752, top: 412, bottom: 830, joinY: 1030 },
-        { id: "siding-echo", label: "A5", side: "right", x: 722, top: 560, bottom: 900, joinY: 1080 }
+        { id: "siding-alpha", label: "A1", side: "left", x: 48, top: 412, joinY: 1030 },
+        { id: "siding-bravo", label: "A2", side: "left", x: 78, top: 500, joinY: 1060 },
+        { id: "siding-charlie", label: "A3", side: "left", x: 108, top: 588, joinY: 1090 },
+        { id: "siding-delta", label: "A4", side: "right", x: 752, top: 412, joinY: 1030 },
+        { id: "siding-echo", label: "A5", side: "right", x: 722, top: 560, joinY: 1080 }
       ];
 
       specs.forEach((spec) => {
         const target = this.findSegmentNear("outer", { x: spec.side === "left" ? 144 : 656, y: spec.joinY }, "start");
+        const branchSlope = Math.tan(SIDING_BRANCH_ANGLE_DEGREES * Math.PI / 180);
+        const branchStart = {
+          x: spec.x,
+          y: target.a.y - Math.abs(target.a.x - spec.x) * branchSlope
+        };
         const route = this.addRoute(spec.id, [
           { x: spec.x, y: spec.top },
-          { x: spec.x, y: spec.bottom },
+          branchStart,
           target.a
-        ], false, 30);
+        ], false, 30, true);
         this.segments.get(route.segmentIds[route.segmentIds.length - 1]).defaultNextId = target.id;
 
         const label = svgElement("text", {
