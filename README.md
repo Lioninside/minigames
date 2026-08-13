@@ -10,7 +10,7 @@ Webspace hochladen.
 |---|---|---|
 | 🎢 **Endless Coaster** | [`games/xcoaster/`](games/xcoaster/) | Achterbahn-Rennen durch 7 Welten, Fahrzeug-Shop, Schloss-Duell |
 | ⚓ **Hohe See** | [`games/ubootgame/`](games/ubootgame/) | Endlosfahrt über das Meer, Minen und U-Boote ausweichen, 12 Schiffe freischalten |
-| **Stellwerksim** | [`games/stellwerksim/`](games/stellwerksim/) | Zuege per Weichen und Signalen auf Zielgleise leiten |
+| **Stellwerksim** | [`games/stellwerksim/`](games/stellwerksim/) | Freie SVG-Stellwerk-Simulation mit fuenf Zuegen, Weichen, Gleisbelegung und Kollisionsgefahr |
 
 Details zu Steuerung und Spielregeln stehen jeweils in der README des Spiels.
 

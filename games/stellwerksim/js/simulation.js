@@ -1,0 +1,198 @@
+(function () {
+  "use strict";
+
+  class Simulation {
+    constructor(network, config) {
+      this.network = network;
+      this.config = config;
+      this.trains = [];
+      this.crashed = false;
+      this.onStateChange = null;
+      this.onCrash = null;
+      this.onMessage = null;
+      this.resetSimulation();
+    }
+
+    resetSimulation() {
+      this.crashed = false;
+      this.network.resetSwitches();
+      this.network.trainLayer.replaceChildren();
+      this.trains = this.config.trainDefinitions.map((definition) => {
+        const initialRoute = this.network.getSidingStartRoute(definition.siding, this.config.trainLength);
+        const train = new window.Stellwerk.Train(definition, this.config, initialRoute);
+        train.mount(this.network.trainLayer);
+        return train;
+      });
+      this.rebuildOccupancy();
+      this.render();
+      this.emitMessage("Alle fuenf Zuege stehen bereit.");
+      this.emitStateChange();
+    }
+
+    getTrain(trainId) {
+      return this.trains.find((train) => train.id === trainId);
+    }
+
+    setTrainDirection(trainId, direction) {
+      if (this.crashed) return;
+      const train = this.getTrain(trainId);
+      if (!train || train.direction === direction) return;
+      train.setDirection(direction);
+      const label = direction === "forward" ? "vorwaerts" : direction === "reverse" ? "rueckwaerts" : "angehalten";
+      this.emitMessage(`${train.name} ${label}.`);
+      this.emitStateChange();
+    }
+
+    setTrainSpeed(trainId, level) {
+      if (this.crashed) return;
+      const train = this.getTrain(trainId);
+      if (!train) return;
+      train.setSpeedLevel(level);
+      this.emitStateChange();
+    }
+
+    toggleSwitch(switchId) {
+      if (this.crashed) return;
+      const switchData = this.network.switches.get(switchId);
+      if (!switchData) return;
+      if (switchData.locked) {
+        this.emitMessage(`${switchId} ist wegen Gleisbelegung gesperrt.`);
+        return;
+      }
+      if (this.network.toggleSwitch(switchId)) {
+        const state = this.network.switches.get(switchId).state === "straight" ? "gerade" : "abzweigend";
+        this.emitMessage(`${switchId} auf ${state} gestellt.`);
+      }
+    }
+
+    update(deltaSeconds) {
+      if (this.crashed) return;
+      let remaining = Math.min(this.config.maxFrameDelta, Math.max(0, deltaSeconds));
+      while (remaining > 0 && !this.crashed) {
+        const maxSpeed = Math.max(...this.trains
+          .filter((train) => train.direction !== "stopped")
+          .map((train) => this.config.speedLevels[train.speedLevel]), 0);
+        const step = maxSpeed > 0
+          ? Math.min(remaining, this.config.maxSubstepDistance / maxSpeed)
+          : remaining;
+
+        this.trains.forEach((train) => this.advanceTrain(train, step));
+        const occupancy = this.rebuildOccupancy();
+        this.updateSwitchLocks(occupancy);
+        const collision = this.findCollision(occupancy);
+        if (collision) this.crash(collision);
+        remaining -= step;
+      }
+      this.render();
+    }
+
+    advanceTrain(train, deltaSeconds) {
+      if (train.direction === "stopped") return;
+      let remainingDistance = this.config.speedLevels[train.speedLevel] * deltaSeconds;
+      const minimumPosition = this.config.trainLength - 1 + 0.01;
+
+      if (train.direction === "reverse") {
+        const available = train.position - minimumPosition;
+        if (remainingDistance >= available) {
+          train.position = minimumPosition;
+          train.setDirection("stopped");
+          this.emitMessage(`${train.name} steht am Prellbock.`);
+          this.emitStateChange();
+        } else {
+          train.position -= remainingDistance;
+        }
+        return;
+      }
+
+      let guard = 0;
+      while (remainingDistance > 0.00001 && guard < 30) {
+        guard += 1;
+        const available = train.route.length - train.position - 0.001;
+        if (remainingDistance < available) {
+          train.position += remainingDistance;
+          break;
+        }
+
+        train.position = train.route.length - 0.001;
+        remainingDistance -= Math.max(0, available);
+        const nextSegmentId = this.network.getSuccessor(train.route[train.route.length - 1]);
+        if (!nextSegmentId) {
+          train.setDirection("stopped");
+          this.emitMessage(`${train.name} hat das Streckenende erreicht.`);
+          this.emitStateChange();
+          break;
+        }
+        train.route.push(nextSegmentId);
+      }
+    }
+
+    rebuildOccupancy() {
+      const occupancy = new Map();
+      this.trains.forEach((train) => {
+        train.getOccupiedSegmentIds(this.network).forEach((segmentId) => {
+          if (!occupancy.has(segmentId)) occupancy.set(segmentId, new Set());
+          occupancy.get(segmentId).add(train.id);
+        });
+      });
+      this.network.setOccupancy(occupancy);
+      return occupancy;
+    }
+
+    updateSwitchLocks(occupancy) {
+      this.network.switches.forEach((switchData) => {
+        const locked = switchData.protectedSegmentIds.some((segmentId) => {
+          const occupants = occupancy.get(segmentId);
+          return occupants && occupants.size > 0;
+        });
+        this.network.setSwitchLocked(switchData.id, locked);
+      });
+    }
+
+    findCollision(occupancy) {
+      for (const occupants of occupancy.values()) {
+        if (occupants.size > 1) return [...occupants].slice(0, 2);
+      }
+
+      for (let first = 0; first < this.trains.length; first += 1) {
+        const firstPoses = this.trains[first].getCarPoses(this.network);
+        for (let second = first + 1; second < this.trains.length; second += 1) {
+          const secondPoses = this.trains[second].getCarPoses(this.network);
+          for (const a of firstPoses) {
+            for (const b of secondPoses) {
+              if (Math.hypot(a.x - b.x, a.y - b.y) < 12) {
+                return [this.trains[first].id, this.trains[second].id];
+              }
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    crash(trainIds) {
+      if (this.crashed) return;
+      this.crashed = true;
+      this.trains.forEach((train) => train.setDirection("stopped"));
+      this.network.switches.forEach((switchData) => this.network.setSwitchLocked(switchData.id, true));
+      const involved = trainIds.map((id) => this.getTrain(id).name);
+      this.emitMessage(`Kollision: ${involved.join(" und ")}.`);
+      this.emitStateChange();
+      if (typeof this.onCrash === "function") this.onCrash(involved);
+    }
+
+    render() {
+      this.trains.forEach((train) => train.render(this.network));
+    }
+
+    emitStateChange() {
+      if (typeof this.onStateChange === "function") this.onStateChange();
+    }
+
+    emitMessage(message) {
+      if (typeof this.onMessage === "function") this.onMessage(message);
+    }
+  }
+
+  window.Stellwerk = window.Stellwerk || {};
+  window.Stellwerk.Simulation = Simulation;
+}());

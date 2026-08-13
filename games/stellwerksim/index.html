@@ -1,114 +1,68 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Stellwerksim</title>
-<link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Freie SVG-Stellwerk-Simulation mit fuenf Zuegen, Gleisbelegung und Weichen.">
+  <title>Stellwerksim</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">MINIGAMES / FREIE SIMULATION</p>
+        <h1>Stellwerksim</h1>
+      </div>
+      <div class="system-status" aria-live="polite">
+        <span class="status-lamp" aria-hidden="true"></span>
+        <span id="systemMessage">Alle fuenf Zuege stehen bereit.</span>
+      </div>
+    </header>
 
-<div id="canvas-wrap"></div>
+    <section class="board-section" aria-label="Gleisplan">
+      <div class="board-heading">
+        <div>
+          <h2>Gleisbild</h2>
+          <p>Weichen direkt im Plan bedienen. Rot markiert belegte Gleisabschnitte.</p>
+        </div>
+        <div class="legend" aria-label="Legende">
+          <span><i class="legend-track"></i>frei</span>
+          <span><i class="legend-occupied"></i>belegt</span>
+          <span><i class="legend-switch"></i>Fahrweg</span>
+        </div>
+      </div>
+      <div id="trackViewport" class="track-viewport">
+        <svg id="trackPlan" viewBox="0 0 980 820" role="img" aria-label="Interaktiver Gleisplan mit acht Weichen und fuenf Abstellgleisen"></svg>
+      </div>
+    </section>
 
-<div id="menu" class="overlay">
-  <div class="card">
-    <p class="kicker">Minigame</p>
-    <h1>Stellwerksim</h1>
-    <p class="sub">
-      Stelle Weichen, gib Signale frei und bring jeden Zug auf sein Zielgleis. Drei
-      Stoerungen beenden die Schicht.
-    </p>
-    <div class="record">
-      <span>Bestleistung</span>
-      <strong id="menuBest">0</strong>
+    <section class="controls-section" aria-labelledby="controlsTitle">
+      <div class="controls-heading">
+        <div>
+          <h2 id="controlsTitle">Zugsteuerung</h2>
+          <p>Jeder Zug belegt auch im Halt weiterhin vier Gleisabschnitte.</p>
+        </div>
+        <button id="resetButton" class="reset-button" type="button">Simulation zuruecksetzen</button>
+      </div>
+      <div id="trainControls" class="train-controls"></div>
+    </section>
+  </main>
+
+  <div id="crashOverlay" class="crash-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="crashTitle">
+    <div class="crash-dialog">
+      <p class="eyebrow">SIMULATION ANGEHALTEN</p>
+      <h2 id="crashTitle">Kollision</h2>
+      <p id="crashDetail">Zwei Zuege belegen denselben Gleisabschnitt.</p>
+      <button id="restartButton" type="button">Spiel neu starten</button>
     </div>
-    <button id="btnStart" class="primary">Schicht starten</button>
   </div>
-</div>
 
-<div id="gameover" class="overlay hidden">
-  <div class="card">
-    <p class="kicker">Feierabend</p>
-    <h2>Schicht beendet</h2>
-    <p id="finalText" class="sub">0 Punkte, 0 Zuege abgefertigt.</p>
-    <button id="btnRestart" class="primary">Neu starten</button>
-  </div>
-</div>
-
-<div id="hud" class="hidden">
-  <div class="topbar">
-    <div class="status panel">
-      <div class="stat">
-        <span>Punkte</span>
-        <strong id="scoreVal">0</strong>
-      </div>
-      <div class="stat">
-        <span>Zuege</span>
-        <strong id="handledVal">0</strong>
-      </div>
-      <div class="stat">
-        <span>Stoerungen</span>
-        <strong id="mistakeVal">0/3</strong>
-      </div>
-      <div class="stat">
-        <span>Serie</span>
-        <strong id="streakVal">0</strong>
-      </div>
-    </div>
-    <div id="message" class="message panel">Schicht bereit.</div>
-  </div>
-
-  <section class="panel board" aria-label="Zugmeldungen">
-    <div class="panel-title">Zugmeldungen</div>
-    <ul id="trainList"></ul>
-  </section>
-
-  <section class="panel controls" aria-label="Stellwerk">
-    <div class="control-block">
-      <span class="control-title">West</span>
-      <div class="button-row" role="group" aria-label="Westliche Einfahrt">
-        <button data-west-route="0">Gleis 1</button>
-        <button data-west-route="1">Gleis 2</button>
-        <button data-west-route="2">Gleis 3</button>
-      </div>
-      <button id="signalWest" class="signal">Signal W</button>
-    </div>
-
-    <div class="control-block">
-      <span class="control-title">Ost</span>
-      <div class="button-row" role="group" aria-label="Oestliche Einfahrt">
-        <button data-east-route="0">Gleis 1</button>
-        <button data-east-route="1">Gleis 2</button>
-        <button data-east-route="2">Gleis 3</button>
-      </div>
-      <button id="signalEast" class="signal">Signal O</button>
-    </div>
-
-    <div class="control-block compact">
-      <span class="control-title">Tempo</span>
-      <div class="button-row" role="group" aria-label="Spieltempo">
-        <button id="speedDown">-</button>
-        <strong id="speedVal">1x</strong>
-        <button id="speedUp">+</button>
-      </div>
-      <button id="pauseBtn">Pause</button>
-    </div>
-  </section>
-</div>
-
-<div id="loaderr" class="overlay hidden">
-  <div class="card">
-    <h2>3D-Bibliothek fehlt</h2>
-    <p class="sub">Weder <code>shared/three-r128.min.js</code> noch das CDN konnten geladen werden.</p>
-  </div>
-</div>
-
-<script src="../../shared/three-r128.min.js"></script>
-<script>
-  if (!window.THREE) {
-    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
-  }
-</script>
-<script src="js/main.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/network.js"></script>
+  <script src="js/train.js"></script>
+  <script src="js/simulation.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
