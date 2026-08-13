@@ -125,8 +125,12 @@
           b: end,
           length: distance(start, end),
           defaultNextId: null,
+          defaultPreviousId: null,
           switchRole: null,
           switchId: null,
+          switchSourceId: null,
+          switchTargetId: null,
+          switchBranchId: null,
           element: null
         };
         this.segments.set(segmentId, segment);
@@ -135,10 +139,15 @@
 
       route.segmentIds.forEach((segmentId, index) => {
         const nextIndex = index + 1;
+        const previousIndex = index - 1;
         const nextId = nextIndex < route.segmentIds.length
           ? route.segmentIds[nextIndex]
           : (closed ? route.segmentIds[0] : null);
+        const previousId = previousIndex >= 0
+          ? route.segmentIds[previousIndex]
+          : (closed ? route.segmentIds[route.segmentIds.length - 1] : null);
         this.segments.get(segmentId).defaultNextId = nextId;
+        this.segments.get(segmentId).defaultPreviousId = previousId;
       });
 
       this.routes.set(id, route);
@@ -182,12 +191,12 @@
       const specs = [
         { id: "W1", source: "outer", target: "middle", point: { x: 162, y: 260 }, label: { x: 184, y: 280 } },
         { id: "W2", source: "middle", target: "inner", point: { x: 212, y: 355 }, label: { x: 239, y: 372 } },
-        { id: "W3", source: "outer", target: "middle", point: { x: 162, y: 472 }, label: { x: 184, y: 451 } },
-        { id: "W4", source: "middle", target: "inner", point: { x: 212, y: 575 }, label: { x: 239, y: 555 } },
+        { id: "W3", source: "middle", target: "outer", point: { x: 162, y: 472 }, label: { x: 184, y: 451 } },
+        { id: "W4", source: "inner", target: "middle", point: { x: 212, y: 575 }, label: { x: 239, y: 555 } },
         { id: "W5", source: "outer", target: "middle", point: { x: 818, y: 260 }, label: { x: 796, y: 280 } },
         { id: "W6", source: "middle", target: "inner", point: { x: 768, y: 355 }, label: { x: 741, y: 372 } },
-        { id: "W7", source: "outer", target: "middle", point: { x: 818, y: 472 }, label: { x: 796, y: 451 } },
-        { id: "W8", source: "middle", target: "inner", point: { x: 768, y: 575 }, label: { x: 741, y: 555 } }
+        { id: "W7", source: "middle", target: "outer", point: { x: 818, y: 472 }, label: { x: 796, y: 451 } },
+        { id: "W8", source: "inner", target: "middle", point: { x: 768, y: 575 }, label: { x: 741, y: 555 } }
       ];
 
       specs.forEach((spec) => this.addSwitch(spec));
@@ -208,7 +217,9 @@
         straightSegmentId: source.defaultNextId,
         divergingSegmentId: branchIds[0],
         branchSegmentIds: branchIds,
-        protectedSegmentIds: [source.id, ...branchIds],
+        branchTerminalSegmentId: branchIds[branchIds.length - 1],
+        targetSegmentId: target.id,
+        protectedSegmentIds: [source.id, source.defaultNextId, ...branchIds, target.id],
         control: null
       };
 
@@ -219,6 +230,9 @@
         this.segments.get(segmentId).switchId = spec.id;
       });
       source.switchId = spec.id;
+      source.switchSourceId = spec.id;
+      target.switchTargetId = spec.id;
+      this.segments.get(branchIds[0]).switchBranchId = spec.id;
       this.switches.set(spec.id, switchData);
       this.drawSwitchControl(switchData, spec.label);
     }
@@ -306,11 +320,34 @@
     getSuccessor(segmentId) {
       const segment = this.segments.get(segmentId);
       if (!segment) return null;
-      const switchData = [...this.switches.values()].find((item) => item.sourceSegmentId === segmentId);
+      const switchData = segment.switchSourceId ? this.switches.get(segment.switchSourceId) : null;
       if (switchData) {
         return switchData.state === "straight" ? switchData.straightSegmentId : switchData.divergingSegmentId;
       }
       return segment.defaultNextId;
+    }
+
+    getPredecessor(segmentId) {
+      const segment = this.segments.get(segmentId);
+      if (!segment) return null;
+
+      if (segment.switchTargetId) {
+        const switchData = this.switches.get(segment.switchTargetId);
+        if (switchData.state === "diverging") return switchData.branchTerminalSegmentId;
+      }
+
+      if (segment.switchBranchId) {
+        return this.switches.get(segment.switchBranchId).sourceSegmentId;
+      }
+
+      return segment.defaultPreviousId;
+    }
+
+    getTraversalSuccessor(step) {
+      const segmentId = step.direction === 1
+        ? this.getSuccessor(step.segmentId)
+        : this.getPredecessor(step.segmentId);
+      return segmentId ? { segmentId, direction: step.direction } : null;
     }
 
     getSidingStartRoute(sidingId, trainLength) {
@@ -318,26 +355,28 @@
       return route.segmentIds.slice(0, trainLength);
     }
 
-    getSegmentPose(segmentId, progress) {
+    getSegmentPose(segmentId, progress, direction) {
       const segment = this.segments.get(segmentId);
       const t = Math.max(0, Math.min(0.999, progress));
+      const directedProgress = direction === -1 ? 1 - t : t;
       return {
-        x: segment.a.x + (segment.b.x - segment.a.x) * t,
-        y: segment.a.y + (segment.b.y - segment.a.y) * t,
+        x: segment.a.x + (segment.b.x - segment.a.x) * directedProgress,
+        y: segment.a.y + (segment.b.y - segment.a.y) * directedProgress,
         angle: Math.atan2(segment.b.y - segment.a.y, segment.b.x - segment.a.x) * 180 / Math.PI
+          + (direction === -1 ? 180 : 0)
       };
     }
 
     getRoutePose(route, position) {
       const safePosition = Math.max(0, Math.min(route.length - 0.001, position));
       const index = Math.floor(safePosition);
-      const segmentId = route[index];
-      return this.getSegmentPose(segmentId, safePosition - index);
+      const step = route[index];
+      return this.getSegmentPose(step.segmentId, safePosition - index, step.direction);
     }
 
     getRouteSegmentId(route, position) {
       const safePosition = Math.max(0, Math.min(route.length - 0.001, position));
-      return route[Math.floor(safePosition)];
+      return route[Math.floor(safePosition)].segmentId;
     }
 
     setOccupancy(nextOccupancy) {

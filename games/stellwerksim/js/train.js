@@ -16,9 +16,10 @@
       this.color = definition.color;
       this.siding = definition.siding;
       this.config = config;
-      this.route = [...initialRoute];
+      this.route = initialRoute.map((segmentId) => ({ segmentId, direction: 1 }));
       this.position = config.initialHeadPosition;
       this.direction = "stopped";
+      this.pathDirection = "forward";
       this.speedLevel = config.initialSpeedLevel;
       this.group = null;
       this.cars = [];
@@ -46,7 +47,23 @@
     }
 
     setDirection(direction) {
+      if (direction !== "stopped" && direction !== this.pathDirection) {
+        this.reversePath();
+        this.pathDirection = direction;
+      }
       this.direction = direction;
+    }
+
+    reversePath() {
+      const routeLength = this.route.length;
+      this.route = this.route
+        .slice()
+        .reverse()
+        .map((step) => ({ segmentId: step.segmentId, direction: -step.direction }));
+      this.position = routeLength - this.position + this.config.trainLength - 1;
+
+      const requiredSegments = Math.max(this.config.trainLength, Math.floor(this.position) + 1);
+      this.route.length = Math.min(this.route.length, requiredSegments);
     }
 
     setSpeedLevel(level) {

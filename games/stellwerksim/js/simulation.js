@@ -89,20 +89,6 @@
     advanceTrain(train, deltaSeconds) {
       if (train.direction === "stopped") return;
       let remainingDistance = this.config.speedLevels[train.speedLevel] * deltaSeconds;
-      const minimumPosition = this.config.trainLength - 1 + 0.01;
-
-      if (train.direction === "reverse") {
-        const available = train.position - minimumPosition;
-        if (remainingDistance >= available) {
-          train.position = minimumPosition;
-          train.setDirection("stopped");
-          this.emitMessage(`${train.name} steht am Prellbock.`);
-          this.emitStateChange();
-        } else {
-          train.position -= remainingDistance;
-        }
-        return;
-      }
 
       let guard = 0;
       while (remainingDistance > 0.00001 && guard < 30) {
@@ -115,14 +101,14 @@
 
         train.position = train.route.length - 0.001;
         remainingDistance -= Math.max(0, available);
-        const nextSegmentId = this.network.getSuccessor(train.route[train.route.length - 1]);
-        if (!nextSegmentId) {
+        const nextStep = this.network.getTraversalSuccessor(train.route[train.route.length - 1]);
+        if (!nextStep) {
           train.setDirection("stopped");
-          this.emitMessage(`${train.name} hat das Streckenende erreicht.`);
+          this.emitMessage(`${train.name} steht am Prellbock.`);
           this.emitStateChange();
           break;
         }
-        train.route.push(nextSegmentId);
+        train.route.push(nextStep);
       }
     }
 

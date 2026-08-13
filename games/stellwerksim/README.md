@@ -21,9 +21,17 @@ Standardnachfolger und Belegungszustand. Die drei Ringe, die acht Abzweige und d
 Abstellgleise werden aus denselben Segmenten aufgebaut, die auch die Simulation verwendet.
 
 Eine Weiche besitzt ein Quellsegment, einen geraden Nachfolger und einen abzweigenden Nachfolger.
-Der Zugkopf liest die aktuelle Stellung nur beim Verlassen des Quellsegments. Alle Wagen folgen
-einer gespeicherten Segmenthistorie. Deshalb fahren sie sauber durch Kurven und auf der
-Rueckwaertsfahrt exakt ihren bereits genommenen Weg zurueck.
+Der jeweilige Zugkopf liest die aktuelle Stellung nur beim Verlassen des Quellsegments. Alle Wagen
+folgen einer gespeicherten Koerperroute. Deshalb fahren sie sauber durch Kurven; nach einem
+Richtungswechsel folgt das neue Zugende erst vollstaendig dem bestehenden Zugkoerper, bevor es
+an einer Weiche einen neuen, physisch gueltigen Fahrweg waehlt.
+
+Die acht Weichen sind in beiden Fahrtrichtungen Teil des Graphen. Im Uhrzeigersinn fuehren `W1`
+und `W5` vom aeusseren auf den mittleren Ring, `W2` und `W6` vom mittleren auf den inneren Ring,
+`W4` und `W8` vom inneren zurueck auf den mittleren Ring sowie `W3` und `W7` vom mittleren auf
+den aeusseren Ring. In Gegenrichtung gelten die jeweiligen Verbindungen umgekehrt. Beim
+Richtungswechsel wird der vierteilige Zugkoerper ohne Positionssprung gedreht; anschliessend
+waehlt sein neues Zugende die passende Weichenverbindung.
 
 Die Belegungsberechnung liefert eine gemeinsame Quelle fuer zugfarbene LED-Gleisabschnitte,
 Weichensperren und die Kollisionspruefung. Die Animation benutzt `requestAnimationFrame()` mit
