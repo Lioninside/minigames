@@ -3,6 +3,7 @@
 
   const SVG_NS = "http://www.w3.org/2000/svg";
   const SIDING_BRANCH_ANGLE_DEGREES = 24;
+  const LOGICAL_PLAN_WIDTH = 800;
 
   function svgElement(name, attributes) {
     const element = document.createElementNS(SVG_NS, name);
@@ -12,6 +13,14 @@
 
   function distance(a, b) {
     return Math.hypot(b.x - a.x, b.y - a.y);
+  }
+
+  function toDisplayPoint(point) {
+    return { x: point.y, y: LOGICAL_PLAN_WIDTH - point.x };
+  }
+
+  function toDisplayAngle(angle) {
+    return angle - 90;
   }
 
   function pointOnPolyline(points, cumulative, total, distanceAlong) {
@@ -179,11 +188,13 @@
       const inset = Math.min(3.4, segment.length * 0.18);
       const dx = (segment.b.x - segment.a.x) / segment.length;
       const dy = (segment.b.y - segment.a.y) / segment.length;
+      const start = toDisplayPoint({ x: segment.a.x + dx * inset, y: segment.a.y + dy * inset });
+      const end = toDisplayPoint({ x: segment.b.x - dx * inset, y: segment.b.y - dy * inset });
       const line = svgElement("line", {
-        x1: segment.a.x + dx * inset,
-        y1: segment.a.y + dy * inset,
-        x2: segment.b.x - dx * inset,
-        y2: segment.b.y - dy * inset,
+        x1: start.x,
+        y1: start.y,
+        x2: end.x,
+        y2: end.y,
         "data-segment-id": segment.id,
         class: "track-segment"
       });
@@ -209,14 +220,14 @@
 
     addMainSwitches() {
       const specs = [
-        { id: "W1", source: "outer", target: "middle", sourcePoint: { x: 144, y: 330 }, targetPoint: { x: 202, y: 456 }, label: { x: 169, y: 397 } },
-        { id: "W2", source: "middle", target: "inner", sourcePoint: { x: 202, y: 432 }, targetPoint: { x: 246, y: 306 }, label: { x: 238, y: 374 } },
-        { id: "W3", source: "middle", target: "outer", sourcePoint: { x: 202, y: 690 }, targetPoint: { x: 144, y: 836 }, label: { x: 169, y: 765 } },
-        { id: "W4", source: "inner", target: "middle", sourcePoint: { x: 246, y: 820 }, targetPoint: { x: 202, y: 694 }, label: { x: 238, y: 752 } },
-        { id: "W5", source: "outer", target: "middle", sourcePoint: { x: 656, y: 330 }, targetPoint: { x: 598, y: 456 }, label: { x: 631, y: 397 } },
-        { id: "W6", source: "middle", target: "inner", sourcePoint: { x: 598, y: 432 }, targetPoint: { x: 554, y: 306 }, label: { x: 562, y: 374 } },
-        { id: "W7", source: "middle", target: "outer", sourcePoint: { x: 598, y: 690 }, targetPoint: { x: 656, y: 816 }, label: { x: 631, y: 755 } },
-        { id: "W8", source: "inner", target: "middle", sourcePoint: { x: 554, y: 820 }, targetPoint: { x: 598, y: 694 }, label: { x: 562, y: 752 } }
+        { id: "W1", source: "outer", target: "middle", sourcePoint: { x: 144, y: 500 }, targetPoint: { x: 202, y: 360 }, label: { x: 171, y: 431 } },
+        { id: "W2", source: "middle", target: "inner", sourcePoint: { x: 202, y: 500 }, targetPoint: { x: 246, y: 360 }, label: { x: 229, y: 431 } },
+        { id: "W3", source: "middle", target: "outer", sourcePoint: { x: 202, y: 900 }, targetPoint: { x: 144, y: 760 }, label: { x: 171, y: 829 } },
+        { id: "W4", source: "inner", target: "middle", sourcePoint: { x: 246, y: 900 }, targetPoint: { x: 202, y: 760 }, label: { x: 229, y: 829 } },
+        { id: "W5", source: "outer", target: "middle", sourcePoint: { x: 656, y: 300 }, targetPoint: { x: 598, y: 440 }, label: { x: 629, y: 369 } },
+        { id: "W6", source: "middle", target: "inner", sourcePoint: { x: 598, y: 300 }, targetPoint: { x: 554, y: 440 }, label: { x: 571, y: 369 } },
+        { id: "W7", source: "middle", target: "outer", sourcePoint: { x: 598, y: 680 }, targetPoint: { x: 656, y: 820 }, label: { x: 629, y: 751 } },
+        { id: "W8", source: "inner", target: "middle", sourcePoint: { x: 554, y: 680 }, targetPoint: { x: 598, y: 820 }, label: { x: 571, y: 751 } }
       ];
 
       specs.forEach((spec) => this.addSwitch(spec));
@@ -280,11 +291,15 @@
         ], false, 30, true);
         this.segments.get(route.segmentIds[route.segmentIds.length - 1]).defaultNextId = target.id;
 
-        const label = svgElement("text", {
+        const labelPosition = toDisplayPoint({
           x: spec.side === "left" ? spec.x - 18 : spec.x + 18,
-          y: spec.top - 12,
+          y: spec.top - 12
+        });
+        const label = svgElement("text", {
+          x: labelPosition.x,
+          y: labelPosition.y,
           class: "yard-label",
-          "text-anchor": spec.side === "left" ? "end" : "start"
+          "text-anchor": "middle"
         });
         label.textContent = spec.label;
         this.labelLayer.append(label);
@@ -292,14 +307,15 @@
     }
 
     drawSwitchControl(switchData, position) {
+      const displayPosition = toDisplayPoint(position);
       const group = svgElement("g", {
         class: "switch-control",
         tabindex: "0",
         role: "button",
         "aria-label": `${switchData.id} umstellen`
       });
-      const plate = svgElement("rect", { x: position.x - 13, y: position.y - 9, width: 26, height: 18, rx: 1, class: "switch-plate" });
-      const label = svgElement("text", { x: position.x, y: position.y + 0.5, class: "switch-label" });
+      const plate = svgElement("rect", { x: displayPosition.x - 13, y: displayPosition.y - 9, width: 26, height: 18, rx: 1, class: "switch-plate" });
+      const label = svgElement("text", { x: displayPosition.x, y: displayPosition.y + 0.5, class: "switch-label" });
       label.textContent = switchData.id;
       group.append(plate, label);
       group.addEventListener("click", () => this.requestSwitchToggle(switchData.id));
@@ -382,11 +398,16 @@
       const segment = this.segments.get(segmentId);
       const t = Math.max(0, Math.min(0.999, progress));
       const directedProgress = direction === -1 ? 1 - t : t;
-      return {
+      const logicalPoint = {
         x: segment.a.x + (segment.b.x - segment.a.x) * directedProgress,
-        y: segment.a.y + (segment.b.y - segment.a.y) * directedProgress,
-        angle: Math.atan2(segment.b.y - segment.a.y, segment.b.x - segment.a.x) * 180 / Math.PI
-          + (direction === -1 ? 180 : 0)
+        y: segment.a.y + (segment.b.y - segment.a.y) * directedProgress
+      };
+      return {
+        ...toDisplayPoint(logicalPoint),
+        angle: toDisplayAngle(
+          Math.atan2(segment.b.y - segment.a.y, segment.b.x - segment.a.x) * 180 / Math.PI
+            + (direction === -1 ? 180 : 0)
+        )
       };
     }
 

@@ -10,7 +10,7 @@
     maxFrameDelta: 0.1,
     maxSubstepDistance: 0.16,
     speedLevels: Object.freeze({
-      1: 0.72,
+      1: 0.35,
       2: 1.26,
       3: 1.95,
       4: 2.78,

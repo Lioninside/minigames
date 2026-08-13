@@ -160,8 +160,8 @@ h2 {
 .legend-switch { background: #3d7785; }
 
 .track-viewport {
-  width: min(100%, 680px);
-  aspect-ratio: 800 / 1220;
+  width: min(100%, 1120px);
+  aspect-ratio: 1220 / 800;
   margin: 14px auto 0;
   overflow: hidden;
   border: 1px solid #707873;
@@ -367,7 +367,8 @@ h2 {
   h1 { font-size: 24px; }
   .board-section,
   .controls-section { padding: 12px; }
-  .track-viewport { width: 100%; margin-inline: 0; }
+  .track-viewport { width: 100%; aspect-ratio: auto; margin-inline: 0; overflow: auto; }
+  #trackPlan { width: 720px; height: auto; }
   .train-controls { grid-template-columns: 1fr; }
   .train-card { padding: 12px; }
 }
