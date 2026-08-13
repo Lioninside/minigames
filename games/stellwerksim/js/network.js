@@ -209,22 +209,22 @@
 
     addMainSwitches() {
       const specs = [
-        { id: "W1", source: "outer", target: "middle", point: { x: 146, y: 350 }, label: { x: 175, y: 369 } },
-        { id: "W2", source: "middle", target: "inner", point: { x: 204, y: 442 }, label: { x: 237, y: 460 } },
-        { id: "W3", source: "middle", target: "outer", point: { x: 146, y: 704 }, label: { x: 175, y: 684 } },
-        { id: "W4", source: "inner", target: "middle", point: { x: 204, y: 796 }, label: { x: 237, y: 776 } },
-        { id: "W5", source: "outer", target: "middle", point: { x: 654, y: 350 }, label: { x: 625, y: 369 } },
-        { id: "W6", source: "middle", target: "inner", point: { x: 596, y: 442 }, label: { x: 563, y: 460 } },
-        { id: "W7", source: "middle", target: "outer", point: { x: 654, y: 704 }, label: { x: 625, y: 684 } },
-        { id: "W8", source: "inner", target: "middle", point: { x: 596, y: 796 }, label: { x: 563, y: 776 } }
+        { id: "W1", source: "outer", target: "middle", sourcePoint: { x: 144, y: 330 }, targetPoint: { x: 202, y: 456 }, label: { x: 169, y: 397 } },
+        { id: "W2", source: "middle", target: "inner", sourcePoint: { x: 202, y: 432 }, targetPoint: { x: 246, y: 306 }, label: { x: 238, y: 374 } },
+        { id: "W3", source: "middle", target: "outer", sourcePoint: { x: 202, y: 690 }, targetPoint: { x: 144, y: 836 }, label: { x: 169, y: 765 } },
+        { id: "W4", source: "inner", target: "middle", sourcePoint: { x: 246, y: 820 }, targetPoint: { x: 202, y: 694 }, label: { x: 238, y: 752 } },
+        { id: "W5", source: "outer", target: "middle", sourcePoint: { x: 656, y: 330 }, targetPoint: { x: 598, y: 456 }, label: { x: 631, y: 397 } },
+        { id: "W6", source: "middle", target: "inner", sourcePoint: { x: 598, y: 432 }, targetPoint: { x: 554, y: 306 }, label: { x: 562, y: 374 } },
+        { id: "W7", source: "middle", target: "outer", sourcePoint: { x: 598, y: 690 }, targetPoint: { x: 656, y: 816 }, label: { x: 631, y: 755 } },
+        { id: "W8", source: "inner", target: "middle", sourcePoint: { x: 554, y: 820 }, targetPoint: { x: 598, y: 694 }, label: { x: 562, y: 752 } }
       ];
 
       specs.forEach((spec) => this.addSwitch(spec));
     }
 
     addSwitch(spec) {
-      const source = this.findSegmentNear(spec.source, spec.point, "end");
-      const target = this.findSegmentNear(spec.target, spec.point, "start");
+      const source = this.findSegmentNear(spec.source, spec.sourcePoint, "end");
+      const target = this.findSegmentNear(spec.target, spec.targetPoint, "start");
       const branch = this.addRoute(`branch-${spec.id.toLowerCase()}`, [source.b, target.a], false, 26);
       const branchIds = [...branch.segmentIds];
       this.segments.get(branchIds[branchIds.length - 1]).defaultNextId = target.id;
