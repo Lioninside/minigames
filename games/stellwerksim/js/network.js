@@ -97,9 +97,9 @@
       this.trainLayer = svgElement("g", { "aria-hidden": "true" });
       this.svg.append(this.trackLayer, this.labelLayer, this.trainLayer);
 
-      this.addRoute("outer", raceTrack(160, 820, 72, 748, 135), true, 28);
-      this.addRoute("middle", raceTrack(210, 770, 118, 702, 105), true, 28);
-      this.addRoute("inner", raceTrack(264, 716, 164, 656, 78), true, 27);
+      this.addRoute("outer", raceTrack(160, 820, 72, 748, 135), true, 26);
+      this.addRoute("middle", raceTrack(210, 770, 118, 702, 105), true, 26);
+      this.addRoute("inner", raceTrack(264, 716, 164, 656, 78), true, 26);
 
       this.addMainSwitches();
       this.addStorageSidings();
@@ -147,11 +147,14 @@
     }
 
     drawSegment(segment) {
+      const inset = Math.min(3.4, segment.length * 0.18);
+      const dx = (segment.b.x - segment.a.x) / segment.length;
+      const dy = (segment.b.y - segment.a.y) / segment.length;
       const line = svgElement("line", {
-        x1: segment.a.x,
-        y1: segment.a.y,
-        x2: segment.b.x,
-        y2: segment.b.y,
+        x1: segment.a.x + dx * inset,
+        y1: segment.a.y + dy * inset,
+        x2: segment.b.x - dx * inset,
+        y2: segment.b.y - dy * inset,
         "data-segment-id": segment.id,
         class: "track-segment"
       });
@@ -177,14 +180,14 @@
 
     addMainSwitches() {
       const specs = [
-        { id: "W1", source: "outer", target: "middle", point: { x: 162, y: 260 }, bend: { x: 185, y: 247 }, label: { x: 183, y: 278 } },
-        { id: "W2", source: "middle", target: "inner", point: { x: 212, y: 355 }, bend: { x: 236, y: 342 }, label: { x: 239, y: 371 } },
-        { id: "W3", source: "outer", target: "middle", point: { x: 162, y: 472 }, bend: { x: 185, y: 487 }, label: { x: 183, y: 451 } },
-        { id: "W4", source: "middle", target: "inner", point: { x: 212, y: 575 }, bend: { x: 238, y: 588 }, label: { x: 239, y: 556 } },
-        { id: "W5", source: "outer", target: "middle", point: { x: 818, y: 260 }, bend: { x: 795, y: 247 }, label: { x: 797, y: 278 } },
-        { id: "W6", source: "middle", target: "inner", point: { x: 768, y: 355 }, bend: { x: 744, y: 342 }, label: { x: 741, y: 371 } },
-        { id: "W7", source: "outer", target: "middle", point: { x: 818, y: 472 }, bend: { x: 795, y: 487 }, label: { x: 797, y: 451 } },
-        { id: "W8", source: "middle", target: "inner", point: { x: 768, y: 575 }, bend: { x: 742, y: 588 }, label: { x: 741, y: 556 } }
+        { id: "W1", source: "outer", target: "middle", point: { x: 162, y: 260 }, label: { x: 184, y: 280 } },
+        { id: "W2", source: "middle", target: "inner", point: { x: 212, y: 355 }, label: { x: 239, y: 372 } },
+        { id: "W3", source: "outer", target: "middle", point: { x: 162, y: 472 }, label: { x: 184, y: 451 } },
+        { id: "W4", source: "middle", target: "inner", point: { x: 212, y: 575 }, label: { x: 239, y: 555 } },
+        { id: "W5", source: "outer", target: "middle", point: { x: 818, y: 260 }, label: { x: 796, y: 280 } },
+        { id: "W6", source: "middle", target: "inner", point: { x: 768, y: 355 }, label: { x: 741, y: 372 } },
+        { id: "W7", source: "outer", target: "middle", point: { x: 818, y: 472 }, label: { x: 796, y: 451 } },
+        { id: "W8", source: "middle", target: "inner", point: { x: 768, y: 575 }, label: { x: 741, y: 555 } }
       ];
 
       specs.forEach((spec) => this.addSwitch(spec));
@@ -193,7 +196,7 @@
     addSwitch(spec) {
       const source = this.findSegmentNear(spec.source, spec.point, "end");
       const target = this.findSegmentNear(spec.target, spec.point, "start");
-      const branch = this.addRoute(`branch-${spec.id.toLowerCase()}`, [source.b, spec.bend, target.a], false, 14);
+      const branch = this.addRoute(`branch-${spec.id.toLowerCase()}`, [source.b, target.a], false, 26);
       const branchIds = [...branch.segmentIds];
       this.segments.get(branchIds[branchIds.length - 1]).defaultNextId = target.id;
 
@@ -231,17 +234,17 @@
 
       specs.forEach((spec) => {
         const target = this.findSegmentNear("outer", { x: spec.side === "left" ? 160 : 820, y: spec.y }, "start");
-        const bufferX = spec.side === "left" ? 42 : 938;
-        const leadX = spec.side === "left" ? 132 : 848;
+        const bufferX = spec.side === "left" ? 38 : 942;
+        const leadX = spec.side === "left" ? 136 : 844;
         const route = this.addRoute(spec.id, [
           { x: bufferX, y: spec.y },
           { x: leadX, y: spec.y },
           target.a
-        ], false, 15);
+        ], false, 26);
         this.segments.get(route.segmentIds[route.segmentIds.length - 1]).defaultNextId = target.id;
 
         const label = svgElement("text", {
-          x: spec.side === "left" ? bufferX : bufferX - 20,
+          x: spec.side === "left" ? bufferX : bufferX + 20,
           y: spec.y - 12,
           class: "yard-label",
           "text-anchor": spec.side === "left" ? "start" : "end"
@@ -258,11 +261,10 @@
         role: "button",
         "aria-label": `${switchData.id} umstellen`
       });
-      const disc = svgElement("circle", { cx: position.x, cy: position.y, r: 17, class: "switch-disc" });
-      const label = svgElement("text", { x: position.x, y: position.y - 4, class: "switch-label" });
-      const state = svgElement("text", { x: position.x, y: position.y + 8, class: "switch-state" });
+      const plate = svgElement("rect", { x: position.x - 13, y: position.y - 9, width: 26, height: 18, rx: 1, class: "switch-plate" });
+      const label = svgElement("text", { x: position.x, y: position.y + 0.5, class: "switch-label" });
       label.textContent = switchData.id;
-      group.append(disc, label, state);
+      group.append(plate, label);
       group.addEventListener("click", () => this.requestSwitchToggle(switchData.id));
       group.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -270,7 +272,7 @@
           this.requestSwitchToggle(switchData.id);
         }
       });
-      switchData.control = { group, state };
+      switchData.control = { group };
       this.labelLayer.append(group);
     }
 
@@ -345,7 +347,9 @@
         const after = nextOccupancy.get(segmentId);
         const beforeKey = before ? [...before].sort().join("|") : "";
         const afterKey = after ? [...after].sort().join("|") : "";
-        if (beforeKey !== afterKey) this.updateSegmentAppearance(segmentId, Boolean(after && after.size > 0));
+        if (beforeKey !== afterKey) {
+          this.updateSegmentAppearance(segmentId, Boolean(after && after.size > 0), after ? [...after][0] : null);
+        }
       });
       this.occupancy = nextOccupancy;
     }
@@ -365,17 +369,16 @@
           switchData.control.group.classList.toggle("is-locked", switchData.locked);
           switchData.control.group.setAttribute("aria-disabled", String(switchData.locked));
           switchData.control.group.setAttribute("aria-label", `${switchData.id} ${switchData.locked ? "gesperrt" : "umstellen"}`);
-          switchData.control.state.textContent = switchData.locked ? "LOCK" : (switchData.state === "straight" ? "GER" : "ABZ");
         }
       });
     }
 
-    updateSegmentAppearance(segmentId, occupiedOverride) {
+    updateSegmentAppearance(segmentId, occupiedOverride, occupiedByOverride) {
       const segment = this.segments.get(segmentId);
       if (!segment || !segment.element) return;
-      const occupied = occupiedOverride === undefined
-        ? Boolean(this.occupancy.get(segmentId) && this.occupancy.get(segmentId).size)
-        : occupiedOverride;
+      const occupancy = this.occupancy.get(segmentId);
+      const occupied = occupiedOverride === undefined ? Boolean(occupancy && occupancy.size) : occupiedOverride;
+      const occupiedBy = occupiedByOverride === undefined && occupancy ? [...occupancy][0] : occupiedByOverride;
       const classes = ["track-segment"];
       if (segment.switchRole && segment.switchId) {
         const switchData = this.switches.get(segment.switchId);
@@ -384,6 +387,12 @@
       }
       if (occupied) classes.push("occupied");
       segment.element.setAttribute("class", classes.join(" "));
+      const train = this.config.trainDefinitions.find((definition) => definition.id === occupiedBy);
+      if (occupied && train) {
+        segment.element.style.setProperty("--occupancy-color", train.color);
+      } else {
+        segment.element.style.removeProperty("--occupancy-color");
+      }
     }
 
     renderDebugLabels() {

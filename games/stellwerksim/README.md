@@ -25,7 +25,7 @@ Der Zugkopf liest die aktuelle Stellung nur beim Verlassen des Quellsegments. Al
 einer gespeicherten Segmenthistorie. Deshalb fahren sie sauber durch Kurven und auf der
 Rueckwaertsfahrt exakt ihren bereits genommenen Weg zurueck.
 
-Die Belegungsberechnung liefert eine gemeinsame Quelle fuer rote Gleisabschnitte,
+Die Belegungsberechnung liefert eine gemeinsame Quelle fuer zugfarbene LED-Gleisabschnitte,
 Weichensperren und die Kollisionspruefung. Die Animation benutzt `requestAnimationFrame()` mit
 Delta-Time und kurzen Simulationsschritten, damit bei Stufe 5 keine Kollision uebersprungen wird.
 

@@ -1,18 +1,18 @@
 :root {
-  --page: #101517;
-  --surface: #161e20;
-  --surface-raised: #1c272a;
-  --surface-soft: #202c30;
-  --line: #3b4b4e;
-  --ink: #e9f0eb;
-  --muted: #9dacaa;
-  --green: #72c7a0;
-  --cyan: #72bfc4;
-  --amber: #e3be70;
-  --occupied: #f05252;
-  --track: #819092;
-  --track-dim: #4f5b5d;
-  --focus: #f4d47c;
+  --page: #bdc1bd;
+  --surface: #d4d7d2;
+  --surface-raised: #e6e8e1;
+  --surface-soft: #f1f2eb;
+  --line: #7f8782;
+  --ink: #202724;
+  --muted: #4e5852;
+  --green: #377a50;
+  --cyan: #356975;
+  --amber: #9c7423;
+  --occupied: #bf4b4b;
+  --track: #1d2321;
+  --track-dim: #747a75;
+  --focus: #b9821b;
 }
 
 * { box-sizing: border-box; }
@@ -104,6 +104,7 @@ h2 {
   padding: 9px 12px;
   border: 1px solid var(--line);
   border-radius: 5px;
+  background: var(--surface-raised);
   color: var(--muted);
   font-size: 13px;
 }
@@ -114,12 +115,12 @@ h2 {
   flex: 0 0 auto;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 10px rgba(114, 199, 160, 0.8);
+  box-shadow: 0 0 4px rgba(55, 122, 80, 0.48);
 }
 
 .system-status.is-crashed .status-lamp {
   background: var(--occupied);
-  box-shadow: 0 0 12px rgba(240, 82, 82, 0.9);
+  box-shadow: 0 0 4px rgba(191, 75, 75, 0.72);
 }
 
 .board-section,
@@ -155,18 +156,17 @@ h2 {
 }
 
 .legend-track { background: var(--track); }
-.legend-occupied { background: var(--occupied); box-shadow: 0 0 8px rgba(240, 82, 82, 0.75); }
-.legend-switch { background: var(--amber); }
+.legend-occupied { background: #4c8fbe; box-shadow: 0 0 2px rgba(76, 143, 190, 0.55); }
+.legend-switch { background: #3d7785; }
 
 .track-viewport {
   min-height: 460px;
   margin-top: 14px;
   overflow: hidden;
-  border: 1px solid #293638;
+  border: 1px solid #707873;
   border-radius: 5px;
-  background-color: #11191b;
-  background-image: linear-gradient(rgba(129, 144, 146, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(129, 144, 146, 0.045) 1px, transparent 1px);
-  background-size: 26px 26px;
+  background: #b5b9b4;
+  box-shadow: inset 0 0 0 8px rgba(255, 255, 255, 0.12);
 }
 
 #trackPlan {
@@ -179,46 +179,44 @@ h2 {
 .track-segment {
   stroke: var(--track);
   stroke-linecap: butt;
-  stroke-width: 7;
+  stroke-width: 6;
   transition: stroke 80ms linear, filter 80ms linear;
 }
 
 .track-segment.switch-inactive { stroke: var(--track-dim); }
-.track-segment.switch-selected { stroke: var(--amber); filter: drop-shadow(0 0 3px rgba(227, 190, 112, 0.75)); }
-.track-segment.occupied { stroke: var(--occupied); filter: drop-shadow(0 0 4px rgba(240, 82, 82, 0.9)); }
-.track-segment.occupied.switch-selected { stroke: var(--occupied); }
+.track-segment.switch-selected { stroke: #3d7785; filter: drop-shadow(0 0 1px rgba(61, 119, 133, 0.38)); }
+.track-segment.occupied { stroke: var(--occupancy-color, #4c8fbe); filter: none; }
+.track-segment.occupied.switch-selected { stroke: var(--occupancy-color, #4c8fbe); }
 
 .switch-control { cursor: pointer; }
 .switch-control:focus { outline: none; }
-.switch-control .switch-disc { fill: #182124; stroke: #758487; stroke-width: 1.5; }
-.switch-control .switch-label { fill: var(--ink); font-size: 13px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
-.switch-control .switch-state { fill: var(--amber); font-size: 10px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
-.switch-control:hover .switch-disc { stroke: var(--amber); stroke-width: 2.4; }
+.switch-control .switch-plate { fill: #dfe1da; stroke: #252d29; stroke-width: 1.25; }
+.switch-control .switch-label { fill: #252d29; font-size: 10px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
+.switch-control:hover .switch-plate { fill: #f4f3e9; stroke: #3d7785; stroke-width: 1.8; }
 .switch-control.is-locked { cursor: not-allowed; }
-.switch-control.is-locked .switch-disc { fill: #30393a; stroke: #697477; }
-.switch-control.is-locked .switch-state { fill: #9ca7a8; }
-.switch-control.is-locked .switch-label { fill: #bdc6c7; }
+.switch-control.is-locked .switch-plate { fill: #aeb3ae; stroke: #747a75; }
+.switch-control.is-locked .switch-label { fill: #58615b; }
 
 .yard-label {
-  fill: #7f9091;
-  font-size: 11px;
+  fill: #455049;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .train-car {
-  stroke: #0c1011;
-  stroke-width: 2;
-  rx: 1.5;
-  ry: 1.5;
+  stroke: #f3f2e9;
+  stroke-width: 1.25;
+  rx: 0.8;
+  ry: 0.8;
 }
 
 .train-name {
-  fill: #f1f6f2;
-  font-size: 11px;
+  fill: #202824;
+  font-size: 10px;
   font-weight: 800;
   paint-order: stroke;
-  stroke: #101719;
+  stroke: #dfe1da;
   stroke-width: 3px;
   stroke-linejoin: round;
 }
