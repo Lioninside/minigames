@@ -160,8 +160,9 @@ h2 {
 .legend-switch { background: #3d7785; }
 
 .track-viewport {
-  min-height: 460px;
-  margin-top: 14px;
+  width: min(100%, 680px);
+  aspect-ratio: 800 / 1220;
+  margin: 14px auto 0;
   overflow: hidden;
   border: 1px solid #707873;
   border-radius: 5px;
@@ -172,8 +173,7 @@ h2 {
 #trackPlan {
   display: block;
   width: 100%;
-  height: auto;
-  min-height: 460px;
+  height: 100%;
 }
 
 .track-segment {
@@ -360,8 +360,6 @@ h2 {
   .board-heading,
   .controls-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
   .legend { justify-content: flex-start; }
-  .track-viewport { min-height: 360px; }
-  #trackPlan { min-height: 360px; }
   .system-status { max-width: none; }
 }
 
@@ -369,8 +367,7 @@ h2 {
   h1 { font-size: 24px; }
   .board-section,
   .controls-section { padding: 12px; }
-  .track-viewport { margin-inline: -1px; min-height: 280px; overflow: auto; }
-  #trackPlan { width: 820px; min-height: 0; }
+  .track-viewport { width: 100%; margin-inline: 0; }
   .train-controls { grid-template-columns: 1fr; }
   .train-card { padding: 12px; }
 }

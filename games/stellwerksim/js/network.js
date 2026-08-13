@@ -97,9 +97,9 @@
       this.trainLayer = svgElement("g", { "aria-hidden": "true" });
       this.svg.append(this.trackLayer, this.labelLayer, this.trainLayer);
 
-      this.addRoute("outer", raceTrack(160, 820, 72, 748, 135), true, 26);
-      this.addRoute("middle", raceTrack(210, 770, 118, 702, 105), true, 26);
-      this.addRoute("inner", raceTrack(264, 716, 164, 656, 78), true, 26);
+      this.addRoute("outer", raceTrack(144, 656, 48, 1178, 150), true, 30);
+      this.addRoute("middle", raceTrack(202, 598, 108, 1118, 108), true, 30);
+      this.addRoute("inner", raceTrack(246, 554, 168, 1058, 90), true, 30);
 
       this.addMainSwitches();
       this.addStorageSidings();
@@ -189,14 +189,14 @@
 
     addMainSwitches() {
       const specs = [
-        { id: "W1", source: "outer", target: "middle", point: { x: 162, y: 260 }, label: { x: 184, y: 280 } },
-        { id: "W2", source: "middle", target: "inner", point: { x: 212, y: 355 }, label: { x: 239, y: 372 } },
-        { id: "W3", source: "middle", target: "outer", point: { x: 162, y: 472 }, label: { x: 184, y: 451 } },
-        { id: "W4", source: "inner", target: "middle", point: { x: 212, y: 575 }, label: { x: 239, y: 555 } },
-        { id: "W5", source: "outer", target: "middle", point: { x: 818, y: 260 }, label: { x: 796, y: 280 } },
-        { id: "W6", source: "middle", target: "inner", point: { x: 768, y: 355 }, label: { x: 741, y: 372 } },
-        { id: "W7", source: "middle", target: "outer", point: { x: 818, y: 472 }, label: { x: 796, y: 451 } },
-        { id: "W8", source: "inner", target: "middle", point: { x: 768, y: 575 }, label: { x: 741, y: 555 } }
+        { id: "W1", source: "outer", target: "middle", point: { x: 146, y: 350 }, label: { x: 175, y: 369 } },
+        { id: "W2", source: "middle", target: "inner", point: { x: 204, y: 442 }, label: { x: 237, y: 460 } },
+        { id: "W3", source: "middle", target: "outer", point: { x: 146, y: 704 }, label: { x: 175, y: 684 } },
+        { id: "W4", source: "inner", target: "middle", point: { x: 204, y: 796 }, label: { x: 237, y: 776 } },
+        { id: "W5", source: "outer", target: "middle", point: { x: 654, y: 350 }, label: { x: 625, y: 369 } },
+        { id: "W6", source: "middle", target: "inner", point: { x: 596, y: 442 }, label: { x: 563, y: 460 } },
+        { id: "W7", source: "middle", target: "outer", point: { x: 654, y: 704 }, label: { x: 625, y: 684 } },
+        { id: "W8", source: "inner", target: "middle", point: { x: 596, y: 796 }, label: { x: 563, y: 776 } }
       ];
 
       specs.forEach((spec) => this.addSwitch(spec));
@@ -239,29 +239,27 @@
 
     addStorageSidings() {
       const specs = [
-        { id: "siding-alpha", label: "A1", side: "left", y: 314 },
-        { id: "siding-bravo", label: "A2", side: "left", y: 392 },
-        { id: "siding-charlie", label: "A3", side: "left", y: 548 },
-        { id: "siding-delta", label: "A4", side: "right", y: 354 },
-        { id: "siding-echo", label: "A5", side: "right", y: 530 }
+        { id: "siding-alpha", label: "A1", side: "left", x: 48, top: 412, bottom: 830, joinY: 1030 },
+        { id: "siding-bravo", label: "A2", side: "left", x: 78, top: 500, bottom: 870, joinY: 1060 },
+        { id: "siding-charlie", label: "A3", side: "left", x: 108, top: 588, bottom: 910, joinY: 1090 },
+        { id: "siding-delta", label: "A4", side: "right", x: 752, top: 412, bottom: 830, joinY: 1030 },
+        { id: "siding-echo", label: "A5", side: "right", x: 722, top: 560, bottom: 900, joinY: 1080 }
       ];
 
       specs.forEach((spec) => {
-        const target = this.findSegmentNear("outer", { x: spec.side === "left" ? 160 : 820, y: spec.y }, "start");
-        const bufferX = spec.side === "left" ? 38 : 942;
-        const leadX = spec.side === "left" ? 136 : 844;
+        const target = this.findSegmentNear("outer", { x: spec.side === "left" ? 144 : 656, y: spec.joinY }, "start");
         const route = this.addRoute(spec.id, [
-          { x: bufferX, y: spec.y },
-          { x: leadX, y: spec.y },
+          { x: spec.x, y: spec.top },
+          { x: spec.x, y: spec.bottom },
           target.a
-        ], false, 26);
+        ], false, 30);
         this.segments.get(route.segmentIds[route.segmentIds.length - 1]).defaultNextId = target.id;
 
         const label = svgElement("text", {
-          x: spec.side === "left" ? bufferX : bufferX + 20,
-          y: spec.y - 12,
+          x: spec.side === "left" ? spec.x - 18 : spec.x + 18,
+          y: spec.top - 12,
           class: "yard-label",
-          "text-anchor": spec.side === "left" ? "start" : "end"
+          "text-anchor": spec.side === "left" ? "end" : "start"
         });
         label.textContent = spec.label;
         this.labelLayer.append(label);
