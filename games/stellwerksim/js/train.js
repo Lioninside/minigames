@@ -26,6 +26,9 @@
       this.group = null;
       this.cars = [];
       this.nameLabel = null;
+      this.passengerIndicator = null;
+      this.passengerCount = null;
+      this.passengerVisualKey = null;
     }
 
     mount(parent) {
@@ -44,7 +47,12 @@
       }
       this.nameLabel = svgElement("text", { class: "train-name", "text-anchor": "middle" });
       this.nameLabel.textContent = this.name;
-      this.group.append(this.nameLabel);
+      this.passengerIndicator = svgElement("g", { class: "train-passenger-indicator", visibility: "hidden" });
+      const passengerHead = svgElement("circle", { cx: -6, cy: -3, r: 2.6, class: "train-passenger-head" });
+      const passengerBody = svgElement("rect", { x: -9.2, y: 0, width: 6.4, height: 5.2, rx: 1.2, class: "train-passenger-body" });
+      this.passengerCount = svgElement("text", { x: 0, y: 4, class: "train-passenger-count" });
+      this.passengerIndicator.append(passengerHead, passengerBody, this.passengerCount);
+      this.group.append(this.nameLabel, this.passengerIndicator);
       parent.append(this.group);
     }
 
@@ -101,6 +109,24 @@
       const head = poses[0];
       this.nameLabel.setAttribute("x", head.x);
       this.nameLabel.setAttribute("y", head.y - 14);
+      this.renderPassengerIndicator(head);
+    }
+
+    renderPassengerIndicator(head) {
+      const count = this.passengerIds.length;
+      if (!count) {
+        this.passengerIndicator.setAttribute("visibility", "hidden");
+        this.passengerVisualKey = null;
+        return;
+      }
+
+      this.passengerIndicator.setAttribute("visibility", "visible");
+      this.passengerIndicator.setAttribute("transform", `translate(${head.x} ${head.y - 28})`);
+      const visualKey = `${this.cargoColor}|${count}`;
+      if (this.passengerVisualKey === visualKey) return;
+      this.passengerVisualKey = visualKey;
+      this.passengerIndicator.style.setProperty("--passenger-color", this.cargoColor);
+      this.passengerCount.textContent = `x ${count}`;
     }
   }
 

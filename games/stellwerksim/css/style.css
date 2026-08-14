@@ -286,6 +286,25 @@ h2 {
   stroke-linejoin: round;
 }
 
+.train-passenger-indicator { pointer-events: none; }
+
+.train-passenger-head,
+.train-passenger-body {
+  fill: var(--passenger-color);
+  stroke: #f4f3ec;
+  stroke-width: 0.8;
+}
+
+.train-passenger-count {
+  fill: var(--passenger-color);
+  font-size: 9px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: #202824;
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
+
 .debug-label {
   fill: #7f9293;
   font-size: 7px;
