@@ -133,6 +133,41 @@ h2 {
 
 .board-section { margin-bottom: 18px; }
 
+.board-tools {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.mode-control {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mode-buttons {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.mode-buttons button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.mode-buttons button:last-child { border-right: 0; }
+.mode-buttons button.is-active { background: rgba(61, 119, 133, 0.18); color: var(--cyan); }
+
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -204,6 +239,36 @@ h2 {
   letter-spacing: 0;
 }
 
+.station-platform {
+  fill: var(--station-color);
+  opacity: 0.82;
+}
+
+.station-marker {
+  fill: var(--station-color);
+  stroke: #f2f3eb;
+  stroke-width: 1;
+}
+
+.station-label {
+  fill: #2c3530;
+  font-size: 10px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: #dfe1da;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.station-count {
+  fill: #4f5953;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.passenger-head,
+.passenger-body { fill: var(--passenger-color); stroke: #f4f3ec; stroke-width: 0.8; }
+
 .train-car {
   stroke: #f3f2e9;
   stroke-width: 1.25;
@@ -228,6 +293,19 @@ h2 {
 }
 
 .controls-heading { margin-bottom: 13px; }
+
+.controls-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.passenger-summary {
+  color: var(--cyan);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
 
 .reset-button {
   padding: 0 12px;
@@ -285,6 +363,13 @@ h2 {
   margin: 3px 0 0;
   color: var(--muted);
   font-size: 12px;
+  white-space: nowrap;
+}
+
+.train-cargo {
+  margin: 3px 0 0;
+  font-size: 11px;
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -360,6 +445,7 @@ h2 {
   .board-heading,
   .controls-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
   .legend { justify-content: flex-start; }
+  .board-tools { align-items: flex-start; flex-direction: column; }
   .system-status { max-width: none; }
 }
 
@@ -369,6 +455,7 @@ h2 {
   .controls-section { padding: 12px; }
   .track-viewport { width: 100%; aspect-ratio: auto; margin-inline: 0; overflow: auto; }
   #trackPlan { width: 720px; height: auto; }
+  .controls-actions { width: 100%; justify-content: space-between; }
   .train-controls { grid-template-columns: 1fr; }
   .train-card { padding: 12px; }
 }

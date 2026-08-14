@@ -7,6 +7,9 @@
     carriageSpacing: 1,
     initialSpeedLevel: 1,
     initialHeadPosition: 3.45,
+    initialGameMode: "free",
+    stationDwellSeconds: 2,
+    passengerCount: 16,
     maxFrameDelta: 0.1,
     maxSubstepDistance: 0.16,
     speedLevels: Object.freeze({
@@ -22,6 +25,12 @@
       { id: "charlie", name: "Charlie", color: "#f0c95a", siding: "siding-charlie" },
       { id: "delta", name: "Delta", color: "#bf7be5", siding: "siding-delta" },
       { id: "echo", name: "Echo", color: "#56cad0", siding: "siding-echo" }
+    ]),
+    stations: Object.freeze([
+      { id: "red", name: "Rot", color: "#d75a5a", routeId: "outer", point: Object.freeze({ x: 400, y: 48 }), labelOffset: Object.freeze({ x: 24, y: -22 }), queueOffset: Object.freeze({ x: 28, y: 8 }) },
+      { id: "blue", name: "Blau", color: "#4c9aff", routeId: "middle", point: Object.freeze({ x: 598, y: 560 }), labelOffset: Object.freeze({ x: 0, y: 28 }), queueOffset: Object.freeze({ x: -6, y: 38 }) },
+      { id: "yellow", name: "Gelb", color: "#e0b83d", routeId: "inner", point: Object.freeze({ x: 400, y: 1058 }), labelOffset: Object.freeze({ x: -24, y: -22 }), queueOffset: Object.freeze({ x: -34, y: 8 }) },
+      { id: "green", name: "Gruen", color: "#58ae6c", routeId: "outer", point: Object.freeze({ x: 144, y: 600 }), labelOffset: Object.freeze({ x: 0, y: -26 }), queueOffset: Object.freeze({ x: 4, y: -38 }) }
     ]),
     switchDefaults: Object.freeze({
       W1: "straight",

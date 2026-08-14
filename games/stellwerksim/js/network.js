@@ -105,8 +105,10 @@
       this.routes = new Map();
       this.segments = new Map();
       this.switches = new Map();
+      this.stations = new Map();
       this.occupancy = new Map();
       this.trackLayer = null;
+      this.stationLayer = null;
       this.labelLayer = null;
       this.trainLayer = null;
       this.onSwitchToggleRequest = null;
@@ -117,12 +119,14 @@
       this.routes.clear();
       this.segments.clear();
       this.switches.clear();
+      this.stations.clear();
       this.occupancy.clear();
 
       this.trackLayer = svgElement("g", { "aria-hidden": "true" });
+      this.stationLayer = svgElement("g", { "aria-hidden": "true" });
       this.labelLayer = svgElement("g", { "aria-hidden": "true" });
       this.trainLayer = svgElement("g", { "aria-hidden": "true" });
-      this.svg.append(this.trackLayer, this.labelLayer, this.trainLayer);
+      this.svg.append(this.trackLayer, this.stationLayer, this.labelLayer, this.trainLayer);
 
       this.addRoute("outer", raceTrack(144, 656, 48, 1178, 150), true, 30);
       this.addRoute("middle", raceTrack(202, 598, 108, 1118, 108), true, 30);
@@ -130,6 +134,7 @@
 
       this.addMainSwitches();
       this.addStorageSidings();
+      this.addStations();
       this.refreshSwitchVisuals();
 
       if (this.config.debug) this.renderDebugLabels();
@@ -303,6 +308,102 @@
         });
         label.textContent = spec.label;
         this.labelLayer.append(label);
+      });
+    }
+
+    addStations() {
+      this.config.stations.forEach((spec) => {
+        const anchorSegment = this.findSegmentNear(spec.routeId, spec.point, "start");
+        const route = this.routes.get(spec.routeId);
+        const anchorIndex = route.segmentIds.indexOf(anchorSegment.id);
+        const zoneSegmentIds = [-2, -1, 0, 1, 2].map((offset) => {
+          const index = (anchorIndex + offset + route.segmentIds.length) % route.segmentIds.length;
+          return route.segmentIds[index];
+        });
+        const pose = this.getSegmentPose(anchorSegment.id, 0.5, 1);
+        const station = {
+          ...spec,
+          segmentId: anchorSegment.id,
+          zoneSegmentIds: new Set(zoneSegmentIds),
+          pose,
+          passengerGroup: null,
+          countLabel: null,
+          visualElements: []
+        };
+        this.stations.set(station.id, station);
+        this.drawStation(station);
+      });
+    }
+
+    drawStation(station) {
+      const platform = svgElement("rect", {
+        x: station.pose.x - 15,
+        y: station.pose.y - 11,
+        width: 30,
+        height: 6,
+        class: "station-platform",
+        transform: `rotate(${station.pose.angle} ${station.pose.x} ${station.pose.y})`
+      });
+      platform.style.setProperty("--station-color", station.color);
+      this.stationLayer.append(platform);
+
+      const labelPosition = {
+        x: station.pose.x + station.labelOffset.x,
+        y: station.pose.y + station.labelOffset.y
+      };
+      const marker = svgElement("circle", { cx: labelPosition.x, cy: labelPosition.y - 3, r: 5, class: "station-marker" });
+      marker.style.setProperty("--station-color", station.color);
+      const label = svgElement("text", { x: labelPosition.x, y: labelPosition.y + 11, class: "station-label", "text-anchor": "middle" });
+      label.textContent = station.name;
+      const countLabel = svgElement("text", { x: labelPosition.x, y: labelPosition.y + 21, class: "station-count", "text-anchor": "middle" });
+      const passengerGroup = svgElement("g", { class: "passenger-queue" });
+      station.countLabel = countLabel;
+      station.passengerGroup = passengerGroup;
+      station.visualElements = [platform, passengerGroup, marker, label, countLabel];
+      this.labelLayer.append(passengerGroup, marker, label, countLabel);
+    }
+
+    setStationsVisible(visible) {
+      this.stations.forEach((station) => {
+        station.visualElements.forEach((element) => {
+          element.setAttribute("visibility", visible ? "visible" : "hidden");
+        });
+      });
+    }
+
+    getStationAtRoutePosition(route, position) {
+      const segmentId = this.getRouteSegmentId(route, position);
+      for (const station of this.stations.values()) {
+        if (station.zoneSegmentIds.has(segmentId)) return station;
+      }
+      return null;
+    }
+
+    renderPassengerQueues(passengers) {
+      const waitingByStation = new Map();
+      passengers.filter((passenger) => passenger.status === "waiting").forEach((passenger) => {
+        if (!waitingByStation.has(passenger.sourceStationId)) waitingByStation.set(passenger.sourceStationId, []);
+        waitingByStation.get(passenger.sourceStationId).push(passenger);
+      });
+
+      this.stations.forEach((station) => {
+        const waiting = waitingByStation.get(station.id) || [];
+        station.countLabel.textContent = waiting.length ? `${waiting.length} wartend` : "leer";
+        station.passengerGroup.replaceChildren();
+        waiting.forEach((passenger, index) => {
+          const column = index % 4;
+          const row = Math.floor(index / 4);
+          const person = svgElement("g", {
+            class: "passenger",
+            transform: `translate(${station.pose.x + station.queueOffset.x + column * 10} ${station.pose.y + station.queueOffset.y + row * 12})`
+          });
+          const head = svgElement("circle", { cx: 0, cy: -3, r: 2.6, class: "passenger-head" });
+          const body = svgElement("rect", { x: -3.2, y: 0, width: 6.4, height: 5.2, rx: 1.2, class: "passenger-body" });
+          head.style.setProperty("--passenger-color", passenger.color);
+          body.style.setProperty("--passenger-color", passenger.color);
+          person.append(head, body);
+          station.passengerGroup.append(person);
+        });
       });
     }
 

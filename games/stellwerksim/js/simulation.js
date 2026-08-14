@@ -7,6 +7,8 @@
       this.config = config;
       this.trains = [];
       this.crashed = false;
+      this.gameMode = config.initialGameMode;
+      this.passengerService = null;
       this.onStateChange = null;
       this.onCrash = null;
       this.onMessage = null;
@@ -23,10 +25,24 @@
         train.mount(this.network.trainLayer);
         return train;
       });
+      this.passengerService = this.gameMode === "passengers"
+        ? new window.Stellwerk.PassengerService(this.network, this.config)
+        : null;
+      this.network.setStationsVisible(this.gameMode === "passengers");
+      this.network.renderPassengerQueues(this.passengerService ? this.passengerService.passengers : []);
       this.rebuildOccupancy();
       this.render();
-      this.emitMessage("Alle fuenf Zuege stehen bereit.");
+      this.emitMessage(this.gameMode === "passengers"
+        ? "Personenverkehr: Reisende warten an den Bahnhoefen."
+        : "Freier Betrieb: Alle fuenf Zuege stehen bereit.");
       this.emitStateChange();
+    }
+
+    setGameMode(mode) {
+      if (mode !== "free" && mode !== "passengers") return;
+      if (this.gameMode === mode && !this.crashed) return;
+      this.gameMode = mode;
+      this.resetSimulation();
     }
 
     getTrain(trainId) {
@@ -81,6 +97,14 @@
         this.updateSwitchLocks(occupancy);
         const collision = this.findCollision(occupancy);
         if (collision) this.crash(collision);
+        if (!this.crashed && this.passengerService) {
+          const passengerUpdate = this.passengerService.update(this.trains, step);
+          if (passengerUpdate.changed) {
+            this.network.renderPassengerQueues(this.passengerService.passengers);
+            this.emitStateChange();
+          }
+          if (passengerUpdate.message) this.emitMessage(passengerUpdate.message);
+        }
         remaining -= step;
       }
       this.render();
@@ -168,6 +192,14 @@
 
     render() {
       this.trains.forEach((train) => train.render(this.network));
+    }
+
+    getPassengerSummary() {
+      return this.passengerService ? this.passengerService.getSummary() : null;
+    }
+
+    getTrainPassengerStatus(train) {
+      return this.passengerService ? this.passengerService.getTrainStatus(train) : null;
     }
 
     emitStateChange() {

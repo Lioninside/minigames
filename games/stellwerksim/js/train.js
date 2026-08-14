@@ -21,6 +21,8 @@
       this.direction = "stopped";
       this.pathDirection = "forward";
       this.speedLevel = config.initialSpeedLevel;
+      this.passengerIds = [];
+      this.cargoColor = null;
       this.group = null;
       this.cars = [];
       this.nameLabel = null;
