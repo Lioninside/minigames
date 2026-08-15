@@ -1,20 +1,8 @@
 # Zahnradbergbahn
 
-Arbeitsbereich fuer das naechste Minigame der Sammlung.
+Ein browserbasiertes Three.js-Spiel aus der Cockpit-Sicht. Die gesamte Anwendung liegt in
+`index.html`; Three.js wird ueber CDN geladen, alle Geometrien entstehen zur Laufzeit.
 
-Das Grundgeruest ist bewusst klein gehalten: Es laedt Three.js aus `shared/`, erzeugt eine
-statische Bergbahn-Szene und verwendet den reservierten Speicherschluessel
-`zahnradbergbahn.save.v1`. Die eigentliche Spielmechanik kann darauf in separaten JavaScript-
-Modulen aufgebaut werden.
-
-## Struktur
-
-```text
-games/zahnradbergbahn/
-├── index.html          Einstiegspunkt und Three.js-Einbindung
-├── css/style.css       lokale Darstellung
-└── js/main.js          Szenen- und Render-Grundgeruest
-```
-
-Zum lokalen Oeffnen im Wurzelverzeichnis der Sammlung einen statischen Webserver starten und
-anschliessend `http://localhost:8000/games/zahnradbergbahn/` aufrufen.
+Der Prototyp umfasst die Zahnradstrecke mit Gegengleis und KI-Zug, drei Bahnhoefe samt Hotel,
+Restaurant und Aussichtsturm, prozedurale Berglandschaft, Wanderer, Weichen, eine Streckenkarte,
+Fahrgastwechsel bei offenen Tueren sowie eine Cockpit- und Gehansicht.
