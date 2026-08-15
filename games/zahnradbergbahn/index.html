@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Zahnradbergbahn - Grundgeruest fuer ein neues Minigame.">
+  <title>Zahnradbergbahn</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <p>MINIGAMES</p>
+      <h1>Zahnradbergbahn</h1>
+    </header>
+    <div id="scene" class="scene" aria-label="Bergbahn-Szene"></div>
+  </main>
+
+  <div id="loadError" class="load-error" hidden>
+    <p>Die 3D-Bibliothek konnte nicht geladen werden.</p>
+  </div>
+
+  <script src="../../shared/three-r128.min.js"></script>
+  <script>
+    if (!window.THREE) {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\\/script>');
+    }
+  </script>
+  <script src="js/main.js"></script>
+</body>
+</html>
