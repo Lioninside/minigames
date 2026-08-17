@@ -104,7 +104,7 @@
         : "Weichen direkt im Plan bedienen. Zugfarben markieren belegte Gleisabschnitte.";
       this.controlsDescription.textContent = passengerMode
         ? "Personenstatus je Zug."
-        : "Jeder Zug belegt auch im Halt weiterhin vier Gleisabschnitte.";
+        : "Jeder Zug belegt je nach seiner Länge mehrere Gleisabschnitte.";
       const summary = this.simulation.getPassengerSummary();
       this.passengerSummary.hidden = !summary;
       this.passengerSummary.textContent = summary ? `${summary.delivered} / ${summary.total} zugestellt` : "";

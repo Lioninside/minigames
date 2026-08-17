@@ -2,8 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIDING_BRANCH_ANGLE_DEGREES = 24;
-  const LOGICAL_PLAN_WIDTH = 800;
+  const LOGICAL_PLAN_WIDTH = 1000;
 
   function svgElement(name, attributes) {
     const element = document.createElementNS(SVG_NS, name);
@@ -107,6 +106,7 @@
       this.switches = new Map();
       this.stations = new Map();
       this.occupancy = new Map();
+      this.landscapeLayer = null;
       this.trackLayer = null;
       this.stationLayer = null;
       this.labelLayer = null;
@@ -122,22 +122,63 @@
       this.stations.clear();
       this.occupancy.clear();
 
+      this.landscapeLayer = svgElement("g", { "aria-hidden": "true", class: "landscape-layer" });
       this.trackLayer = svgElement("g", { "aria-hidden": "true" });
       this.stationLayer = svgElement("g", { "aria-hidden": "true" });
       this.labelLayer = svgElement("g", { "aria-hidden": "true" });
       this.trainLayer = svgElement("g", { "aria-hidden": "true" });
-      this.svg.append(this.trackLayer, this.stationLayer, this.labelLayer, this.trainLayer);
+      this.svg.append(this.landscapeLayer, this.trackLayer, this.stationLayer, this.labelLayer, this.trainLayer);
+      this.drawLandscape();
 
-      this.addRoute("outer", raceTrack(144, 656, 48, 1178, 150), true, 30);
-      this.addRoute("middle", raceTrack(202, 598, 108, 1118, 108), true, 30);
-      this.addRoute("inner", raceTrack(246, 554, 168, 1058, 90), true, 30);
+      this.addRoute("outer", raceTrack(120, 880, 70, 1530, 190), true, 30);
+      this.addRoute("middle", raceTrack(190, 810, 145, 1455, 150), true, 30);
+      this.addRoute("inner", raceTrack(260, 740, 230, 1370, 110), true, 30);
 
       this.addMainSwitches();
-      this.addStorageSidings();
+      this.addPassingSidings();
       this.addStations();
       this.refreshSwitchVisuals();
 
       if (this.config.debug) this.renderDebugLabels();
+    }
+
+    drawLandscape() {
+      const base = svgElement("rect", { x: 0, y: 0, width: 1600, height: 1000, class: "landscape-base" });
+      const meadowA = svgElement("path", { d: "M0 120 C260 50 480 150 670 105 C910 44 1220 122 1600 44 V460 C1350 385 1050 430 790 388 C510 342 260 410 0 350 Z", class: "landscape-meadow landscape-meadow-a" });
+      const meadowB = svgElement("path", { d: "M0 650 C310 555 540 670 770 625 C1040 575 1300 670 1600 562 V1000 H0 Z", class: "landscape-meadow landscape-meadow-b" });
+      const lake = svgElement("path", { d: "M654 460 C730 412 866 424 940 474 C988 507 1012 573 970 622 C916 680 772 672 690 627 C626 592 608 509 654 460 Z", class: "landscape-lake" });
+      const lakeShore = svgElement("path", { d: "M643 450 C728 394 882 407 958 462 C1027 510 1036 584 983 640 C918 710 755 696 676 647 C603 602 583 501 643 450 Z", class: "landscape-shore" });
+      const lakeHighlight = svgElement("path", { d: "M699 493 C764 462 870 470 919 502 M689 549 C758 582 872 582 944 539 M732 621 C804 646 888 635 927 610", class: "landscape-water-lines" });
+      this.landscapeLayer.append(base, meadowA, meadowB, lakeShore, lake, lakeHighlight);
+
+      const mountains = [
+        [78, 186, 174, 58, 284, 206], [240, 160, 365, 8, 492, 194], [1104, 174, 1238, 18, 1394, 196],
+        [1324, 174, 1478, 46, 1600, 218], [38, 855, 180, 686, 340, 886], [1170, 862, 1330, 662, 1492, 894]
+      ];
+      mountains.forEach(([x1, y1, x2, y2, x3, y3], index) => {
+        const mountain = svgElement("path", { d: `M${x1} ${y1} L${x2} ${y2} L${x3} ${y3} Z`, class: `landscape-mountain mountain-${index % 3}` });
+        const ridge = svgElement("path", { d: `M${x2} ${y2} L${x2 - 28} ${y2 + 84} L${x2 + 18} ${y2 + 148} L${x3} ${y3}`, class: "landscape-ridge" });
+        this.landscapeLayer.append(mountain, ridge);
+      });
+
+      let seed = 29;
+      const random = () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 4294967296;
+      };
+      for (let index = 0; index < 128; index += 1) {
+        const side = index % 2;
+        const x = side ? 1070 + random() * 455 : 40 + random() * 430;
+        const y = 110 + random() * 790;
+        const radius = 3.7 + random() * 5.8;
+        const tree = svgElement("g", { class: "landscape-tree" });
+        tree.append(
+          svgElement("circle", { cx: x + 1.8, cy: y + 2.2, r: radius, class: "tree-shadow" }),
+          svgElement("circle", { cx: x, cy: y, r: radius, class: "tree-canopy" }),
+          svgElement("circle", { cx: x - radius * 0.24, cy: y - radius * 0.28, r: radius * 0.52, class: "tree-highlight" })
+        );
+        this.landscapeLayer.append(tree);
+      }
     }
 
     addRoute(id, points, closed, targetLength, preserveVertices) {
@@ -195,16 +236,26 @@
       const dy = (segment.b.y - segment.a.y) / segment.length;
       const start = toDisplayPoint({ x: segment.a.x + dx * inset, y: segment.a.y + dy * inset });
       const end = toDisplayPoint({ x: segment.b.x - dx * inset, y: segment.b.y - dy * inset });
-      const line = svgElement("line", {
-        x1: start.x,
-        y1: start.y,
-        x2: end.x,
-        y2: end.y,
-        "data-segment-id": segment.id,
-        class: "track-segment"
+      const displayLength = Math.hypot(end.x - start.x, end.y - start.y);
+      const normal = {
+        x: -(end.y - start.y) / displayLength * 2.55,
+        y: (end.x - start.x) / displayLength * 2.55
+      };
+      const lineAttributes = (className, offset) => ({
+        x1: start.x + normal.x * offset,
+        y1: start.y + normal.y * offset,
+        x2: end.x + normal.x * offset,
+        y2: end.y + normal.y * offset,
+        class: className
       });
-      segment.element = line;
-      this.trackLayer.append(line);
+      const group = svgElement("g", { "data-segment-id": segment.id, class: "track-segment" });
+      const ballast = svgElement("line", lineAttributes("track-ballast", 0));
+      const sleepers = svgElement("line", lineAttributes("track-sleepers", 0));
+      const railLeft = svgElement("line", lineAttributes("track-rail", -1));
+      const railRight = svgElement("line", lineAttributes("track-rail", 1));
+      group.append(ballast, sleepers, railLeft, railRight);
+      segment.element = group;
+      this.trackLayer.append(group);
     }
 
     findSegmentNear(routeId, targetPoint, endpoint) {
@@ -225,14 +276,14 @@
 
     addMainSwitches() {
       const specs = [
-        { id: "W1", source: "outer", target: "middle", sourcePoint: { x: 144, y: 500 }, targetPoint: { x: 202, y: 360 }, label: { x: 171, y: 431 } },
-        { id: "W2", source: "middle", target: "inner", sourcePoint: { x: 202, y: 500 }, targetPoint: { x: 246, y: 360 }, label: { x: 229, y: 431 } },
-        { id: "W3", source: "middle", target: "outer", sourcePoint: { x: 202, y: 900 }, targetPoint: { x: 144, y: 760 }, label: { x: 171, y: 829 } },
-        { id: "W4", source: "inner", target: "middle", sourcePoint: { x: 246, y: 900 }, targetPoint: { x: 202, y: 760 }, label: { x: 229, y: 829 } },
-        { id: "W5", source: "outer", target: "middle", sourcePoint: { x: 656, y: 300 }, targetPoint: { x: 598, y: 440 }, label: { x: 629, y: 369 } },
-        { id: "W6", source: "middle", target: "inner", sourcePoint: { x: 598, y: 300 }, targetPoint: { x: 554, y: 440 }, label: { x: 571, y: 369 } },
-        { id: "W7", source: "middle", target: "outer", sourcePoint: { x: 598, y: 680 }, targetPoint: { x: 656, y: 820 }, label: { x: 629, y: 751 } },
-        { id: "W8", source: "inner", target: "middle", sourcePoint: { x: 554, y: 680 }, targetPoint: { x: 598, y: 820 }, label: { x: 571, y: 751 } }
+        { id: "W1", source: "outer", target: "middle", sourcePoint: { x: 120, y: 600 }, targetPoint: { x: 190, y: 470 }, label: { x: 155, y: 535 } },
+        { id: "W2", source: "middle", target: "inner", sourcePoint: { x: 190, y: 600 }, targetPoint: { x: 260, y: 470 }, label: { x: 225, y: 535 } },
+        { id: "W3", source: "middle", target: "outer", sourcePoint: { x: 190, y: 1070 }, targetPoint: { x: 120, y: 1210 }, label: { x: 155, y: 1140 } },
+        { id: "W4", source: "inner", target: "middle", sourcePoint: { x: 260, y: 1070 }, targetPoint: { x: 190, y: 1210 }, label: { x: 225, y: 1140 } },
+        { id: "W5", source: "outer", target: "middle", sourcePoint: { x: 880, y: 395 }, targetPoint: { x: 810, y: 535 }, label: { x: 845, y: 465 } },
+        { id: "W6", source: "middle", target: "inner", sourcePoint: { x: 810, y: 395 }, targetPoint: { x: 740, y: 535 }, label: { x: 775, y: 465 } },
+        { id: "W7", source: "middle", target: "outer", sourcePoint: { x: 810, y: 930 }, targetPoint: { x: 880, y: 1070 }, label: { x: 845, y: 1000 } },
+        { id: "W8", source: "inner", target: "middle", sourcePoint: { x: 740, y: 930 }, targetPoint: { x: 810, y: 1070 }, label: { x: 775, y: 1000 } }
       ];
 
       specs.forEach((spec) => this.addSwitch(spec));
@@ -245,9 +296,13 @@
       const branchIds = [...branch.segmentIds];
       this.segments.get(branchIds[branchIds.length - 1]).defaultNextId = target.id;
 
+      this.registerSwitch(spec.id, source, target, branchIds, spec.label);
+    }
+
+    registerSwitch(id, source, target, branchIds, labelPosition) {
       const switchData = {
-        id: spec.id,
-        state: this.config.switchDefaults[spec.id],
+        id,
+        state: this.config.switchDefaults[id],
         locked: false,
         sourceSegmentId: source.id,
         straightSegmentId: source.defaultNextId,
@@ -260,53 +315,45 @@
       };
 
       this.segments.get(switchData.straightSegmentId).switchRole = "straight";
-      this.segments.get(switchData.straightSegmentId).switchId = spec.id;
+      this.segments.get(switchData.straightSegmentId).switchId = id;
       branchIds.forEach((segmentId) => {
         this.segments.get(segmentId).switchRole = "diverging";
-        this.segments.get(segmentId).switchId = spec.id;
+        this.segments.get(segmentId).switchId = id;
       });
-      source.switchId = spec.id;
-      source.switchSourceId = spec.id;
-      target.switchTargetId = spec.id;
-      this.segments.get(branchIds[0]).switchBranchId = spec.id;
-      this.switches.set(spec.id, switchData);
-      this.drawSwitchControl(switchData, spec.label);
+      source.switchId = id;
+      source.switchSourceId = id;
+      target.switchTargetId = id;
+      this.segments.get(branchIds[0]).switchBranchId = id;
+      this.switches.set(id, switchData);
+      this.drawSwitchControl(switchData, labelPosition);
     }
 
-    addStorageSidings() {
+    addPassingSidings() {
       const specs = [
-        { id: "siding-alpha", label: "A1", side: "left", x: 48, top: 412, joinY: 1030 },
-        { id: "siding-bravo", label: "A2", side: "left", x: 78, top: 500, joinY: 1060 },
-        { id: "siding-charlie", label: "A3", side: "left", x: 108, top: 588, joinY: 1090 },
-        { id: "siding-delta", label: "A4", side: "right", x: 752, top: 412, joinY: 1030 },
-        { id: "siding-echo", label: "A5", side: "right", x: 722, top: 560, joinY: 1080 }
+        { id: "W9", routeId: "siding-sbb", entry: { x: 350, y: 70 }, exit: { x: 520, y: 70 }, outsideY: 20, label: { x: 435, y: 42 }, name: "SBB" },
+        { id: "W10", routeId: "siding-bls", entry: { x: 500, y: 70 }, exit: { x: 680, y: 70 }, outsideY: 42, label: { x: 590, y: 61 }, name: "bls" },
+        { id: "W11", routeId: "siding-cargo", entry: { x: 660, y: 70 }, exit: { x: 820, y: 70 }, outsideY: 58, label: { x: 740, y: 76 }, name: "cargo" },
+        { id: "W12", routeId: "siding-express", entry: { x: 680, y: 1530 }, exit: { x: 510, y: 1530 }, outsideY: 1578, label: { x: 595, y: 1550 }, name: "express" },
+        { id: "W13", routeId: "siding-dampfzug", entry: { x: 520, y: 1530 }, exit: { x: 340, y: 1530 }, outsideY: 1560, label: { x: 430, y: 1544 }, name: "dampfzug" },
+        { id: "W14", routeId: "siding-regio", entry: { x: 360, y: 1530 }, exit: { x: 210, y: 1530 }, outsideY: 1543, label: { x: 285, y: 1538 }, name: "regio" }
       ];
 
       specs.forEach((spec) => {
-        const target = this.findSegmentNear("outer", { x: spec.side === "left" ? 144 : 656, y: spec.joinY }, "start");
-        const branchSlope = Math.tan(SIDING_BRANCH_ANGLE_DEGREES * Math.PI / 180);
-        const branchStart = {
-          x: spec.x,
-          y: target.a.y - Math.abs(target.a.x - spec.x) * branchSlope
-        };
-        const route = this.addRoute(spec.id, [
-          { x: spec.x, y: spec.top },
-          branchStart,
+        const source = this.findSegmentNear("outer", spec.entry, "end");
+        const target = this.findSegmentNear("outer", spec.exit, "start");
+        const route = this.addRoute(spec.routeId, [
+          source.b,
+          { x: source.b.x, y: spec.outsideY },
+          { x: target.a.x, y: spec.outsideY },
           target.a
-        ], false, 30, true);
-        this.segments.get(route.segmentIds[route.segmentIds.length - 1]).defaultNextId = target.id;
+        ], false, 18, true);
+        const branchIds = [...route.segmentIds];
+        this.segments.get(branchIds[branchIds.length - 1]).defaultNextId = target.id;
+        this.registerSwitch(spec.id, source, target, branchIds, spec.label);
 
-        const labelPosition = toDisplayPoint({
-          x: spec.side === "left" ? spec.x - 18 : spec.x + 18,
-          y: spec.top - 12
-        });
-        const label = svgElement("text", {
-          x: labelPosition.x,
-          y: labelPosition.y,
-          class: "yard-label",
-          "text-anchor": "middle"
-        });
-        label.textContent = spec.label;
+        const display = toDisplayPoint({ x: (source.b.x + target.a.x) / 2, y: spec.outsideY });
+        const label = svgElement("text", { x: display.x, y: display.y - 9, class: "yard-label", "text-anchor": "middle" });
+        label.textContent = spec.name;
         this.labelLayer.append(label);
       });
     }
@@ -337,37 +384,53 @@
 
     drawStation(station) {
       const platform = svgElement("rect", {
-        x: station.pose.x - 15,
-        y: station.pose.y - 11,
-        width: 30,
-        height: 6,
+        x: station.pose.x - 90,
+        y: station.pose.y - 14,
+        width: 180,
+        height: 14,
         class: "station-platform",
         transform: `rotate(${station.pose.angle} ${station.pose.x} ${station.pose.y})`
       });
       platform.style.setProperty("--station-color", station.color);
+      const platformEdge = svgElement("line", {
+        x1: station.pose.x - 88,
+        y1: station.pose.y - 3,
+        x2: station.pose.x + 88,
+        y2: station.pose.y - 3,
+        class: "station-edge",
+        transform: `rotate(${station.pose.angle} ${station.pose.x} ${station.pose.y})`
+      });
       this.stationLayer.append(platform);
+      this.stationLayer.append(platformEdge);
 
       const labelPosition = {
         x: station.pose.x + station.labelOffset.x,
         y: station.pose.y + station.labelOffset.y
       };
-      const marker = svgElement("circle", { cx: labelPosition.x, cy: labelPosition.y - 3, r: 5, class: "station-marker" });
-      marker.style.setProperty("--station-color", station.color);
-      const label = svgElement("text", { x: labelPosition.x, y: labelPosition.y + 11, class: "station-label", "text-anchor": "middle" });
+      const titleWidth = station.name.length * 17 + 26;
+      const titlePlate = svgElement("rect", {
+        x: labelPosition.x - titleWidth / 2,
+        y: labelPosition.y - 27,
+        width: titleWidth,
+        height: 36,
+        rx: 4,
+        class: "station-sign-panel"
+      });
+      const label = svgElement("text", { x: labelPosition.x, y: labelPosition.y, class: "station-title", "text-anchor": "middle" });
       label.textContent = station.name;
-      const countLabel = svgElement("text", { x: labelPosition.x, y: labelPosition.y + 21, class: "station-count", "text-anchor": "middle" });
+      const countLabel = svgElement("text", { x: labelPosition.x, y: labelPosition.y + 22, class: "station-count", "text-anchor": "middle" });
       const passengerGroup = svgElement("g", { class: "passenger-queue" });
       station.countLabel = countLabel;
       station.passengerGroup = passengerGroup;
-      station.visualElements = [platform, passengerGroup, marker, label, countLabel];
-      this.labelLayer.append(passengerGroup, marker, label, countLabel);
+      station.visualElements = [platform, platformEdge, passengerGroup, titlePlate, label, countLabel];
+      this.labelLayer.append(passengerGroup, titlePlate, label, countLabel);
     }
 
     setStationsVisible(visible) {
       this.stations.forEach((station) => {
-        station.visualElements.forEach((element) => {
-          element.setAttribute("visibility", visible ? "visible" : "hidden");
-        });
+        station.visualElements.forEach((element) => element.setAttribute("visibility", "visible"));
+        station.passengerGroup.setAttribute("visibility", visible ? "visible" : "hidden");
+        station.countLabel.setAttribute("visibility", visible ? "visible" : "hidden");
       });
     }
 
@@ -391,14 +454,14 @@
         station.countLabel.textContent = waiting.length ? `${waiting.length} wartend` : "leer";
         station.passengerGroup.replaceChildren();
         waiting.forEach((passenger, index) => {
-          const column = index % 4;
-          const row = Math.floor(index / 4);
+          const column = index % 3;
+          const row = Math.floor(index / 3);
           const person = svgElement("g", {
             class: "passenger",
-            transform: `translate(${station.pose.x + station.queueOffset.x + column * 10} ${station.pose.y + station.queueOffset.y + row * 12})`
+            transform: `translate(${station.pose.x + station.queueOffset.x + column * 17} ${station.pose.y + station.queueOffset.y + row * 20})`
           });
-          const head = svgElement("circle", { cx: 0, cy: -3, r: 2.6, class: "passenger-head" });
-          const body = svgElement("rect", { x: -3.2, y: 0, width: 6.4, height: 5.2, rx: 1.2, class: "passenger-body" });
+          const head = svgElement("circle", { cx: 0, cy: -4.4, r: 3.8, class: "passenger-head" });
+          const body = svgElement("rect", { x: -4.6, y: 0, width: 9.2, height: 8, rx: 1.7, class: "passenger-body" });
           head.style.setProperty("--passenger-color", passenger.color);
           body.style.setProperty("--passenger-color", passenger.color);
           person.append(head, body);

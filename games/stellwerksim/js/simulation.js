@@ -20,7 +20,7 @@
       this.network.resetSwitches();
       this.network.trainLayer.replaceChildren();
       this.trains = this.config.trainDefinitions.map((definition) => {
-        const initialRoute = this.network.getSidingStartRoute(definition.siding, this.config.trainLength);
+        const initialRoute = this.network.getSidingStartRoute(definition.siding, 12);
         const train = new window.Stellwerk.Train(definition, this.config, initialRoute);
         train.mount(this.network.trainLayer);
         return train;
@@ -34,7 +34,7 @@
       this.render();
       this.emitMessage(this.gameMode === "passengers"
         ? "Personenverkehr: Reisende warten an den Bahnhoefen."
-        : "Freier Betrieb: Alle fuenf Zuege stehen bereit.");
+        : "Freier Betrieb: Alle sechs Zuege stehen bereit.");
       this.emitStateChange();
     }
 
