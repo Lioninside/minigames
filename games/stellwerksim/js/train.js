@@ -22,7 +22,7 @@
       this.trainExtent = this.vehicleOffsets[this.vehicleOffsets.length - 1] || 0;
       this.position = Math.min(this.route.length - 0.55, Math.max(config.initialHeadPosition, this.trainExtent + 0.55));
       this.direction = "stopped";
-      this.pathDirection = "forward";
+      this.pathDirection = definition.siding ? "reverse" : "forward";
       this.speedLevel = config.initialSpeedLevel;
       this.passengerIds = [];
       this.cargoColor = null;
