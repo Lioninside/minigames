@@ -180,15 +180,18 @@
       const lakeHighlight = svgElement("path", { d: "M696 494 C764 463 868 470 919 502 M690 549 C761 581 871 580 942 540 M731 619 C800 645 885 633 926 609", class: "landscape-water-lines" });
       this.landscapeLayer.append(base, meadowA, meadowB, meadowC, stream, lakeShore, lake, lakeHighlight);
 
-      const mountains = [
-        [10, 995, 145, 770, 290, 1000], [192, 1000, 368, 728, 552, 1000], [487, 1000, 644, 810, 808, 1000],
-        [886, 1000, 1054, 790, 1220, 1000], [1080, 1000, 1278, 680, 1466, 1000], [1302, 1000, 1488, 756, 1600, 1000]
+      const hills = [
+        [112, 922, 220, 102], [430, 898, 258, 122], [786, 918, 228, 108],
+        [1132, 900, 266, 126], [1484, 918, 210, 104]
       ];
-      mountains.forEach(([x1, y1, x2, y2, x3, y3], index) => {
-        const mountain = svgElement("path", { d: `M${x1} ${y1} L${x2} ${y2} L${x3} ${y3} Z`, class: `landscape-mountain mountain-${index % 3}` });
-        const shade = svgElement("path", { d: `M${x2} ${y2} L${x2 + 18} ${y2 + 104} L${x3} ${y3} Z`, class: "landscape-mountain-shade" });
-        const ridge = svgElement("path", { d: `M${x2} ${y2} L${x2 - 30} ${y2 + 84} L${x2 + 16} ${y2 + 140}`, class: "landscape-ridge" });
-        this.landscapeLayer.append(mountain, shade, ridge);
+      hills.forEach(([x, y, radiusX, radiusY], index) => {
+        const hill = svgElement("g", { class: `landscape-hill hill-${index % 3}` });
+        hill.append(
+          svgElement("ellipse", { cx: x, cy: y, rx: radiusX, ry: radiusY, class: "hill-base" }),
+          svgElement("ellipse", { cx: x - radiusX * 0.12, cy: y - radiusY * 0.14, rx: radiusX * 0.68, ry: radiusY * 0.64, class: "hill-mid" }),
+          svgElement("ellipse", { cx: x - radiusX * 0.2, cy: y - radiusY * 0.24, rx: radiusX * 0.33, ry: radiusY * 0.3, class: "hill-peak" })
+        );
+        this.landscapeLayer.append(hill);
       });
 
       const rocks = [[1088, 889], [1135, 911], [1194, 873], [1322, 890], [1415, 842], [1472, 876]];
@@ -405,53 +408,43 @@
 
     addStablingYard() {
       const specs = [
-        { id: "W9", routeId: "siding-sbb", sourceX: 230, targetX: 1010, trackY: 26, name: "SBB" },
-        { id: "W10", routeId: "siding-bls", sourceX: 285, targetX: 1070, trackY: 53, name: "bls" },
-        { id: "W11", routeId: "siding-cargo", sourceX: 340, targetX: 1130, trackY: 80, name: "cargo" },
-        { id: "W12", routeId: "siding-express", sourceX: 395, targetX: 1190, trackY: 160, name: "express" },
-        { id: "W13", routeId: "siding-dampfzug", sourceX: 450, targetX: 1250, trackY: 187, name: "dampfzug" },
-        { id: "W14", routeId: "siding-regio", sourceX: 505, targetX: 1310, trackY: 214, name: "regio" }
+        { id: "W9", routeId: "siding-sbb", sourceX: 270, trackY: 28, name: "SBB" },
+        { id: "W10", routeId: "siding-bls", sourceX: 330, trackY: 57, name: "bls" },
+        { id: "W11", routeId: "siding-cargo", sourceX: 390, trackY: 86, name: "cargo" },
+        { id: "W12", routeId: "siding-express", sourceX: 450, trackY: 145, name: "express" },
+        { id: "W13", routeId: "siding-dampfzug", sourceX: 510, trackY: 174, name: "dampfzug" },
+        { id: "W14", routeId: "siding-regio", sourceX: 570, trackY: 203, name: "regio" }
       ];
 
       specs.forEach((spec) => {
         const source = this.findSegmentNear("outer", fromDisplayPoint({ x: spec.sourceX, y: 120 }), "end");
-        const target = this.findSegmentNear("outer", fromDisplayPoint({ x: spec.targetX, y: 120 }), "start");
         const sourceDisplay = toDisplayPoint(source.b);
-        const targetDisplay = toDisplayPoint(target.a);
-        const trackStart = { x: 610, y: spec.trackY };
-        const trackEnd = { x: 935, y: spec.trackY };
+        const trackStart = { x: 650, y: spec.trackY };
+        const trackEnd = { x: 1230, y: spec.trackY };
         const incoming = displayCurve(
           sourceDisplay,
-          { x: sourceDisplay.x + 92, y: sourceDisplay.y },
-          { x: trackStart.x - 120, y: trackStart.y },
+          { x: sourceDisplay.x + 105, y: sourceDisplay.y },
+          { x: trackStart.x - 135, y: trackStart.y },
           trackStart,
           8
         );
-        const outgoing = displayCurve(
-          trackEnd,
-          { x: trackEnd.x + 110, y: trackEnd.y },
-          { x: targetDisplay.x - 86, y: targetDisplay.y },
-          targetDisplay,
-          8
-        );
-        const route = this.addRoute(spec.routeId, [
-          ...incoming,
-          fromDisplayPoint(trackEnd),
-          ...outgoing.slice(1)
-        ], false, 18);
-        route.startIndex = Math.min(route.segmentIds.length - 12, Math.max(0, Math.floor(route.segmentIds.length * 0.31)));
+        const route = this.addRoute(spec.routeId, [...incoming, fromDisplayPoint(trackEnd)], false, 18);
+        route.startIndex = Math.max(0, route.segmentIds.length - 12);
         const branchIds = [...route.segmentIds];
-        this.segments.get(branchIds[branchIds.length - 1]).defaultNextId = target.id;
-        const switchLabelY = spec.trackY < 120 ? 145 : 96;
-        this.registerSwitch(spec.id, source, target, branchIds, fromDisplayPoint({ x: spec.sourceX + 10, y: switchLabelY }));
+        this.registerStubSwitch(spec.id, source, branchIds, fromDisplayPoint({ x: spec.sourceX, y: 145 }));
 
         const labelY = spec.trackY < 120 ? spec.trackY - 8 : spec.trackY + 15;
-        const label = svgElement("text", { x: 770, y: labelY, class: "yard-label", "text-anchor": "middle" });
+        const label = svgElement("text", { x: 935, y: labelY, class: "yard-label", "text-anchor": "middle" });
         label.textContent = spec.name;
-        this.labelLayer.append(label);
+        const buffer = svgElement("g", { class: "track-buffer", transform: `translate(${trackEnd.x} ${trackEnd.y})` });
+        buffer.append(
+          svgElement("line", { x1: -5, y1: -12, x2: -5, y2: 12, class: "buffer-stop" }),
+          svgElement("line", { x1: 4, y1: -12, x2: 4, y2: 12, class: "buffer-stop" })
+        );
+        this.labelLayer.append(label, buffer);
       });
 
-      const title = svgElement("text", { x: 770, y: 246, class: "yard-title", "text-anchor": "middle" });
+      const title = svgElement("text", { x: 935, y: 244, class: "yard-title", "text-anchor": "middle" });
       title.textContent = "ABSTELLBAHNHOF";
       this.labelLayer.append(title);
     }
@@ -613,7 +606,7 @@
         role: "button",
         "aria-label": `${switchData.id} umstellen`
       });
-      const plate = svgElement("rect", { x: displayPosition.x - 13, y: displayPosition.y - 9, width: 26, height: 18, rx: 1, class: "switch-plate" });
+      const plate = svgElement("rect", { x: displayPosition.x - 24, y: displayPosition.y - 15, width: 48, height: 30, rx: 3, class: "switch-plate" });
       const label = svgElement("text", { x: displayPosition.x, y: displayPosition.y + 0.5, class: "switch-label" });
       label.textContent = switchData.id;
       group.append(plate, label);
@@ -686,6 +679,16 @@
     }
 
     getTraversalSuccessor(step) {
+      if (step.direction === -1) {
+        const segment = this.segments.get(step.segmentId);
+        const switchData = segment && segment.switchRole === "straight"
+          ? this.switches.get(segment.switchId)
+          : null;
+        // From the opposing main-line direction, a diverging turnout enters its branch forward from the frog.
+        if (switchData && switchData.state === "diverging") {
+          return { segmentId: switchData.divergingSegmentId, direction: 1 };
+        }
+      }
       const segmentId = step.direction === 1
         ? this.getSuccessor(step.segmentId)
         : this.getPredecessor(step.segmentId);

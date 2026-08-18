@@ -275,12 +275,15 @@ h2 {
 .landscape-shore { fill: #b9b06a; opacity: 0.9; }
 .landscape-lake { fill: #438fb0; stroke: #b9d9dc; stroke-width: 4; }
 .landscape-water-lines { fill: none; stroke: rgba(214, 240, 235, 0.75); stroke-width: 5; stroke-linecap: round; }
-.landscape-mountain { stroke: #60735e; stroke-width: 2; }
-.mountain-0 { fill: #9a7e5d; }
-.mountain-1 { fill: #7e705e; }
-.mountain-2 { fill: #a88b62; }
-.landscape-mountain-shade { fill: rgba(70, 77, 65, 0.24); }
-.landscape-ridge { fill: none; stroke: rgba(230, 225, 200, 0.6); stroke-width: 8; stroke-linecap: round; }
+.hill-base { fill: #80775b; stroke: rgba(86, 77, 59, 0.4); stroke-width: 2; opacity: 0.72; }
+.hill-mid { fill: #a19470; stroke: rgba(238, 225, 187, 0.28); stroke-width: 1.5; opacity: 0.72; }
+.hill-peak { fill: #c0ad7d; opacity: 0.64; }
+.hill-1 .hill-base { fill: #6f7659; }
+.hill-1 .hill-mid { fill: #8e916a; }
+.hill-1 .hill-peak { fill: #b0a874; }
+.hill-2 .hill-base { fill: #927654; }
+.hill-2 .hill-mid { fill: #ad8d65; }
+.hill-2 .hill-peak { fill: #c8a976; }
 .landscape-rock { stroke: #665d50; stroke-width: 1; }
 .rock-0 { fill: #827562; }
 .rock-1 { fill: #a0937a; }
@@ -301,9 +304,9 @@ h2 {
 
 .switch-control { cursor: pointer; }
 .switch-control:focus { outline: none; }
-.switch-control .switch-plate { fill: #dfe1da; stroke: #252d29; stroke-width: 1.25; }
-.switch-control .switch-label { fill: #252d29; font-size: 10px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
-.switch-control:hover .switch-plate { fill: #f4f3e9; stroke: #3d7785; stroke-width: 1.8; }
+.switch-control .switch-plate { fill: #dfe1da; stroke: #252d29; stroke-width: 1.5; }
+.switch-control .switch-label { fill: #252d29; font-size: 12px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
+.switch-control:hover .switch-plate { fill: #f4f3e9; stroke: #3d7785; stroke-width: 2; }
 .switch-control.is-locked { cursor: not-allowed; }
 .switch-control.is-locked .switch-plate { fill: #aeb3ae; stroke: #747a75; }
 .switch-control.is-locked .switch-label { fill: #58615b; }
