@@ -32,5 +32,5 @@ Danach `http://localhost:8000` aufrufen.
 ## Schloss-Duell & Fahrzeug-Shop
 
 - Nach Level 7 folgt das **Schloss-Duell 🐉**: ein 1-gegen-1-Rennen gegen das Drachenauto (gleich schnell) über eine Runde in einem riesigen Ritterschloss.
-- Gewinnst du, bekommst du einen **Pokal**. Mit mindestens einem Pokal kannst du im **Shop** ein neues Auto kaufen (kostet 1 Pokal): 🏎️ **Formel 1**, 🚙 **Monstertruck** oder 🟡 **U-Boot**. Pokale und Autos werden lokal gespeichert.
+- Gewinnst du, bekommst du einen **Pokal**. Im **Shop** kaufst du damit neue Autos: 🏎️ **Formel 1**, 🚙 **Monstertruck**, 🟡 **U-Boot** (je 1 Pokal) oder die 🚘 **Stretchlimousine** (2 Pokale). Pokale und Autos werden lokal gespeichert.
 - Verlierst du irgendein Rennen, beginnst du wieder bei Level 1.

@@ -154,7 +154,7 @@
     Neben dir fahren <b>vier</b> Gegner (rot, grün, lila, orange). Rechts die <b>Live-Rangliste</b>, unten links eine <b>Navi-Streckenübersicht</b> mit allen Positionen.</p>
     <p><b>Jedes Level ist ein Rennen über eine Runde:</b> Wirst du <b>Erster</b>, geht es ins nächste Level – sonst zurück zu Level 1.<br>
     <b>7 Welten:</b> 1) Weltall · 2) Grossstadt · 3) Wüste · 4) Dschungel · 5) Meer (mit Haien!) · 6) Mondlandschaft · 7) Eislandschaft (mit Eisbären). Alle Fahrer sind gleich schnell (850 km/h) – gewinnen tust du durch sauberes Fahren.<br>
-    Danach das <b>Schloss-Duell 🐉</b> gegen das Drachenauto (auch gleich schnell). Gewinnst du, bekommst du einen <b>Pokal</b> und kannst dir im Shop ein neues Auto kaufen: 🏎️ Formel 1, 🚙 Monstertruck oder 🟡 U-Boot.</p>
+    Danach das <b>Schloss-Duell 🐉</b> gegen das Drachenauto (auch gleich schnell). Gewinnst du, bekommst du einen <b>Pokal</b> und kannst dir im Shop ein neues Auto kaufen: 🏎️ Formel 1, 🚙 Monstertruck, 🟡 U-Boot (je 1 Pokal) oder die 🚘 Stretchlimousine (2 Pokale).</p>
     <p style="margin-top:16px;"><b>Drücke <span class="kbd">Leertaste</span>, um zu starten.</b></p>
   </div>
 </div>
@@ -180,7 +180,7 @@
   <div class="titleCard" style="max-width: 720px;">
     <h1>🏆 Duell gewonnen!</h1>
     <p>Du hast das Drachenauto geschlagen und einen Pokal erhalten. Pokale: <b><span id="shopTrophies">0</span> 🏆</b><br>
-    Klicke ein Auto an, um es für <b>1 Pokal</b> zu kaufen (danach fährst du damit weiter). Bereits gekaufte Autos kannst du einfach auswählen.</p>
+    Klicke ein Auto an, um es für seinen Pokal-Preis zu kaufen (danach fährst du damit weiter). Bereits gekaufte Autos kannst du einfach auswählen.</p>
     <div id="shopCards">
       <div class="shopCard" id="shopcard-formel1">
         <div class="shopIcon">🏎️</div>
@@ -196,6 +196,11 @@
         <div class="shopIcon">🟡</div>
         <div class="shopName">U-Boot</div>
         <div class="shopStatus">1 🏆 kaufen</div>
+      </div>
+      <div class="shopCard" id="shopcard-limo">
+        <div class="shopIcon">🚘</div>
+        <div class="shopName">Stretchlimousine</div>
+        <div class="shopStatus">2 🏆 kaufen</div>
       </div>
     </div>
     <p style="margin-top:16px;"><span class="kbd" id="shopClose" style="cursor:pointer; pointer-events:auto;">Weiter ab Level 1 ▶</span> &nbsp; (oder <span class="kbd">Leertaste</span>)</p>
@@ -352,9 +357,10 @@ let dragonState = null;
 // ---- Pokale & Fahrzeug-Shop ----
 // Persistenter Fortschritt (Pokale + gekaufte Autos + gewähltes Auto) im localStorage.
 const CARS = [
-  { id: 'formel1',     name: '🏎️ Formel 1',    body: 0xd11a1a, accent: 0xffffff },
-  { id: 'monstertruck', name: '🚙 Monstertruck', body: 0x2f9e34, accent: 0x111111 },
-  { id: 'uboot',       name: '🟡 U-Boot',       body: 0xf2c500, accent: 0x0a3550 }
+  { id: 'formel1',      name: '🏎️ Formel 1',       body: 0xd11a1a, accent: 0xffffff, cost: 1 },
+  { id: 'monstertruck', name: '🚙 Monstertruck',    body: 0x2f9e34, accent: 0x111111, cost: 1 },
+  { id: 'uboot',        name: '🟡 U-Boot',          body: 0xf2c500, accent: 0x0a3550, cost: 1 },
+  { id: 'limo',         name: '🚘 Stretchlimousine', body: 0xffffff, accent: 0x111111, cost: 2 }
 ];
 let trophies = 0;
 let ownedCars = [];         // ['formel1', ...] gekaufte Sonder-Autos
@@ -2180,6 +2186,55 @@ function buildUboot() {
   return { group, flame };
 }
 
+function buildLimo() {
+  const group = new THREE.Group();
+  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf4f4f7, metalness: 0.5, roughness: 0.3, emissive: 0x2a2a30, emissiveIntensity: 0.12 });
+  const blackMat = new THREE.MeshStandardMaterial({ color: 0x0d0d10, metalness: 0.4, roughness: 0.35 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x10131a, metalness: 0.6, roughness: 0.1, emissive: 0x0a0d14, emissiveIntensity: 0.3 });
+  const tyreMat = new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.9 });
+  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xdedee6, metalness: 0.9, roughness: 0.2 });
+
+  // langer, gestreckter weisser Karosseriekörper
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.9, 7.4), whiteMat);
+  body.position.y = 0.6;
+  group.add(body);
+  // schwarzes Dach (etwas kürzer, mittig)
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 4.4), blackMat);
+  roof.position.set(0, 1.35, -0.2);
+  group.add(roof);
+  // getönter Fensterstreifen auf beiden Seiten
+  [-1, 1].forEach((s) => {
+    const win = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.5, 4.2), glassMat);
+    win.position.set(s * 0.98, 1.3, -0.2);
+    group.add(win);
+  });
+  // Front- und Heckscheibe
+  const wf = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.5, 0.06), glassMat);
+  wf.position.set(0, 1.3, -2.35); group.add(wf);
+  const wr = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.5, 0.06), glassMat);
+  wr.position.set(0, 1.3, 1.95); group.add(wr);
+  // Chrom-Kühlergrill + Scheinwerfer vorn
+  const grille = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.35, 0.15), chromeMat);
+  grille.position.set(0, 0.55, -3.7); group.add(grille);
+  [-1, 1].forEach((s) => {
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), new THREE.MeshStandardMaterial({ color: 0xfff6d0, emissive: 0xffe27a, emissiveIntensity: 1.4 }));
+    lamp.position.set(s * 0.7, 0.65, -3.72); group.add(lamp);
+  });
+  // 6 Räder (Stretchlimousine) mit Chromfelge
+  [[-1, -2.6], [1, -2.6], [-1, 0.1], [1, 0.1], [-1, 2.8], [1, 2.8]].forEach(([sx, pz]) => {
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.42, 14), tyreMat);
+    wheel.rotation.z = Math.PI / 2; wheel.position.set(sx * 1.05, 0.4, pz);
+    group.add(wheel);
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.46, 10), chromeMat);
+    rim.rotation.z = Math.PI / 2; rim.position.set(sx * 1.05, 0.4, pz);
+    group.add(rim);
+  });
+  const flame = addRearFlame(group);
+  flame.position.set(0, 0.55, 3.9);
+  scene.add(group);
+  return { group, flame };
+}
+
 /* Baut das aktuell gewählte Spieler-Auto (Standard oder gekauftes Sonder-Auto). */
 function setPlayerCar(id) {
   if (cartGroup) { scene.remove(cartGroup); }
@@ -2187,6 +2242,7 @@ function setPlayerCar(id) {
   if (id === 'formel1') built = buildF1Car();
   else if (id === 'monstertruck') built = buildMonsterTruck();
   else if (id === 'uboot') built = buildUboot();
+  else if (id === 'limo') built = buildLimo();
   else built = buildCartMesh(0x141428, 0xff5566); // Standard-Auto (themenfähig)
   cartGroup = built.group;
   cartFlame = built.flame;
@@ -2283,17 +2339,19 @@ function openShop() {
     card.classList.toggle('owned', owned);
     card.classList.toggle('selected', playerCarId === c.id);
     if (owned) status.textContent = (playerCarId === c.id) ? '✓ ausgewählt' : 'wählen';
-    else status.textContent = (trophies >= 1) ? '1 🏆 kaufen' : 'gesperrt';
+    else status.textContent = (trophies >= c.cost) ? (c.cost + ' 🏆 kaufen') : ('gesperrt (' + c.cost + ' 🏆)');
   });
   document.getElementById('shop').style.display = 'flex';
 }
 
-/* Klick auf eine Auto-Karte: gekaufte Autos nur auswählen, neue für 1 Pokal kaufen. */
+/* Klick auf eine Auto-Karte: gekaufte Autos nur auswählen, neue für ihren Pokal-Preis kaufen. */
 function pickCar(id) {
+  const car = CARS.find(c => c.id === id);
+  const cost = car ? car.cost : 1;
   const owned = ownedCars.includes(id);
   if (!owned) {
-    if (trophies < 1) return; // gesperrt
-    trophies -= 1;
+    if (trophies < cost) return; // nicht genug Pokale
+    trophies -= cost;
     ownedCars.push(id);
   }
   playerCarId = id;
