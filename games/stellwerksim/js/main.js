@@ -8,6 +8,10 @@
     network.build();
 
     const simulation = new window.Stellwerk.Simulation(network, config);
+    const mapViewport = new window.Stellwerk.MapViewport(
+      document.getElementById("trackViewport"),
+      svg
+    );
     const ui = new window.Stellwerk.StellwerkUI(simulation);
 
     network.onSwitchToggleRequest = (switchId) => simulation.toggleSwitch(switchId);
@@ -15,7 +19,7 @@
     simulation.onMessage = (message) => ui.showMessage(message);
     simulation.onCrash = (trainNames) => ui.showCrash(trainNames);
     simulation.resetSimulation();
-    window.StellwerkApp = { network, simulation, ui };
+    window.StellwerkApp = { network, simulation, mapViewport, ui };
 
     let previousTime = performance.now();
     function frame(now) {

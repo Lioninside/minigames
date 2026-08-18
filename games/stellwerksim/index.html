@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="SVG-Stellwerk-Simulation mit freiem Betrieb und optionalem Personenverkehr.">
   <title>Stellwerksim</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -20,45 +21,59 @@
       </div>
     </header>
 
-    <section class="board-section" aria-label="Gleisplan">
-      <div class="board-heading">
-        <div>
-          <h2>Gleisbild</h2>
-          <p id="boardDescription">Weichen direkt im Plan bedienen. Zugfarben markieren belegte Gleisabschnitte.</p>
+    <div id="trainControls" class="board-workbench">
+      <aside class="control-column control-column-left" aria-label="Zugsteuerungen links">
+        <div class="control-column-heading">
+          <h2>Zuege A</h2>
+          <span>direkt steuern</span>
         </div>
-        <div class="board-tools">
-          <div class="mode-control" role="group" aria-label="Spielmodus">
-            <span>Spielmodus</span>
-            <div class="mode-buttons">
-              <button type="button" data-game-mode="free" class="is-active">Freier Betrieb</button>
-              <button type="button" data-game-mode="passengers">Personenverkehr</button>
+        <div id="trainControlsLeft" class="train-controls"></div>
+      </aside>
+
+      <section class="board-section" aria-label="Gleisplan">
+        <div class="board-heading">
+          <div>
+            <h2>Gleisbild</h2>
+            <p id="boardDescription">Weichen direkt im Plan bedienen. Zugfarben markieren belegte Gleisabschnitte.</p>
+            <p id="controlsDescription" class="controls-description">Jeder Zug belegt je nach Zuglänge mehrere Gleisabschnitte.</p>
+          </div>
+          <div class="board-tools">
+            <div class="controls-actions">
+              <span id="passengerSummary" class="passenger-summary" hidden></span>
+              <button id="resetButton" class="reset-button" type="button" title="Simulation zuruecksetzen">&#8635;</button>
+            </div>
+            <div class="mode-control" role="group" aria-label="Spielmodus">
+              <span>Spielmodus</span>
+              <div class="mode-buttons">
+                <button type="button" data-game-mode="free" class="is-active">Freier Betrieb</button>
+                <button type="button" data-game-mode="passengers">Personenverkehr</button>
+              </div>
+            </div>
+            <div class="legend" aria-label="Legende">
+              <span><i class="legend-track"></i>frei</span>
+              <span><i class="legend-occupied"></i>Zugfarbe</span>
+              <span><i class="legend-switch"></i>Fahrweg</span>
             </div>
           </div>
-          <div class="legend" aria-label="Legende">
-            <span><i class="legend-track"></i>frei</span>
-            <span><i class="legend-occupied"></i>Zugfarbe</span>
-            <span><i class="legend-switch"></i>Fahrweg</span>
+        </div>
+        <div id="trackViewport" class="track-viewport">
+          <svg id="trackPlan" viewBox="0 0 1600 1000" role="img" aria-label="Interaktiver Gleisplan mit fuenfzehn Weichen, oberem Abstellbahnhof, Bergstrecke und drei Bahnhoefen"></svg>
+          <div class="map-zoom-controls" role="group" aria-label="Kartenansicht">
+            <button type="button" data-map-zoom="in" aria-label="Hineinzoomen" title="Hineinzoomen">+</button>
+            <button type="button" data-map-zoom="out" aria-label="Herauszoomen" title="Herauszoomen">&#8722;</button>
+            <button type="button" data-map-zoom="reset" class="map-zoom-reset">Reset</button>
           </div>
         </div>
-      </div>
-      <div id="trackViewport" class="track-viewport">
-        <svg id="trackPlan" viewBox="0 0 1600 1000" role="img" aria-label="Interaktiver Gleisplan mit vierzehn Weichen, sechs Ausweichgleisen und zwei Bahnhoefen"></svg>
-      </div>
-    </section>
+      </section>
 
-    <section class="controls-section" aria-labelledby="controlsTitle">
-      <div class="controls-heading">
-        <div>
-          <h2 id="controlsTitle">Zugsteuerung</h2>
-          <p id="controlsDescription">Jeder Zug belegt je nach Zuglänge mehrere Gleisabschnitte.</p>
+      <aside class="control-column control-column-right" aria-label="Zugsteuerungen rechts">
+        <div class="control-column-heading">
+          <h2>Zuege B</h2>
+          <span>direkt steuern</span>
         </div>
-        <div class="controls-actions">
-          <span id="passengerSummary" class="passenger-summary" hidden></span>
-          <button id="resetButton" class="reset-button" type="button">Simulation zuruecksetzen</button>
-        </div>
-      </div>
-      <div id="trainControls" class="train-controls"></div>
-    </section>
+        <div id="trainControlsRight" class="train-controls"></div>
+      </aside>
+    </div>
   </main>
 
   <div id="crashOverlay" class="crash-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="crashTitle">
@@ -75,6 +90,7 @@
   <script src="js/train.js"></script>
   <script src="js/passengers.js"></script>
   <script src="js/simulation.js"></script>
+  <script src="js/map-viewport.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>

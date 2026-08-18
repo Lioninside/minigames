@@ -22,6 +22,7 @@
       this.trains = this.config.trainDefinitions.map((definition) => {
         const initialRoute = this.network.getSidingStartRoute(definition.siding, 12);
         const train = new window.Stellwerk.Train(definition, this.config, initialRoute);
+        train.onStopRequest = (trainId) => this.stopTrainFromMap(trainId);
         train.mount(this.network.trainLayer);
         return train;
       });
@@ -53,6 +54,7 @@
       if (this.crashed) return;
       const train = this.getTrain(trainId);
       if (!train || train.direction === direction) return;
+      if (direction !== "stopped" && train.speedLevel === 0) train.setSpeedLevel(this.config.initialSpeedLevel);
       train.setDirection(direction);
       const label = direction === "forward" ? "vorwaerts" : direction === "reverse" ? "rueckwaerts" : "angehalten";
       this.emitMessage(`${train.name} ${label}.`);
@@ -64,6 +66,18 @@
       const train = this.getTrain(trainId);
       if (!train) return;
       train.setSpeedLevel(level);
+      if (train.speedLevel === 0 && train.direction !== "stopped") train.setDirection("stopped");
+      this.emitStateChange();
+    }
+
+    stopTrainFromMap(trainId) {
+      if (this.crashed) return;
+      const train = this.getTrain(trainId);
+      if (!train || train.direction === "stopped") return;
+      train.setDirection("stopped");
+      train.setSpeedLevel(0);
+      train.flashStop();
+      this.emitMessage(`${train.name} direkt angehalten.`);
       this.emitStateChange();
     }
 

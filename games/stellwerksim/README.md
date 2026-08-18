@@ -8,19 +8,21 @@ Sie laeuft direkt als statische Seite und eignet sich damit fuer GitHub Pages.
 - `index.html`: Oberflaeche, Gleisplan-SVG und Script-Reihenfolge.
 - `css/style.css`: responsives Stellwerk-Design und SVG-Zustandsfarben.
 - `js/config.js`: zentrale Zugnamen, Farben, Geschwindigkeitsstufen, Grundstellungen und Debug-Schalter.
-- `js/network.js`: Gleisnetz, topografische SVG-Landschaft, vierzehn Weichen und sechs Ausweichgleise.
-- `js/train.js`: zugindividuelle Lok- und Wagenformationen sowie route-basierte Fahrzeugpositionen.
+- `js/network.js`: Gleisnetz, topografische SVG-Landschaft, fuenfzehn Weichen, Abstellbahnhof und Bergstrecke.
+- `js/train.js`: zugindividuelle Lok- und Wagenformationen, route-basierte Fahrzeugpositionen und Stopp per Zugklick.
 - `js/simulation.js`: Bewegung, Gleisbelegung, Weichensperren, Kollisionspruefung und Reset.
-- `js/ui.js`: Zugsteuerungen, Geschwindigkeitsregler und Crash-Overlay.
+- `js/map-viewport.js`: internes Zoomen und Verschieben der Gleiskarte per Rad, Tasten, Drag und Touch.
+- `js/ui.js`: kompakte Zugsteuerungen, Geschwindigkeitsregler und Crash-Overlay.
 - `js/main.js`: Zusammensetzen und Animationsschleife.
 
 ## Gleismodell
 
 Jeder sichtbare Strich im SVG ist ein eigenes `TrackSegment` mit ID, Anfangs- und Endpunkt,
-Standardnachfolger und Belegungszustand. Die drei Ringe, die acht Ringwechsel und die sechs
-durchgehenden Ausweichgleise werden aus denselben Segmenten aufgebaut, die auch die Simulation
-verwendet. Das Gleisbild erhaelt darunter eine prozedural aufgebaute Topografie aus Wiesen,
-Baumgruppen, Bergen und See.
+Standardnachfolger und Belegungszustand. Die drei Ringe, die acht Ringwechsel, der obere
+Abstellbahnhof mit sechs parallelen Gleisen und die offene Berg-Stichstrecke werden aus denselben
+Segmenten aufgebaut, die auch die Simulation verwendet. Alle Abzweige nutzen Bezier-Kurven,
+damit Gleisuebergaenge und Weichen sichtbar weich verlaufen. Das Gleisbild erhaelt darunter eine
+prozedural aufgebaute Topografie aus Wiesen, Baumgruppen, Bach, Bergen, Felsen und See.
 
 Eine Weiche besitzt ein Quellsegment, einen geraden Nachfolger und einen abzweigenden Nachfolger.
 Der jeweilige Zugkopf liest die aktuelle Stellung nur beim Verlassen des Quellsegments. Alle Wagen
@@ -32,12 +34,27 @@ Die acht Ringweichen sind in beiden Fahrtrichtungen Teil des Graphen. Im Uhrzeig
 und `W5` vom aeusseren auf den mittleren Ring, `W2` und `W6` vom mittleren auf den inneren Ring,
 `W4` und `W8` vom inneren zurueck auf den mittleren Ring sowie `W3` und `W7` vom mittleren auf
 den aeusseren Ring. In Gegenrichtung gelten die jeweiligen Verbindungen umgekehrt. `W9` bis
-`W14` verbinden die sechs Startgleise mit dem aeusseren Ring. Beim Richtungswechsel bleibt die
-optische Zugformation erhalten: Die Lok dreht nicht, sondern der ganze Zug faehrt rueckwaerts.
+`W14` verbinden die sechs parallelen Abstellgleise im oberen Bereich mit dem aeusseren Ring.
+`W15` fuehrt auf die offene Bergstrecke mit dem Bahnhof `Littsdingen`; am Ende der Strecke haelt
+ein Zug am Prellbock und kann rueckwaerts zurueckfahren. Beim Richtungswechsel bleibt die optische
+Zugformation erhalten: Die Lok dreht nicht, sondern der ganze Zug faehrt rueckwaerts.
 
 Die Belegungsberechnung liefert eine gemeinsame Quelle fuer zugfarbene LED-Gleisabschnitte,
 Weichensperren und die Kollisionspruefung. Die Animation benutzt `requestAnimationFrame()` mit
 Delta-Time und kurzen Simulationsschritten, damit bei Stufe 5 keine Kollision uebersprungen wird.
+Abstellweichen sperren nur ihre unmittelbaren Ein- und Ausfahrbereiche, nicht den ganzen
+Abstellgleisabschnitt.
+
+## Bedienung
+
+Die sechs Zugpulte liegen im Desktop-Layout links und rechts neben der Karte. Ein Klick oder
+Antippen eines fahrenden Zuges setzt ihn sofort auf `Halt` und Fahrstufe `0`; ein stehender Zug
+wird dadurch nicht erneut gestartet.
+
+Die Karte selbst zoomt von 50 % bis 250 %: Mausrad und Pinch-Geste zoomen um den Beruehrpunkt,
+Drag verschiebt die vergroesserte Karte. Die Tasten `+`, `-` und `Reset` bleiben dabei fest am
+Kartenrand. Weichen und Zuege verwenden SVG-Pointer-Ereignisse und bleiben nach dem Zoomen exakt
+bedienbar.
 
 ## Erweiterungen
 

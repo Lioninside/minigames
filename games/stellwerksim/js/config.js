@@ -30,13 +30,14 @@
     ]),
     stations: Object.freeze([
       Object.freeze({ id: "loksart", name: "LOKSART", color: "#d75a5a", routeId: "outer", point: Object.freeze({ x: 500, y: 70 }), labelOffset: Object.freeze({ x: 132, y: -54 }), queueOffset: Object.freeze({ x: 26, y: 34 }) }),
-      Object.freeze({ id: "vagon", name: "VAGON", color: "#4c9aff", routeId: "outer", point: Object.freeze({ x: 500, y: 1530 }), labelOffset: Object.freeze({ x: -132, y: -54 }), queueOffset: Object.freeze({ x: -74, y: 34 }) })
+      Object.freeze({ id: "vagon", name: "VAGON", color: "#4c9aff", routeId: "outer", point: Object.freeze({ x: 500, y: 1530 }), labelOffset: Object.freeze({ x: -132, y: -54 }), queueOffset: Object.freeze({ x: -74, y: 34 }) }),
+      Object.freeze({ id: "littsdingen", name: "Littsdingen", color: "#d79a35", routeId: "mountain", point: Object.freeze({ x: 57, y: 1240 }), labelOffset: Object.freeze({ x: 0, y: 45 }), queueOffset: Object.freeze({ x: -72, y: -43 }) })
     ]),
     switchDefaults: Object.freeze({
       W1: "straight", W2: "straight", W3: "straight", W4: "straight",
       W5: "straight", W6: "straight", W7: "straight", W8: "straight",
       W9: "straight", W10: "straight", W11: "straight", W12: "straight",
-      W13: "straight", W14: "straight"
+      W13: "straight", W14: "straight", W15: "straight"
     })
   });
 }());
