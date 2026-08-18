@@ -1,18 +1,18 @@
 :root {
-  --page: #101517;
-  --surface: #161e20;
-  --surface-raised: #1c272a;
-  --surface-soft: #202c30;
-  --line: #3b4b4e;
-  --ink: #e9f0eb;
-  --muted: #9dacaa;
-  --green: #72c7a0;
-  --cyan: #72bfc4;
-  --amber: #e3be70;
-  --occupied: #f05252;
-  --track: #819092;
-  --track-dim: #4f5b5d;
-  --focus: #f4d47c;
+  --page: #c8d0c4;
+  --surface: #e0e4dc;
+  --surface-raised: #f0f2eb;
+  --surface-soft: #f8f8f1;
+  --line: #78857a;
+  --ink: #24312a;
+  --muted: #526159;
+  --green: #397755;
+  --cyan: #316f7f;
+  --amber: #9e6d23;
+  --occupied: #bf4b4b;
+  --track: #1d2321;
+  --track-dim: #747a75;
+  --focus: #b9821b;
 }
 
 * { box-sizing: border-box; }
@@ -104,6 +104,7 @@ h2 {
   padding: 9px 12px;
   border: 1px solid var(--line);
   border-radius: 5px;
+  background: var(--surface-raised);
   color: var(--muted);
   font-size: 13px;
 }
@@ -114,12 +115,12 @@ h2 {
   flex: 0 0 auto;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 10px rgba(114, 199, 160, 0.8);
+  box-shadow: 0 0 4px rgba(55, 122, 80, 0.48);
 }
 
 .system-status.is-crashed .status-lamp {
   background: var(--occupied);
-  box-shadow: 0 0 12px rgba(240, 82, 82, 0.9);
+  box-shadow: 0 0 4px rgba(191, 75, 75, 0.72);
 }
 
 .board-section,
@@ -131,6 +132,41 @@ h2 {
 }
 
 .board-section { margin-bottom: 18px; }
+
+.board-tools {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.mode-control {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mode-buttons {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.mode-buttons button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.mode-buttons button:last-child { border-right: 0; }
+.mode-buttons button.is-active { background: rgba(61, 119, 133, 0.18); color: var(--cyan); }
 
 .legend {
   display: flex;
@@ -155,71 +191,146 @@ h2 {
 }
 
 .legend-track { background: var(--track); }
-.legend-occupied { background: var(--occupied); box-shadow: 0 0 8px rgba(240, 82, 82, 0.75); }
-.legend-switch { background: var(--amber); }
+.legend-occupied { background: #4c8fbe; box-shadow: 0 0 2px rgba(76, 143, 190, 0.55); }
+.legend-switch { background: #3d7785; }
 
 .track-viewport {
-  min-height: 460px;
-  margin-top: 14px;
+  width: min(100%, 1440px);
+  aspect-ratio: 1600 / 1000;
+  margin: 14px auto 0;
   overflow: hidden;
-  border: 1px solid #293638;
+  border: 1px solid #707873;
   border-radius: 5px;
-  background-color: #11191b;
-  background-image: linear-gradient(rgba(129, 144, 146, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(129, 144, 146, 0.045) 1px, transparent 1px);
-  background-size: 26px 26px;
+  background: #6d9a63;
+  box-shadow: inset 0 0 0 8px rgba(250, 249, 235, 0.16);
 }
 
 #trackPlan {
   display: block;
   width: 100%;
-  height: auto;
-  min-height: 460px;
+  height: 100%;
 }
 
-.track-segment {
-  stroke: var(--track);
-  stroke-linecap: butt;
-  stroke-width: 7;
-  transition: stroke 80ms linear, filter 80ms linear;
-}
+.landscape-base { fill: #5d9152; }
+.landscape-meadow { opacity: 0.9; }
+.landscape-meadow-a { fill: #80ad62; }
+.landscape-meadow-b { fill: #6c9b57; }
+.landscape-shore { fill: #b9b06a; opacity: 0.9; }
+.landscape-lake { fill: #438fb0; stroke: #b9d9dc; stroke-width: 4; }
+.landscape-water-lines { fill: none; stroke: rgba(214, 240, 235, 0.75); stroke-width: 5; stroke-linecap: round; }
+.landscape-mountain { stroke: #60735e; stroke-width: 2; }
+.mountain-0 { fill: #9a7e5d; }
+.mountain-1 { fill: #7e705e; }
+.mountain-2 { fill: #a88b62; }
+.landscape-ridge { fill: none; stroke: rgba(230, 225, 200, 0.6); stroke-width: 8; stroke-linecap: round; }
+.tree-shadow { fill: rgba(34, 60, 36, 0.32); }
+.tree-canopy { fill: #1f613d; stroke: #17462d; stroke-width: 1.1; }
+.tree-highlight { fill: #4d8b55; opacity: 0.86; }
 
-.track-segment.switch-inactive { stroke: var(--track-dim); }
-.track-segment.switch-selected { stroke: var(--amber); filter: drop-shadow(0 0 3px rgba(227, 190, 112, 0.75)); }
-.track-segment.occupied { stroke: var(--occupied); filter: drop-shadow(0 0 4px rgba(240, 82, 82, 0.9)); }
-.track-segment.occupied.switch-selected { stroke: var(--occupied); }
+.track-segment { transition: filter 80ms linear; }
+.track-ballast { stroke: #6b513c; stroke-width: 11; stroke-linecap: square; }
+.track-sleepers { stroke: #b08050; stroke-width: 7; stroke-dasharray: 2 8; stroke-linecap: square; opacity: 0.96; }
+.track-rail { stroke: #302a26; stroke-width: 2.3; stroke-linecap: round; transition: stroke 80ms linear, stroke-width 80ms linear; }
+.track-segment.switch-inactive .track-rail { stroke: #746960; }
+.track-segment.switch-inactive .track-sleepers { opacity: 0.5; }
+.track-segment.switch-selected { filter: drop-shadow(0 0 1px rgba(57, 119, 85, 0.45)); }
+.track-segment.switch-selected .track-rail { stroke: #386f64; }
+.track-segment.occupied .track-rail { stroke: var(--occupancy-color, #4c8fbe); stroke-width: 3.1; }
+.track-segment.occupied .track-sleepers { stroke: #d5aa6a; }
 
 .switch-control { cursor: pointer; }
 .switch-control:focus { outline: none; }
-.switch-control .switch-disc { fill: #182124; stroke: #758487; stroke-width: 1.5; }
-.switch-control .switch-label { fill: var(--ink); font-size: 13px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
-.switch-control .switch-state { fill: var(--amber); font-size: 10px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
-.switch-control:hover .switch-disc { stroke: var(--amber); stroke-width: 2.4; }
+.switch-control .switch-plate { fill: #dfe1da; stroke: #252d29; stroke-width: 1.25; }
+.switch-control .switch-label { fill: #252d29; font-size: 10px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
+.switch-control:hover .switch-plate { fill: #f4f3e9; stroke: #3d7785; stroke-width: 1.8; }
 .switch-control.is-locked { cursor: not-allowed; }
-.switch-control.is-locked .switch-disc { fill: #30393a; stroke: #697477; }
-.switch-control.is-locked .switch-state { fill: #9ca7a8; }
-.switch-control.is-locked .switch-label { fill: #bdc6c7; }
+.switch-control.is-locked .switch-plate { fill: #aeb3ae; stroke: #747a75; }
+.switch-control.is-locked .switch-label { fill: #58615b; }
 
 .yard-label {
-  fill: #7f9091;
-  font-size: 11px;
+  fill: #f3eedc;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0;
+  paint-order: stroke;
+  stroke: #31412f;
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
 
-.train-car {
-  stroke: #0c1011;
-  stroke-width: 2;
-  rx: 1.5;
-  ry: 1.5;
+.station-platform {
+  fill: var(--station-color);
+  opacity: 0.92;
+  stroke: #f0ebd6;
+  stroke-width: 1.2;
 }
 
-.train-name {
-  fill: #f1f6f2;
-  font-size: 11px;
+.station-edge { stroke: #f1cc55; stroke-width: 3; }
+
+.station-sign-panel {
+  fill: #deebc7;
+  stroke: #415945;
+  stroke-width: 1.6;
+}
+
+.station-marker {
+  fill: var(--station-color);
+  stroke: #f2f3eb;
+  stroke-width: 1;
+}
+
+.station-title {
+  fill: #f7f2df;
+  font-size: 26px;
   font-weight: 800;
   paint-order: stroke;
-  stroke: #101719;
+  stroke: #334934;
+  stroke-width: 6px;
+  stroke-linejoin: round;
+}
+
+.station-count {
+  fill: #4f5953;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.passenger-head,
+.passenger-body { fill: var(--passenger-color); stroke: #f4f3ec; stroke-width: 1.1; }
+
+.train-body { stroke: #f8f4e4; stroke-width: 1.25; stroke-linejoin: round; }
+.train-wagon-body { rx: 2.4; ry: 2.4; }
+.train-window { fill: #d7eef0; stroke: #285966; stroke-width: 0.8; }
+.train-stripe { stroke: rgba(255, 255, 255, 0.72); stroke-width: 1.2; }
+.train-wheel { fill: #252c28; stroke: #d2cfbd; stroke-width: 0.65; }
+.train-lamp { fill: #ffe58c; stroke: #7e5b22; stroke-width: 0.55; }
+
+.train-name {
+  fill: #202824;
+  font-size: 12px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: #dfe1da;
   stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.train-passenger-indicator { pointer-events: none; }
+
+.train-passenger-head,
+.train-passenger-body {
+  fill: var(--passenger-color);
+  stroke: #f4f3ec;
+  stroke-width: 0.8;
+}
+
+.train-passenger-count {
+  fill: var(--passenger-color);
+  font-size: 9px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: #202824;
+  stroke-width: 2.5px;
   stroke-linejoin: round;
 }
 
@@ -231,6 +342,19 @@ h2 {
 
 .controls-heading { margin-bottom: 13px; }
 
+.controls-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.passenger-summary {
+  color: var(--cyan);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .reset-button {
   padding: 0 12px;
   color: var(--muted);
@@ -239,7 +363,7 @@ h2 {
 
 .train-controls {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -287,6 +411,13 @@ h2 {
   margin: 3px 0 0;
   color: var(--muted);
   font-size: 12px;
+  white-space: nowrap;
+}
+
+.train-cargo {
+  margin: 3px 0 0;
+  font-size: 11px;
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -362,8 +493,7 @@ h2 {
   .board-heading,
   .controls-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
   .legend { justify-content: flex-start; }
-  .track-viewport { min-height: 360px; }
-  #trackPlan { min-height: 360px; }
+  .board-tools { align-items: flex-start; flex-direction: column; }
   .system-status { max-width: none; }
 }
 
@@ -371,8 +501,9 @@ h2 {
   h1 { font-size: 24px; }
   .board-section,
   .controls-section { padding: 12px; }
-  .track-viewport { margin-inline: -1px; min-height: 280px; overflow: auto; }
-  #trackPlan { width: 820px; min-height: 0; }
+  .track-viewport { width: 100%; aspect-ratio: auto; margin-inline: 0; overflow: auto; }
+  #trackPlan { width: 1000px; height: auto; }
+  .controls-actions { width: 100%; justify-content: space-between; }
   .train-controls { grid-template-columns: 1fr; }
   .train-card { padding: 12px; }
 }

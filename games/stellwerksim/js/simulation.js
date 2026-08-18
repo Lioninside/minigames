@@ -7,6 +7,8 @@
       this.config = config;
       this.trains = [];
       this.crashed = false;
+      this.gameMode = config.initialGameMode;
+      this.passengerService = null;
       this.onStateChange = null;
       this.onCrash = null;
       this.onMessage = null;
@@ -18,15 +20,29 @@
       this.network.resetSwitches();
       this.network.trainLayer.replaceChildren();
       this.trains = this.config.trainDefinitions.map((definition) => {
-        const initialRoute = this.network.getSidingStartRoute(definition.siding, this.config.trainLength);
+        const initialRoute = this.network.getSidingStartRoute(definition.siding, 12);
         const train = new window.Stellwerk.Train(definition, this.config, initialRoute);
         train.mount(this.network.trainLayer);
         return train;
       });
+      this.passengerService = this.gameMode === "passengers"
+        ? new window.Stellwerk.PassengerService(this.network, this.config)
+        : null;
+      this.network.setStationsVisible(this.gameMode === "passengers");
+      this.network.renderPassengerQueues(this.passengerService ? this.passengerService.passengers : []);
       this.rebuildOccupancy();
       this.render();
-      this.emitMessage("Alle fuenf Zuege stehen bereit.");
+      this.emitMessage(this.gameMode === "passengers"
+        ? "Personenverkehr: Reisende warten an den Bahnhoefen."
+        : "Freier Betrieb: Alle sechs Zuege stehen bereit.");
       this.emitStateChange();
+    }
+
+    setGameMode(mode) {
+      if (mode !== "free" && mode !== "passengers") return;
+      if (this.gameMode === mode && !this.crashed) return;
+      this.gameMode = mode;
+      this.resetSimulation();
     }
 
     getTrain(trainId) {
@@ -81,6 +97,14 @@
         this.updateSwitchLocks(occupancy);
         const collision = this.findCollision(occupancy);
         if (collision) this.crash(collision);
+        if (!this.crashed && this.passengerService) {
+          const passengerUpdate = this.passengerService.update(this.trains, step);
+          if (passengerUpdate.changed) {
+            this.network.renderPassengerQueues(this.passengerService.passengers);
+            this.emitStateChange();
+          }
+          if (passengerUpdate.message) this.emitMessage(passengerUpdate.message);
+        }
         remaining -= step;
       }
       this.render();
@@ -89,20 +113,6 @@
     advanceTrain(train, deltaSeconds) {
       if (train.direction === "stopped") return;
       let remainingDistance = this.config.speedLevels[train.speedLevel] * deltaSeconds;
-      const minimumPosition = this.config.trainLength - 1 + 0.01;
-
-      if (train.direction === "reverse") {
-        const available = train.position - minimumPosition;
-        if (remainingDistance >= available) {
-          train.position = minimumPosition;
-          train.setDirection("stopped");
-          this.emitMessage(`${train.name} steht am Prellbock.`);
-          this.emitStateChange();
-        } else {
-          train.position -= remainingDistance;
-        }
-        return;
-      }
 
       let guard = 0;
       while (remainingDistance > 0.00001 && guard < 30) {
@@ -115,14 +125,14 @@
 
         train.position = train.route.length - 0.001;
         remainingDistance -= Math.max(0, available);
-        const nextSegmentId = this.network.getSuccessor(train.route[train.route.length - 1]);
-        if (!nextSegmentId) {
+        const nextStep = this.network.getTraversalSuccessor(train.route[train.route.length - 1]);
+        if (!nextStep) {
           train.setDirection("stopped");
-          this.emitMessage(`${train.name} hat das Streckenende erreicht.`);
+          this.emitMessage(`${train.name} steht am Prellbock.`);
           this.emitStateChange();
           break;
         }
-        train.route.push(nextSegmentId);
+        train.route.push(nextStep);
       }
     }
 
@@ -182,6 +192,14 @@
 
     render() {
       this.trains.forEach((train) => train.render(this.network));
+    }
+
+    getPassengerSummary() {
+      return this.passengerService ? this.passengerService.getSummary() : null;
+    }
+
+    getTrainPassengerStatus(train) {
+      return this.passengerService ? this.passengerService.getTrainStatus(train) : null;
     }
 
     emitStateChange() {

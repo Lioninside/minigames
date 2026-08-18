@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Freie SVG-Stellwerk-Simulation mit fuenf Zuegen, Gleisbelegung und Weichen.">
+  <meta name="description" content="SVG-Stellwerk-Simulation mit freiem Betrieb und optionalem Personenverkehr.">
   <title>Stellwerksim</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -11,12 +11,12 @@
   <main class="app-shell">
     <header class="app-header">
       <div>
-        <p class="eyebrow">MINIGAMES / FREIE SIMULATION</p>
+        <p id="gameEyebrow" class="eyebrow">MINIGAMES / FREIE SIMULATION</p>
         <h1>Stellwerksim</h1>
       </div>
       <div class="system-status" aria-live="polite">
         <span class="status-lamp" aria-hidden="true"></span>
-        <span id="systemMessage">Alle fuenf Zuege stehen bereit.</span>
+        <span id="systemMessage">Freier Betrieb: Alle sechs Zuege stehen bereit.</span>
       </div>
     </header>
 
@@ -24,16 +24,25 @@
       <div class="board-heading">
         <div>
           <h2>Gleisbild</h2>
-          <p>Weichen direkt im Plan bedienen. Rot markiert belegte Gleisabschnitte.</p>
+          <p id="boardDescription">Weichen direkt im Plan bedienen. Zugfarben markieren belegte Gleisabschnitte.</p>
         </div>
-        <div class="legend" aria-label="Legende">
-          <span><i class="legend-track"></i>frei</span>
-          <span><i class="legend-occupied"></i>belegt</span>
-          <span><i class="legend-switch"></i>Fahrweg</span>
+        <div class="board-tools">
+          <div class="mode-control" role="group" aria-label="Spielmodus">
+            <span>Spielmodus</span>
+            <div class="mode-buttons">
+              <button type="button" data-game-mode="free" class="is-active">Freier Betrieb</button>
+              <button type="button" data-game-mode="passengers">Personenverkehr</button>
+            </div>
+          </div>
+          <div class="legend" aria-label="Legende">
+            <span><i class="legend-track"></i>frei</span>
+            <span><i class="legend-occupied"></i>Zugfarbe</span>
+            <span><i class="legend-switch"></i>Fahrweg</span>
+          </div>
         </div>
       </div>
       <div id="trackViewport" class="track-viewport">
-        <svg id="trackPlan" viewBox="0 0 980 820" role="img" aria-label="Interaktiver Gleisplan mit acht Weichen und fuenf Abstellgleisen"></svg>
+        <svg id="trackPlan" viewBox="0 0 1600 1000" role="img" aria-label="Interaktiver Gleisplan mit vierzehn Weichen, sechs Ausweichgleisen und zwei Bahnhoefen"></svg>
       </div>
     </section>
 
@@ -41,9 +50,12 @@
       <div class="controls-heading">
         <div>
           <h2 id="controlsTitle">Zugsteuerung</h2>
-          <p>Jeder Zug belegt auch im Halt weiterhin vier Gleisabschnitte.</p>
+          <p id="controlsDescription">Jeder Zug belegt je nach Zuglänge mehrere Gleisabschnitte.</p>
         </div>
-        <button id="resetButton" class="reset-button" type="button">Simulation zuruecksetzen</button>
+        <div class="controls-actions">
+          <span id="passengerSummary" class="passenger-summary" hidden></span>
+          <button id="resetButton" class="reset-button" type="button">Simulation zuruecksetzen</button>
+        </div>
       </div>
       <div id="trainControls" class="train-controls"></div>
     </section>
@@ -61,6 +73,7 @@
   <script src="js/config.js"></script>
   <script src="js/network.js"></script>
   <script src="js/train.js"></script>
+  <script src="js/passengers.js"></script>
   <script src="js/simulation.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>

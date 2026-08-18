@@ -15,6 +15,7 @@
     simulation.onMessage = (message) => ui.showMessage(message);
     simulation.onCrash = (trainNames) => ui.showCrash(trainNames);
     simulation.resetSimulation();
+    window.StellwerkApp = { network, simulation, ui };
 
     let previousTime = performance.now();
     function frame(now) {
