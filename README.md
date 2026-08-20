@@ -10,6 +10,7 @@ Webspace hochladen.
 |---|---|---|
 | 🎢 **Endless Coaster** | [`games/xcoaster/`](games/xcoaster/) | Achterbahn-Rennen durch 7 Welten, Fahrzeug-Shop, Schloss-Duell |
 | ⚓ **Hohe See** | [`games/ubootgame/`](games/ubootgame/) | Endlosfahrt über das Meer, Minen und U-Boote ausweichen, 12 Schiffe freischalten |
+| **TrackEditor** | [`games/trackeditor/`](games/trackeditor/) | SVG-Schienennetz-Editor mit Weichen, Validierung, Testfahrt und Level-Export |
 | **Stellwerksim** | [`games/stellwerksim/`](games/stellwerksim/) | SVG-Stellwerk mit freiem Betrieb oder Personenverkehr, fuenf Zuegen, Weichen und Kollisionsgefahr |
 
 Details zu Steuerung und Spielregeln stehen jeweils in der README des Spiels.
@@ -29,8 +30,10 @@ Details zu Steuerung und Spielregeln stehen jeweils in der README des Spiels.
 │   └── three-r128.min.js       Three.js – von allen Spielen gemeinsam genutzt
 └── games/
     ├── _template/              Vorlage zum Kopieren (kein echtes Spiel)
+    ├── trackeditor/            TrackEditor (SVG-Schienennetz-Editor)
     ├── xcoaster/               Endless Coaster (index.html + js/-Module)
-    └── ubootgame/              Hohe See (index.html + js/-Module)
+    ├── ubootgame/              Hohe See (index.html + js/-Module)
+    └── stellwerksim/           Stellwerksim (SVG-Simulation)
 ```
 
 Grundsatz: **Ein Spiel = ein Ordner unter `games/`.** Die Spiele kennen sich gegenseitig nicht und
@@ -100,7 +103,7 @@ Der Smoke-Test startet einen lokalen Server, öffnet die Startseite und **jeden*
 
 - JavaScript-Fehler und Konsolenfehler
 - fehlende Dateien (404)
-- Spielseiten, auf denen Three.js fehlt oder kein `<canvas>` entsteht
+- Spielseiten, auf denen angeforderte Three.js-Skripte fehlen oder kein `<canvas>`/`<svg>` entsteht
 
 Neue Spiele werden dabei automatisch gefunden – es muss nichts eingetragen werden. Dieselbe
 Prüfung läuft über GitHub Actions bei jedem Push.

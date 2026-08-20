@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="description" content="SVG-Schienennetz-Editor fuer gerichtete Leveldaten.">
+<title>TrackEditor</title>
+<link rel="stylesheet" href="rail-editor.css?v=20260819-ports">
+</head>
+<body class="rail-editor">
+<div class="rail-editor app">
+  <header class="topbar">
+    <div class="brand">
+      <strong>TrackEditor</strong>
+      <span id="projectLabel">level01</span>
+    </div>
+    <nav class="actions" aria-label="Aktionen">
+      <button type="button" data-action="new">Neues Netz</button>
+      <button type="button" data-action="open">Oeffnen</button>
+      <button type="button" data-action="save">Speichern</button>
+      <button type="button" data-action="undo" title="Strg+Z">Rueckgaengig</button>
+      <button type="button" data-action="redo" title="Strg+Y">Wiederholen</button>
+      <button type="button" data-action="validate" class="accent">Netz pruefen</button>
+      <button type="button" data-action="test">Testfahrt</button>
+      <button type="button" data-action="export" class="primary">Exportieren</button>
+      <button type="button" data-action="sample">Beispiel</button>
+      <button type="button" data-action="loopSample">Kreis-Beispiel</button>
+    </nav>
+    <input id="fileInput" type="file" accept=".json,.rail.json,application/json" hidden>
+  </header>
+
+  <div id="restoreNotice" class="restore-notice hidden">
+    <span>Nicht gespeicherten letzten Stand wiederherstellen?</span>
+    <button type="button" data-action="restoreAutosave">Wiederherstellen</button>
+    <button type="button" data-action="discardAutosave">Verwerfen</button>
+  </div>
+
+  <main class="layout">
+    <aside class="tools" aria-label="Werkzeuge">
+      <button type="button" data-tool="select" class="is-active">Auswahl</button>
+      <button type="button" data-tool="move">Verschieben</button>
+      <button type="button" data-tool="start">Start A</button>
+      <button type="button" data-tool="goal">Ziel B</button>
+      <button type="button" data-tool="track">Gleis</button>
+      <button type="button" data-tool="switch">Weiche</button>
+      <button type="button" data-tool="merge">Zusammenfuehrung</button>
+      <button type="button" data-tool="deadend">Sackgassen-Ende</button>
+      <button type="button" data-tool="defect">Defektes Gleis</button>
+      <button type="button" data-tool="delete">Loeschen</button>
+    </aside>
+
+    <section class="workspace" aria-label="Zeichenflaeche">
+      <div class="viewbar">
+        <button type="button" data-action="resetView">Ansicht zuruecksetzen</button>
+        <button type="button" data-action="fitView">Ganzes Netz</button>
+        <label><input id="gridToggle" type="checkbox" checked> Raster</label>
+        <label><input id="arrowToggle" type="checkbox" checked> Richtungspfeile</label>
+        <label class="speed">Testgeschwindigkeit <input id="testSpeed" type="range" min="0" max="220" value="95"></label>
+        <span id="statusMessage" class="status-message">Bereit</span>
+      </div>
+      <svg id="railSvg" viewBox="0 0 1600 900" role="img" aria-label="SVG-Zeichenflaeche fuer das Schienennetz">
+        <defs></defs>
+        <g id="tracksLayer"></g>
+        <g id="routeLayer"></g>
+        <g id="draftLayer"></g>
+        <g id="nodesLayer"></g>
+        <g id="portsLayer"></g>
+        <g id="controlsLayer"></g>
+        <g id="testLayer"></g>
+      </svg>
+    </section>
+
+    <aside class="properties" aria-label="Eigenschaften">
+      <h2>Eigenschaften</h2>
+      <div id="propertiesContent"></div>
+    </aside>
+  </main>
+
+  <footer class="check-panel">
+    <div class="check-summary">
+      <span id="statNodes">Knoten 0</span>
+      <span id="statTracks">Gleise 0</span>
+      <span id="statSwitches">Weichen 0</span>
+      <span id="statReachable">Rundkurs: nein</span>
+      <span id="statReady" class="not-ready">Export: nein</span>
+    </div>
+    <div id="issuesList" class="issues" aria-live="polite"></div>
+  </footer>
+</div>
+
+<script src="rail-validator.js?v=20260819-ports"></script>
+<script src="rail-exporter.js?v=20260819-ports"></script>
+<script src="rail-editor.js?v=20260819-ports"></script>
+</body>
+</html>
+

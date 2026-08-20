@@ -275,27 +275,20 @@
       return new THREE.Quaternion().setFromUnitVectors(Z_AXIS, flatTangent);
     }
 
-    function buildRackTrack(curve, railColor, segments = 390) {
+    function buildThreeRailTrack(curve, railColor, segments = 390) {
       const segmentLength = curve.getLength() / segments + 0.1;
       const railHeadGeometry = new THREE.BoxGeometry(0.18, 0.09, segmentLength);
       const railWebGeometry = new THREE.BoxGeometry(0.075, 0.20, segmentLength);
       const railFootGeometry = new THREE.BoxGeometry(0.25, 0.07, segmentLength);
-      const sleeperGeometry = new THREE.BoxGeometry(3.55, 0.20, 0.22);
-      const rackGeometry = new THREE.BoxGeometry(0.24, 0.30, 0.32);
       const railMaterial = new THREE.MeshStandardMaterial({ color: railColor, metalness: 0.62, roughness: 0.34 });
-      const sleeperMaterial = new THREE.MeshStandardMaterial({ color: 0x4f3827, roughness: 0.93 });
-      const rackMaterial = new THREE.MeshStandardMaterial({ color: 0xbd933d, metalness: 0.58, roughness: 0.34 });
-      const railHeads = new THREE.InstancedMesh(railHeadGeometry, railMaterial, segments * 2);
-      const railWebs = new THREE.InstancedMesh(railWebGeometry, railMaterial, segments * 2);
-      const railFeet = new THREE.InstancedMesh(railFootGeometry, railMaterial, segments * 2);
-      const sleepers = new THREE.InstancedMesh(sleeperGeometry, sleeperMaterial, segments / 2);
-      const rack = new THREE.InstancedMesh(rackGeometry, rackMaterial, segments);
+      const railHeads = new THREE.InstancedMesh(railHeadGeometry, railMaterial, segments * 3);
+      const railWebs = new THREE.InstancedMesh(railWebGeometry, railMaterial, segments * 3);
+      const railFeet = new THREE.InstancedMesh(railFootGeometry, railMaterial, segments * 3);
       const matrix = new THREE.Matrix4();
       let railIndex = 0;
-      let sleeperIndex = 0;
       for (let index = 0; index < segments; index += 1) {
         const frame = frameAt(curve, (index + 0.5) / segments);
-        [-1.16, 1.16].forEach((offset) => {
+        [-1.16, 0, 1.16].forEach((offset) => {
           const railBase = frame.point.clone().addScaledVector(frame.side, offset);
           matrix.compose(railBase.clone().addScaledVector(UP, 0.37), frame.quaternion, new THREE.Vector3(1, 1, 1));
           railHeads.setMatrixAt(railIndex, matrix);
@@ -305,25 +298,16 @@
           railFeet.setMatrixAt(railIndex, matrix);
           railIndex += 1;
         });
-        matrix.compose(frame.point.clone().addScaledVector(UP, 0.20), frame.quaternion, new THREE.Vector3(1, 1, 1));
-        rack.setMatrixAt(index, matrix);
-        if (index % 2 === 0) {
-          matrix.compose(frame.point.clone().addScaledVector(UP, 0.06), frame.quaternion, new THREE.Vector3(1, 1, 1));
-          sleepers.setMatrixAt(sleeperIndex, matrix);
-          sleeperIndex += 1;
-        }
       }
       railHeads.instanceMatrix.needsUpdate = true;
       railWebs.instanceMatrix.needsUpdate = true;
       railFeet.instanceMatrix.needsUpdate = true;
-      sleepers.instanceMatrix.needsUpdate = true;
-      rack.instanceMatrix.needsUpdate = true;
-      railHeads.castShadow = railWebs.castShadow = railFeet.castShadow = sleepers.castShadow = rack.castShadow = true;
-      scene.add(railHeads, railWebs, railFeet, sleepers, rack);
+      railHeads.castShadow = railWebs.castShadow = railFeet.castShadow = true;
+      scene.add(railHeads, railWebs, railFeet);
     }
 
-    buildRackTrack(mainTrackCurve, 0x27302f);
-    buildRackTrack(aiTrackCurve, 0x394442);
+    buildThreeRailTrack(mainTrackCurve, 0x27302f);
+    buildThreeRailTrack(aiTrackCurve, 0x394442);
 
     function makeTextSprite(text, foreground, background) {
       const canvas = document.createElement("canvas");
@@ -622,12 +606,11 @@
       const root = new THREE.Group();
       root.position.copy(frame.point).addScaledVector(frame.side, sideDirection * 1.55).addScaledVector(UP, 0.18);
       root.quaternion.copy(frame.quaternion);
-      const tie = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.14, 0.25), new THREE.MeshStandardMaterial({ color: 0x4c3628, roughness: 0.92 }));
       const blade = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.13, 3.3), new THREE.MeshStandardMaterial({ color: 0x3c7671, metalness: 0.46, roughness: 0.4 }));
       blade.position.set(sideDirection * 0.6, 0.15, 0);
       const lever = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 10), new THREE.MeshStandardMaterial({ color: 0xd8b14c, emissive: 0x5a4311, emissiveIntensity: 0.25 }));
       lever.position.set(sideDirection * 1.8, 0.45, 0);
-      root.add(tie, blade, lever);
+      root.add(blade, lever);
       root.userData = { state: false, blade, lever };
       lever.userData.switchRoot = root;
       clickTargets.push(lever);
@@ -645,7 +628,7 @@
       });
       const branch = new THREE.CatmullRomCurve3(branchPoints);
       branchCurves.push(branch);
-      buildRackTrack(branch, 0x394442, 70);
+      buildThreeRailTrack(branch, 0x394442, 70);
     }
 
     createSwitch(0.25, 1);
