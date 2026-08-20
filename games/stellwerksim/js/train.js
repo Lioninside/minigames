@@ -22,7 +22,7 @@
       this.trainExtent = this.vehicleOffsets[this.vehicleOffsets.length - 1] || 0;
       this.position = Math.min(this.route.length - 0.55, Math.max(config.initialHeadPosition, this.trainExtent + 0.55));
       this.direction = "stopped";
-      this.pathDirection = "forward";
+      this.pathDirection = definition.siding ? "reverse" : "forward";
       this.speedLevel = config.initialSpeedLevel;
       this.passengerIds = [];
       this.cargoColor = null;
@@ -32,6 +32,8 @@
       this.passengerIndicator = null;
       this.passengerCount = null;
       this.passengerVisualKey = null;
+      this.onStopRequest = null;
+      this.stopHighlightTimer = null;
     }
 
     createVehicleOffsets() {
@@ -59,6 +61,11 @@
       this.passengerCount = svgElement("text", { x: 2, y: 5, class: "train-passenger-count" });
       this.passengerIndicator.append(passengerHead, passengerBody, this.passengerCount);
       this.group.append(this.nameLabel, this.passengerIndicator);
+      this.group.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+        if (this.direction !== "stopped" && typeof this.onStopRequest === "function") this.onStopRequest(this.id);
+      });
+      this.group.addEventListener("click", (event) => event.stopPropagation());
       parent.append(this.group);
     }
 
@@ -66,10 +73,18 @@
       const group = svgElement("g", { class: `train-vehicle train-${vehicle.type}` });
       const width = vehicle.type === "locomotive" ? 19 : 38;
       const height = vehicle.type === "locomotive" ? 12 : 13;
+      const hitArea = svgElement("rect", {
+        x: -width / 2 - 7,
+        y: -height / 2 - 7,
+        width: width + 14,
+        height: height + 14,
+        fill: "transparent",
+        class: "train-hit-area"
+      });
       const body = vehicle.type === "locomotive"
         ? svgElement("path", { d: "M-10 -6 H7 L11 -3 V5 L7 6 H-10 Z", fill: vehicle.color, class: "train-body train-locomotive-body" })
         : svgElement("rect", { x: -width / 2, y: -height / 2, width, height, fill: vehicle.color, class: "train-body train-wagon-body" });
-      group.append(body);
+      group.append(hitArea, body);
 
       if (vehicle.type === "locomotive") {
         const cabWindow = svgElement("rect", { x: -4, y: -3.8, width: 5.7, height: 4.4, rx: 0.7, class: "train-window" });
@@ -105,6 +120,16 @@
 
     setSpeedLevel(level) {
       this.speedLevel = Number(level);
+    }
+
+    flashStop() {
+      if (!this.group) return;
+      this.group.classList.remove("is-direct-stopped");
+      window.requestAnimationFrame(() => this.group && this.group.classList.add("is-direct-stopped"));
+      window.clearTimeout(this.stopHighlightTimer);
+      this.stopHighlightTimer = window.setTimeout(() => {
+        if (this.group) this.group.classList.remove("is-direct-stopped");
+      }, 650);
     }
 
     getCarRoutePositions() {

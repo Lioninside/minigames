@@ -10,7 +10,10 @@
   class StellwerkUI {
     constructor(simulation) {
       this.simulation = simulation;
-      this.controlsRoot = document.getElementById("trainControls");
+      this.controlsRoots = [
+        document.getElementById("trainControlsLeft"),
+        document.getElementById("trainControlsRight")
+      ];
       this.message = document.getElementById("systemMessage");
       this.systemStatus = this.message.closest(".system-status");
       this.crashOverlay = document.getElementById("crashOverlay");
@@ -28,8 +31,8 @@
     }
 
     createTrainControls() {
-      this.controlsRoot.replaceChildren();
-      this.simulation.trains.forEach((train) => {
+      this.controlsRoots.forEach((root) => root.replaceChildren());
+      this.simulation.trains.forEach((train, index) => {
         const card = document.createElement("article");
         card.className = "train-card";
         card.innerHTML = `
@@ -46,7 +49,7 @@
           </div>
           <div class="speed-control">
             <label>Geschwindigkeit</label>
-            <input type="range" min="1" max="5" step="1" aria-label="Geschwindigkeit">
+            <input type="range" min="0" max="5" step="1" aria-label="Geschwindigkeit">
           </div>
           <div class="drive-buttons" role="group" aria-label="Fahrtrichtung">
             <button type="button" class="reverse" aria-label="Rueckwaerts" title="Rueckwaerts">&#8592;</button>
@@ -76,7 +79,7 @@
           speed: card.querySelector(".speed-readout"),
           buttons
         });
-        this.controlsRoot.append(card);
+        this.controlsRoots[index < Math.ceil(this.simulation.trains.length / 2) ? 0 : 1].append(card);
       });
     }
 

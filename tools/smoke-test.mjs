@@ -3,8 +3,8 @@
 
      - keine JavaScript-Fehler
      - keine fehlenden Dateien (404)
-     - Three.js ist verfügbar
-     - ein <canvas> wurde erzeugt (das Spiel rendert also tatsächlich)
+     - angeforderte Three.js-Skripte sind verfügbar
+     - ein <canvas> oder <svg> wurde erzeugt (das Spiel rendert also tatsächlich)
 
    Die Spiele werden aus dem Dateisystem ermittelt: Ein neuer Ordner unter games/ wird
    automatisch mitgetestet, ohne dass hier etwas eingetragen werden muss.
@@ -85,14 +85,16 @@ async function checkPage(browser, label, url, expect3d) {
 
   const state = await page.evaluate(() => ({
     three: !!window.THREE,
+    threeScript: Array.from(document.scripts).some(s => /three/i.test(s.src)),
     canvas: !!document.querySelector('canvas'),
+    svg: !!document.querySelector('svg'),
     title: document.title
   }));
 
-  // Nur Spielseiten müssen eine 3D-Szene aufbauen; die Startseite ist reines HTML.
+  // Nur Spielseiten muessen etwas Renderbares aufbauen; die Startseite ist reines HTML.
   if (expect3d) {
-    if (!state.three) problems.push('Three.js wurde nicht geladen (window.THREE fehlt)');
-    if (!state.canvas) problems.push('Kein <canvas> vorhanden - es wird nichts gerendert');
+    if (state.threeScript && !state.three) problems.push('Three.js wurde angefordert, aber nicht geladen (window.THREE fehlt)');
+    if (!state.canvas && !state.svg) problems.push('Kein <canvas> oder <svg> vorhanden - es wird nichts gerendert');
   }
 
   await page.close();

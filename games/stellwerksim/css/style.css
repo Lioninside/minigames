@@ -46,21 +46,20 @@ input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 button:disabled { cursor: not-allowed; opacity: 0.48; }
 
 .app-shell {
-  width: min(1500px, 100%);
+  width: min(1880px, 100%);
   margin: 0 auto;
-  padding: 22px;
+  padding: 14px;
 }
 
 .app-header,
-.board-heading,
-.controls-heading {
+.board-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
 }
 
-.app-header { margin-bottom: 18px; }
+.app-header { margin-bottom: 12px; }
 
 .eyebrow {
   margin: 0 0 5px;
@@ -123,22 +122,49 @@ h2 {
   box-shadow: 0 0 4px rgba(191, 75, 75, 0.72);
 }
 
-.board-section,
-.controls-section {
+.board-section {
+  min-width: 0;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--surface);
 }
 
-.board-section { margin-bottom: 18px; }
+.board-workbench {
+  display: grid;
+  grid-template-columns: minmax(190px, 226px) minmax(0, 1fr) minmax(190px, 226px);
+  align-items: start;
+  gap: 12px;
+}
+
+.control-column {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.control-column-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.control-column-heading h2 { margin: 0; }
+.control-column-heading span { color: var(--muted); font-size: 10px; font-weight: 700; white-space: nowrap; }
 
 .board-tools {
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 9px;
 }
+
+.controls-description { margin-bottom: 0; color: var(--muted); font-size: 11px; }
 
 .mode-control {
   display: grid;
@@ -195,7 +221,8 @@ h2 {
 .legend-switch { background: #3d7785; }
 
 .track-viewport {
-  width: min(100%, 1440px);
+  position: relative;
+  width: min(100%, calc((100vh - 145px) * 1.6));
   aspect-ratio: 1600 / 1000;
   margin: 14px auto 0;
   overflow: hidden;
@@ -203,26 +230,63 @@ h2 {
   border-radius: 5px;
   background: #6d9a63;
   box-shadow: inset 0 0 0 8px rgba(250, 249, 235, 0.16);
+  touch-action: none;
 }
 
 #trackPlan {
   display: block;
   width: 100%;
   height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.map-zoom-controls {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 30px);
+  gap: 4px;
+}
+
+.map-zoom-controls button {
+  min-height: 30px;
+  padding: 0;
+  border-color: rgba(55, 78, 60, 0.8);
+  background: rgba(247, 248, 237, 0.94);
+  color: #314b38;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.map-zoom-controls .map-zoom-reset {
+  grid-column: span 2;
+  font-size: 10px;
 }
 
 .landscape-base { fill: #5d9152; }
 .landscape-meadow { opacity: 0.9; }
 .landscape-meadow-a { fill: #80ad62; }
 .landscape-meadow-b { fill: #6c9b57; }
+.landscape-meadow-c { fill: #90b86b; opacity: 0.46; }
+.landscape-stream { fill: none; stroke: #70abc2; stroke-width: 15; stroke-linecap: round; opacity: 0.62; }
 .landscape-shore { fill: #b9b06a; opacity: 0.9; }
 .landscape-lake { fill: #438fb0; stroke: #b9d9dc; stroke-width: 4; }
 .landscape-water-lines { fill: none; stroke: rgba(214, 240, 235, 0.75); stroke-width: 5; stroke-linecap: round; }
-.landscape-mountain { stroke: #60735e; stroke-width: 2; }
-.mountain-0 { fill: #9a7e5d; }
-.mountain-1 { fill: #7e705e; }
-.mountain-2 { fill: #a88b62; }
-.landscape-ridge { fill: none; stroke: rgba(230, 225, 200, 0.6); stroke-width: 8; stroke-linecap: round; }
+.hill-base { fill: #80775b; stroke: rgba(86, 77, 59, 0.4); stroke-width: 2; opacity: 0.72; }
+.hill-mid { fill: #a19470; stroke: rgba(238, 225, 187, 0.28); stroke-width: 1.5; opacity: 0.72; }
+.hill-peak { fill: #c0ad7d; opacity: 0.64; }
+.hill-1 .hill-base { fill: #6f7659; }
+.hill-1 .hill-mid { fill: #8e916a; }
+.hill-1 .hill-peak { fill: #b0a874; }
+.hill-2 .hill-base { fill: #927654; }
+.hill-2 .hill-mid { fill: #ad8d65; }
+.hill-2 .hill-peak { fill: #c8a976; }
+.landscape-rock { stroke: #665d50; stroke-width: 1; }
+.rock-0 { fill: #827562; }
+.rock-1 { fill: #a0937a; }
 .tree-shadow { fill: rgba(34, 60, 36, 0.32); }
 .tree-canopy { fill: #1f613d; stroke: #17462d; stroke-width: 1.1; }
 .tree-highlight { fill: #4d8b55; opacity: 0.86; }
@@ -240,9 +304,9 @@ h2 {
 
 .switch-control { cursor: pointer; }
 .switch-control:focus { outline: none; }
-.switch-control .switch-plate { fill: #dfe1da; stroke: #252d29; stroke-width: 1.25; }
-.switch-control .switch-label { fill: #252d29; font-size: 10px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
-.switch-control:hover .switch-plate { fill: #f4f3e9; stroke: #3d7785; stroke-width: 1.8; }
+.switch-control .switch-plate { fill: #dfe1da; stroke: #252d29; stroke-width: 1.5; }
+.switch-control .switch-label { fill: #252d29; font-size: 12px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
+.switch-control:hover .switch-plate { fill: #f4f3e9; stroke: #3d7785; stroke-width: 2; }
 .switch-control.is-locked { cursor: not-allowed; }
 .switch-control.is-locked .switch-plate { fill: #aeb3ae; stroke: #747a75; }
 .switch-control.is-locked .switch-label { fill: #58615b; }
@@ -257,6 +321,21 @@ h2 {
   stroke-width: 4px;
   stroke-linejoin: round;
 }
+
+.yard-title,
+.mountain-route-label {
+  fill: #f3eedc;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  paint-order: stroke;
+  stroke: #31412f;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.mountain-route-label { fill: #f7efda; font-size: 12px; }
+.buffer-stop { stroke: #3e332b; stroke-width: 4; stroke-linecap: square; }
 
 .station-platform {
   fill: var(--station-color);
@@ -304,6 +383,8 @@ h2 {
 .train-stripe { stroke: rgba(255, 255, 255, 0.72); stroke-width: 1.2; }
 .train-wheel { fill: #252c28; stroke: #d2cfbd; stroke-width: 0.65; }
 .train-lamp { fill: #ffe58c; stroke: #7e5b22; stroke-width: 0.55; }
+.train-hit-area { cursor: pointer; pointer-events: all; }
+.train.is-direct-stopped .train-body { stroke: #ffe194; stroke-width: 3; }
 
 .train-name {
   fill: #202824;
@@ -340,12 +421,10 @@ h2 {
   pointer-events: none;
 }
 
-.controls-heading { margin-bottom: 13px; }
-
 .controls-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .passenger-summary {
@@ -356,20 +435,22 @@ h2 {
 }
 
 .reset-button {
-  padding: 0 12px;
+  width: 30px;
+  min-height: 30px;
+  padding: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 17px;
 }
 
 .train-controls {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .train-card {
   min-width: 0;
-  padding: 12px;
+  padding: 8px;
   border: 1px solid var(--line);
   border-radius: 5px;
   background: var(--surface-raised);
@@ -380,7 +461,7 @@ h2 {
   align-items: start;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .train-name-row {
@@ -401,35 +482,35 @@ h2 {
   overflow: hidden;
   margin: 0;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .train-state {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 10px;
   white-space: nowrap;
 }
 
 .train-cargo {
-  margin: 3px 0 0;
-  font-size: 11px;
+  margin: 2px 0 0;
+  font-size: 10px;
   font-weight: 800;
   white-space: nowrap;
 }
 
 .speed-readout {
   color: var(--amber);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   white-space: nowrap;
 }
 
-.speed-control { margin-bottom: 11px; }
-.speed-control label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.speed-control { margin-bottom: 7px; }
+.speed-control label { display: block; margin-bottom: 3px; color: var(--muted); font-size: 10px; font-weight: 700; }
 
 .speed-control input {
   width: 100%;
@@ -440,14 +521,14 @@ h2 {
 .drive-buttons {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 4px;
 }
 
 .drive-buttons button {
   min-width: 0;
-  min-height: 34px;
+  min-height: 27px;
   color: var(--muted);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .drive-buttons button.is-active {
@@ -483,27 +564,58 @@ h2 {
 .crash-dialog p:not(.eyebrow) { margin-bottom: 20px; color: #d9b4b4; line-height: 1.5; }
 .crash-dialog button { min-width: 190px; border-color: #f48686; background: #a63d3d; color: #fff; }
 
-@media (max-width: 1220px) {
-  .train-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1350px) {
+  .board-workbench { grid-template-columns: minmax(172px, 195px) minmax(0, 1fr) minmax(172px, 195px); }
+  .board-section { padding: 12px; }
+  .control-column { padding: 8px; }
+  .track-viewport { margin-top: 10px; }
+}
+
+@media (max-width: 1050px) {
+  .board-workbench { grid-template-columns: 164px minmax(0, 1fr) 164px; gap: 8px; }
+  .board-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .board-tools { justify-content: flex-start; }
+  .control-column-heading span { display: none; }
+  .train-card { padding: 7px; }
+  .train-card h3 { font-size: 12px; }
+  .train-state,
+  .train-cargo,
+  .speed-readout,
+  .speed-control label { font-size: 9px; }
 }
 
 @media (max-width: 820px) {
   .app-shell { padding: 12px; }
   .app-header,
-  .board-heading,
-  .controls-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .board-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .board-workbench { grid-template-columns: 1fr; }
+  .board-section { order: 1; }
+  .control-column-left { order: 2; }
+  .control-column-right { order: 3; }
+  .control-column { padding: 10px; }
+  .control-column-heading span { display: inline; }
+  .control-column .train-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .legend { justify-content: flex-start; }
-  .board-tools { align-items: flex-start; flex-direction: column; }
+  .board-tools { align-items: flex-start; }
   .system-status { max-width: none; }
+  .track-viewport { width: min(100%, calc((100vh - 220px) * 1.6)); }
 }
 
 @media (max-width: 620px) {
   h1 { font-size: 24px; }
-  .board-section,
-  .controls-section { padding: 12px; }
-  .track-viewport { width: 100%; aspect-ratio: auto; margin-inline: 0; overflow: auto; }
-  #trackPlan { width: 1000px; height: auto; }
-  .controls-actions { width: 100%; justify-content: space-between; }
-  .train-controls { grid-template-columns: 1fr; }
-  .train-card { padding: 12px; }
+  .board-section { padding: 10px; }
+  .board-tools { gap: 7px; }
+  .mode-control { width: 100%; }
+  .mode-buttons button { flex: 1; }
+  .legend { gap: 8px; font-size: 11px; }
+  .track-viewport { width: 100%; }
+  .control-column .train-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .controls-actions { width: auto; }
+}
+
+@media (max-width: 420px) {
+  .control-column .train-controls { grid-template-columns: 1fr; }
+  .board-tools { width: 100%; }
+  .legend { display: none; }
+  .map-zoom-controls { top: 7px; left: 7px; }
 }
