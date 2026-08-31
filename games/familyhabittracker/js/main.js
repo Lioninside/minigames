@@ -59,4 +59,6 @@ function habitInit() {
   window.setInterval(habitTick, 1000);
 }
 
-document.addEventListener('DOMContentLoaded', habitInit);
+/* Start, sobald das Grundgeruest steht - auch wenn das Skript erst spaeter geladen wird. */
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', habitInit);
+else habitInit();

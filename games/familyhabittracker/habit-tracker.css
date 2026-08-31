@@ -4,6 +4,7 @@
 */
 
 :root {
+  color-scheme: dark;   /* native Scrollbalken und Bedienelemente ebenfalls dunkel */
   --bg: #0d1117;
   --surface: #161d26;
   --surface-2: #1d2731;
@@ -104,7 +105,7 @@ button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
   background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
 }
 .pin-pad button:active { background: var(--surface-2); }
-.pin-pad .wide { font-size: 24px; }
+.pin-pad .wide { font-size: 17px; } /* Wort statt Symbol: ⌫ fehlt in manchen Zeichensaetzen */
 .pin-pad.is-wrong { animation: habit-shake 0.4s; }
 .pin-pad.is-wrong button { border-color: #fb7185; }
 
