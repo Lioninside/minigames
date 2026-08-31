@@ -12,6 +12,7 @@ Webspace hochladen.
 | ⚓ **Hohe See** | [`games/ubootgame/`](games/ubootgame/) | Endlosfahrt über das Meer, Minen und U-Boote ausweichen, 12 Schiffe freischalten |
 | **TrackEditor** | [`games/trackeditor/`](games/trackeditor/) | SVG-Schienennetz-Editor mit Weichen, Validierung, Testfahrt und Level-Export |
 | **Stellwerksim** | [`games/stellwerksim/`](games/stellwerksim/) | SVG-Stellwerk mit freiem Betrieb oder Personenverkehr, fuenf Zuegen, Weichen und Kollisionsgefahr |
+| ✅ **Family Habit Tracker** | [`games/familyhabittracker/`](games/familyhabittracker/) | Habit-Tracker fuer den Touchscreen zuhause: M, N und L tragen per PIN ein, was sie heute erledigt haben |
 
 Details zu Steuerung und Spielregeln stehen jeweils in der README des Spiels.
 
@@ -31,6 +32,7 @@ Details zu Steuerung und Spielregeln stehen jeweils in der README des Spiels.
 └── games/
     ├── _template/              Vorlage zum Kopieren (kein echtes Spiel)
     ├── trackeditor/            TrackEditor (SVG-Schienennetz-Editor)
+    ├── familyhabittracker/     Family Habit Tracker (Touch-Oberflaeche, kein Spiel)
     ├── xcoaster/               Endless Coaster (index.html + js/-Module)
     ├── ubootgame/              Hohe See (index.html + js/-Module)
     └── stellwerksim/           Stellwerksim (SVG-Simulation)

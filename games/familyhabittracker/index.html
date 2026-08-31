@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="description" content="Familien-Habittracker fuer den Touchscreen: M, N und L tragen ihre taeglichen Habits ein.">
+<meta name="theme-color" content="#0d1117">
+<title>Family Habit Tracker</title>
+<link rel="stylesheet" href="habit-tracker.css">
+</head>
+<body>
+
+<!-- 1. Übersicht: wer ist heute wie weit, und wer moechte eintragen -->
+<section id="screenOverview" class="screen is-active">
+  <header class="screen-head">
+    <h1>Wer trägt ein?</h1>
+    <p class="date" id="todayLabel">–</p>
+  </header>
+  <div class="user-list" id="userList"></div>
+  <p class="hint">Antippen und PIN eingeben. Eingetragen wird immer der heutige Tag.</p>
+</section>
+
+<!-- 2. PIN: drei Ziffern auf grossen Feldern -->
+<section id="screenPin" class="screen">
+  <header class="screen-head">
+    <h1><span class="badge" id="pinName">–</span> PIN eingeben</h1>
+  </header>
+
+  <div class="pin-dots" id="pinDots">
+    <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+  </div>
+
+  <div class="pin-pad" id="pinPad">
+    <button type="button" data-key="1">1</button>
+    <button type="button" data-key="2">2</button>
+    <button type="button" data-key="3">3</button>
+    <button type="button" data-key="4">4</button>
+    <button type="button" data-key="5">5</button>
+    <button type="button" data-key="6">6</button>
+    <button type="button" data-key="7">7</button>
+    <button type="button" data-key="8">8</button>
+    <button type="button" data-key="9">9</button>
+    <button type="button" class="wide" data-key="del" aria-label="Letzte Ziffer löschen">⌫</button>
+    <button type="button" data-key="0">0</button>
+  </div>
+
+  <button type="button" class="ghost" id="pinCancel">Zurück</button>
+</section>
+
+<!-- 3. Tracker: die fuenf Habits des heutigen Tages -->
+<section id="screenTracker" class="screen">
+  <header class="screen-head tracker-head">
+    <h1><span class="badge" id="trackerName">–</span> <span class="date" id="trackerDate">–</span></h1>
+    <div class="head-right">
+      <span class="session" id="sessionLabel">–</span>
+      <button type="button" class="ghost" id="trackerDone">Fertig</button>
+    </div>
+  </header>
+  <div class="habit-list" id="habitList"></div>
+  <p class="hint">Heute lässt sich alles beliebig an- und abwählen. Vergangene Tage bleiben, wie sie sind.</p>
+</section>
+
+<script src="js/habit-data.js"></script>
+<script src="js/habit-grid.js"></script>
+<script src="js/habit-screens.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
