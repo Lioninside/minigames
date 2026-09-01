@@ -51,16 +51,16 @@ function habitRenderOverview() {
     button.dataset.user = user.id;
     button.style.setProperty('--user-color', user.color);
 
+    /* Sichtbar bleibt nur die Initiale - der Stand von heute steht in der
+       obersten Zeile des Rasters. Fuer Vorlesehilfen bleibt er als Text. */
+    button.setAttribute('aria-label',
+      `${user.name}: heute ${habitCountDone(habitApp.data, user.id, todayKey)} ` +
+      `von ${user.habits.length} erledigt`);
+
     const initial = document.createElement('span');
     initial.className = 'user-initial';
     initial.textContent = user.name;
     button.appendChild(initial);
-
-    const count = document.createElement('span');
-    count.className = 'user-count';
-    count.textContent =
-      `${habitCountDone(habitApp.data, user.id, todayKey)} von ${user.habits.length} heute`;
-    button.appendChild(count);
 
     button.appendChild(habitBuildPattern(habitApp.data, user.id));
     list.appendChild(button);

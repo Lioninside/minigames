@@ -7,10 +7,8 @@
 const HABIT_GRID_WEEKS = 13;       /* Tracker: 91 Tage je Habit */
 const HABIT_PATTERN_DAYS = 30;     /* Uebersicht: 30 Tage je Person */
 const HABIT_CELL = 15;
-const HABIT_PATTERN_W = 22;        /* ein Feld je Aufgabe - breit, damit die ... */
-const HABIT_PATTERN_H = 7;         /* ... Zeile als Tag lesbar bleibt */
-const HABIT_PATTERN_GX = 4;
-const HABIT_PATTERN_GY = 2;
+const HABIT_PATTERN_SIZE = 12;     /* quadratische Felder */
+const HABIT_PATTERN_GAP = 3;
 const HABIT_GAP = 4;
 const HABIT_SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -66,13 +64,14 @@ function habitBuildGrid(data, userId, habit) {
 /* Muster fuer die Uebersicht: eine Zeile ist ein Tag, eine Spalte eine
    Aufgabe. Oben steht heute, darunter die Tage davor. Ein erfuelltes Feld
    leuchtet in der Farbe seiner Aufgabe, ein offenes bleibt gedaempft -
-   dadurch wird ueber HABIT_PATTERN_DAYS Tage sichtbar, was sich wiederholt. */
+   dadurch wird ueber HABIT_PATTERN_DAYS Tage sichtbar, was sich wiederholt.
+   Bewusst ohne Raender, Beschriftung und Markierung: die oberste Zeile ist
+   heute, alles Weitere waere Beiwerk. */
 function habitBuildPattern(data, userId) {
   const typen = habitTypesOf(userId);
-  const stepX = HABIT_PATTERN_W + HABIT_PATTERN_GX;
-  const stepY = HABIT_PATTERN_H + HABIT_PATTERN_GY;
-  const width = typen.length * stepX - HABIT_PATTERN_GX;
-  const height = HABIT_PATTERN_DAYS * stepY - HABIT_PATTERN_GY;
+  const step = HABIT_PATTERN_SIZE + HABIT_PATTERN_GAP;
+  const width = typen.length * step - HABIT_PATTERN_GAP;
+  const height = HABIT_PATTERN_DAYS * step - HABIT_PATTERN_GAP;
 
   const user = habitUserById(userId);
   const svg = habitSvg('svg', {
@@ -91,12 +90,12 @@ function habitBuildPattern(data, userId) {
     typen.forEach((habit, spalte) => {
       const done = habitIsDone(data, userId, key, habit.id);
       const feld = habitSvg('rect', {
-        x: spalte * stepX,
-        y: zeile * stepY,
-        width: HABIT_PATTERN_W,
-        height: HABIT_PATTERN_H,
-        rx: 2,
-        class: 'habit-cell' + (done ? ' is-done' : '') + (zeile === 0 ? ' is-today' : '')
+        x: spalte * step,
+        y: zeile * step,
+        width: HABIT_PATTERN_SIZE,
+        height: HABIT_PATTERN_SIZE,
+        rx: 3,
+        class: 'habit-field' + (done ? ' is-done' : '')
       });
       if (done) feld.style.fill = habit.color;
       feld.appendChild(habitSvg('title', {})).textContent =

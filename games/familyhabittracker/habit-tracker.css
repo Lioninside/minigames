@@ -68,6 +68,9 @@ button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 }
 .ghost:active { background: var(--surface); }
 .ghost.small { padding: 8px 14px; font-size: 14px; }
+/* Auf der Uebersicht soll nur das Raster sprechen - der Schalter bleibt still. */
+.ghost.quiet { background: transparent; border-color: transparent; color: var(--dim); font-weight: 500; }
+.ghost.quiet:active { background: var(--surface-2); }
 
 .danger {
   background: #fb7185; color: #1a0d10; border: 1px solid #fb7185;
@@ -80,28 +83,33 @@ button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .ghost.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .ghost.file:focus-within { outline: 3px solid var(--focus); outline-offset: 3px; }
 
-/* ---------- Übersicht ---------- */
-.user-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 18px; }
+/* ---------- Übersicht ----------
+   Nur Initiale und Raster. Die Karten sind so breit wie ihr Raster, damit
+   nichts um die Felder herum Platz beansprucht. */
+.screen-head.bare { border: 0; padding: 0; }
+
+.user-list {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start;
+  gap: 20px;
+}
 
 .user-card {
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-  padding: 26px 18px;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  width: max-content;
+  padding: 18px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 18px;
-  text-align: center;
+  border-radius: 16px;
 }
-.user-card:active { border-color: var(--user-color); transform: scale(0.99); }
+.user-card:active { border-color: var(--user-color); }
 
 .user-initial {
   display: flex; align-items: center; justify-content: center;
-  width: 92px; height: 92px; border-radius: 26px;
-  background: color-mix(in srgb, var(--user-color) 18%, transparent);
-  border: 2px solid var(--user-color);
+  width: 100%; height: 40px; border-radius: 10px;
+  background: color-mix(in srgb, var(--user-color) 16%, transparent);
   color: var(--user-color);
-  font-size: 44px; font-weight: 700;
+  font-size: 22px; font-weight: 700; letter-spacing: 0.5px;
 }
-.user-count { color: var(--dim); font-size: 15px; }
 
 /* ---------- PIN ---------- */
 #screenPin { align-items: center; justify-content: center; }
@@ -199,6 +207,7 @@ button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .habit-cell.is-today { stroke: var(--dim); stroke-width: 1.4; }
 
 .habit-pattern { display: block; }
+.habit-field { fill: var(--surface-2); }   /* erfuellte Felder bekommen ihre Farbe inline */
 
 @media (max-width: 620px) {
   .screen { padding: 20px 14px 26px; }

@@ -22,12 +22,16 @@ Wer welche Habits sieht, steht in `js/habit-data.js`: `HABIT_TYPES` ist der Kata
 
 ## Bedienung
 
-1. **Übersicht** – pro Person der heutige Stand und ein Raster der letzten 30 Tage: **eine Zeile
+1. **Übersicht** – pro Person nur die Initiale und ein Raster der letzten 30 Tage: **eine Zeile
    ist ein Tag, eine Spalte eine Aufgabe**, oben steht heute. Ein erfülltes Feld leuchtet in der
    Farbe seiner Aufgabe, ein offenes bleibt gedämpft. So wird als Muster sichtbar, was sich
    wiederholt – eine durchgehend gefüllte Spalte ist eine Aufgabe, die täglich klappt, eine leere
-   eine, die liegen bleibt. Diese Ansicht ist ohne PIN sichtbar, damit ein Blick im Vorbeigehen
-   genügt.
+   eine, die liegen bleibt.
+
+   Die Ansicht ist bewusst karg: keine Überschrift, keine Zähler, keine Ränder um die Felder und
+   keine Beschriftung. Der heutige Stand steht in der obersten Zeile, alles Weitere wäre Beiwerk.
+   Für Vorlesehilfen trägt jede Karte den Stand als `aria-label`. Ohne PIN sichtbar, damit ein
+   Blick im Vorbeigehen genügt.
 2. **PIN** – Benutzer antippen und die dreistellige Zahl auf dem Ziffernblock eingeben. Die PIN
    steht in `js/habit-data.js` (`HABIT_USERS`).
 3. **Tracker** – die eigenen Habits des heutigen Tages an- und abwählen. Daneben zeigt ein
