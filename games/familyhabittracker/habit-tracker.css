@@ -1,0 +1,172 @@
+/* ================= FAMILY HABIT TRACKER =================
+   Dunkle Oberflaeche fuer einen fest montierten Touchscreen: wenige, grosse
+   Flaechen, keine Hover-Abhaengigkeit, keine Text-Auswahl.
+*/
+
+:root {
+  color-scheme: dark;   /* native Scrollbalken und Bedienelemente ebenfalls dunkel */
+  --bg: #0d1117;
+  --surface: #161d26;
+  --surface-2: #1d2731;
+  --line: #2a3540;
+  --ink: #e9eef3;
+  --dim: #94a6b5;
+  --focus: #6fd3ff;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.4;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+/* ---------- Bildschirme ---------- */
+.screen {
+  display: none;
+  min-height: 100vh;
+  padding: 28px 24px 32px;
+  max-width: 960px;
+  margin: 0 auto;
+  flex-direction: column;
+  gap: 22px;
+}
+.screen.is-active { display: flex; }
+
+.screen-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.screen-head h1 { margin: 0; font-size: clamp(22px, 3.6vw, 30px); display: flex; align-items: center; gap: 12px; }
+.date { margin: 0; color: var(--dim); font-size: 16px; font-variant-numeric: tabular-nums; }
+.hint { margin: auto 0 0; color: var(--dim); font-size: 14px; text-align: center; }
+
+.badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 12px;
+  background: color-mix(in srgb, var(--user-color, #c084fc) 22%, transparent);
+  border: 1px solid var(--user-color, #c084fc);
+  color: var(--user-color, #c084fc);
+  font-weight: 700;
+}
+
+.ghost {
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 22px; font-weight: 600;
+}
+.ghost:active { background: var(--surface); }
+
+/* ---------- Übersicht ---------- */
+.user-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+
+.user-card {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 26px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  text-align: center;
+}
+.user-card:active { border-color: var(--user-color); transform: scale(0.99); }
+
+.user-initial {
+  display: flex; align-items: center; justify-content: center;
+  width: 92px; height: 92px; border-radius: 26px;
+  background: color-mix(in srgb, var(--user-color) 18%, transparent);
+  border: 2px solid var(--user-color);
+  color: var(--user-color);
+  font-size: 44px; font-weight: 700;
+}
+.user-count { color: var(--dim); font-size: 15px; }
+
+/* ---------- PIN ---------- */
+#screenPin { align-items: center; justify-content: center; }
+
+.pin-dots { display: flex; gap: 18px; }
+.pin-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--line); background: transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+.pin-dot.is-filled { background: var(--ink); border-color: var(--ink); }
+
+.pin-pad { display: grid; grid-template-columns: repeat(3, 96px); gap: 14px; }
+.pin-pad button {
+  height: 84px; font-size: 30px; font-weight: 600;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+}
+.pin-pad button:active { background: var(--surface-2); }
+.pin-pad .wide { font-size: 17px; } /* Wort statt Symbol: ⌫ fehlt in manchen Zeichensaetzen */
+.pin-pad.is-wrong { animation: habit-shake 0.4s; }
+.pin-pad.is-wrong button { border-color: #fb7185; }
+
+@keyframes habit-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-9px); }
+  40% { transform: translateX(9px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+/* ---------- Tracker ---------- */
+.tracker-head { border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+.head-right { display: flex; align-items: center; gap: 14px; }
+.session { color: var(--dim); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+.habit-list { display: flex; flex-direction: column; gap: 14px; }
+
+.habit-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--habit-color);
+  border-radius: 16px;
+  padding: 14px 18px;
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.habit-card.is-done { background: color-mix(in srgb, var(--habit-color) 10%, var(--surface)); }
+
+.habit-text { flex: 1 1 210px; }
+.habit-text h2 { margin: 0; font-size: 19px; font-weight: 600; }
+.habit-text p { margin: 3px 0 0; color: var(--dim); font-size: 13.5px; }
+
+.habit-toggle {
+  flex: none; margin-left: auto;
+  width: 68px; height: 68px; border-radius: 18px;
+  background: var(--surface-2);
+  border: 2px solid var(--line);
+  color: transparent;
+  font-size: 32px; line-height: 1;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.habit-card.is-done .habit-toggle {
+  background: var(--habit-color);
+  border-color: var(--habit-color);
+  color: #10151b;
+}
+.habit-toggle:active { transform: scale(0.96); }
+
+/* ---------- Punktraster ---------- */
+.habit-grid { display: block; flex: none; max-width: 100%; height: auto; }
+.habit-cell { fill: var(--surface-2); }
+.habit-cell.is-future { fill: transparent; stroke: var(--line); stroke-width: 1; }
+.habit-cell.is-today { stroke: var(--dim); stroke-width: 1.4; }
+
+.habit-dots { display: block; }
+.habit-dot { fill: var(--surface-2); }
+
+@media (max-width: 620px) {
+  .screen { padding: 20px 14px 26px; }
+  .habit-card { gap: 12px; }
+  .habit-grid { order: 3; }        /* schmales Geraet: Raster unter Text und Schalter */
+  .habit-toggle { width: 58px; height: 58px; }
+  .pin-pad { grid-template-columns: repeat(3, 84px); }
+}
