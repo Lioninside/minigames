@@ -14,7 +14,10 @@
 <section id="screenOverview" class="screen is-active">
   <header class="screen-head">
     <h1>Wer trägt ein?</h1>
-    <p class="date" id="todayLabel">–</p>
+    <div class="head-right">
+      <p class="date" id="todayLabel">–</p>
+      <button type="button" class="ghost small" id="openBackup">Sicherung</button>
+    </div>
   </header>
   <div class="user-list" id="userList"></div>
   <p class="hint">Antippen und PIN eingeben. Eingetragen wird immer der heutige Tag.</p>
@@ -60,8 +63,52 @@
   <p class="hint">Heute lässt sich alles beliebig an- und abwählen. Vergangene Tage bleiben, wie sie sind.</p>
 </section>
 
+<!-- 4. Sicherung: Verlauf als Datei ablegen oder von einem anderen Gerät einspielen -->
+<section id="screenBackup" class="screen">
+  <header class="screen-head">
+    <h1>Sicherung</h1>
+    <button type="button" class="ghost" id="backupClose">Zurück</button>
+  </header>
+
+  <div class="backup">
+    <section class="backup-block">
+      <h2>Speichern</h2>
+      <p class="backup-info" id="backupInfo">–</p>
+      <div class="backup-actions">
+        <button type="button" class="ghost" id="backupDownload">Als Datei speichern</button>
+        <button type="button" class="ghost" id="backupCopy">Text kopieren</button>
+      </div>
+      <textarea id="backupText" rows="6" readonly spellcheck="false"></textarea>
+    </section>
+
+    <section class="backup-block">
+      <h2>Einspielen</h2>
+      <p class="backup-note">
+        Eine Sicherung einzuspielen ändert auch vergangene Tage – das ist der einzige Weg dorthin.
+        Im Alltag bleibt jeder abgeschlossene Tag fest.
+      </p>
+      <div class="backup-actions">
+        <label class="ghost file">
+          Datei wählen
+          <input type="file" id="backupFile" accept="application/json,.json">
+        </label>
+        <button type="button" class="ghost" id="backupCheck">Eingefügten Text prüfen</button>
+      </div>
+      <textarea id="backupPaste" rows="4" spellcheck="false"
+                placeholder="… oder den Text einer Sicherung hier einfügen"></textarea>
+      <p class="backup-status" id="backupStatus"></p>
+      <div class="backup-actions" id="backupConfirm" hidden>
+        <button type="button" class="danger" id="backupReplace">Ersetzen</button>
+        <button type="button" class="ghost" id="backupMerge">Zusammenführen</button>
+        <button type="button" class="ghost" id="backupCancel">Abbrechen</button>
+      </div>
+    </section>
+  </div>
+</section>
+
 <script src="js/habit-data.js"></script>
 <script src="js/habit-grid.js"></script>
+<script src="js/habit-backup.js"></script>
 <script src="js/habit-screens.js"></script>
 <script src="js/main.js"></script>
 </body>

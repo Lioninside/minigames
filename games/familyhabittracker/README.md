@@ -28,6 +28,26 @@ also nur, was tatsächlich erledigt wurde.
 Nach zwei Minuten ohne Berührung geht es automatisch zurück zur Übersicht; jede Berührung im
 Tracker verlängert die Sitzung. Mit **Fertig** lässt sich sofort abmelden.
 
+## Sicherung
+
+Der Verlauf liegt im Browser genau des Geräts, an dem eingetragen wird – ein Gerätewechsel oder ein
+geleerter Browserspeicher nimmt ihn mit. Über **Sicherung** in der Übersicht lässt er sich deshalb
+ablegen und zurückholen:
+
+- **Speichern** – als Datei (`familyhabittracker-JJJJ-MM-TT.json`) oder als Text zum Kopieren. Der
+  Text steht immer daneben, weil manche Browser vom Skript ausgelöste Downloads unterbinden.
+- **Einspielen** – Datei wählen oder Text einfügen. Die Sicherung wird zuerst geprüft und
+  zusammengefasst; erst danach erscheinen die beiden Wege:
+  - **Ersetzen** stellt genau den gesicherten Stand her.
+  - **Zusammenführen** legt die Sicherung zum vorhandenen Bestand dazu und entfernt dabei nichts –
+    gedacht für zwei Geräte, auf denen unabhängig eingetragen wurde.
+
+Beim Einlesen wird streng geprüft: unbekannte Benutzer, unbekannte Habits, unmögliche Datumsangaben
+und Tage in der Zukunft werden verworfen und gezählt, statt ungeprüft in den Bestand zu wandern.
+
+Das Einspielen ist der einzige Weg, an einem vergangenen Tag etwas zu ändern – im Alltag bleibt
+jeder abgeschlossene Tag fest.
+
 ## Regeln
 
 - **Nur der heutige Tag ist änderbar.** Solange der Tag läuft, kann ein Habit beliebig oft an- und
@@ -50,7 +70,8 @@ index.html            Grundgerüst der drei Ansichten
 habit-tracker.css     dunkles Touch-Layout
 js/habit-data.js      Benutzer, Habits, Speicherung, Datums- und Serienlogik
 js/habit-grid.js      Punktraster und Tagespunkte als SVG
-js/habit-screens.js   Übersicht, PIN-Eingabe, Tracker, Sitzung
+js/habit-backup.js    Sicherung schreiben, prüfen und einspielen
+js/habit-screens.js   Übersicht, PIN-Eingabe, Tracker, Sicherung, Sitzung
 js/main.js            einzige Datei, die beim Laden startet
 ```
 
@@ -60,5 +81,5 @@ Gespeichert wird unter dem Schlüssel `familyhabittracker.data.v1` im `localStor
 { "version": 1, "users": { "M": { "2026-08-31": ["instrument", "aemtli"] } } }
 ```
 
-Die Daten liegen damit nur auf dem Gerät, auf dem eingetragen wird. Wer das Gerät ersetzt, nimmt
-den Verlauf über einen Export des `localStorage` mit – oder fängt neu an.
+Die Daten liegen damit nur auf dem Gerät, auf dem eingetragen wird. Für den Umzug auf ein anderes
+Gerät gibt es die **Sicherung** oben.
