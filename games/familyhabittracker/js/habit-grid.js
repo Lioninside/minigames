@@ -5,12 +5,14 @@
 */
 
 const HABIT_GRID_WEEKS = 13;       /* Tracker: 91 Tage je Habit */
-const HABIT_PATTERN_WEEKS = 6;     /* Uebersicht: 42 Tage je Person */
+const HABIT_PATTERN_DAYS = 30;     /* Uebersicht: 30 Tage je Person */
 const HABIT_CELL = 15;
-const HABIT_PATTERN_CELL = 14;
+const HABIT_PATTERN_W = 22;        /* ein Feld je Aufgabe - breit, damit die ... */
+const HABIT_PATTERN_H = 7;         /* ... Zeile als Tag lesbar bleibt */
+const HABIT_PATTERN_GX = 4;
+const HABIT_PATTERN_GY = 2;
 const HABIT_GAP = 4;
 const HABIT_SVG_NS = 'http://www.w3.org/2000/svg';
-const HABIT_WEEKDAYS = ['M', 'D', 'M', 'D', 'F', 'S', 'S'];
 
 function habitSvg(name, attrs) {
   const node = document.createElementNS(HABIT_SVG_NS, name);
@@ -61,69 +63,46 @@ function habitBuildGrid(data, userId, habit) {
   return svg;
 }
 
-/* Muster fuer die Uebersicht: die letzten HABIT_PATTERN_WEEKS Wochen als
-   Kalender - Wochentage als Spalten (Montag links), Wochen als Zeilen, die
-   laufende Woche unten. Ein Punkt ist ein Tag; je mehr Habits an dem Tag
-   erledigt wurden, desto kraeftiger leuchtet er in der Farbe der Person.
-   Dadurch faellt auf, was sich wiederholt - etwa ein immer offener Mittwoch. */
+/* Muster fuer die Uebersicht: eine Zeile ist ein Tag, eine Spalte eine
+   Aufgabe. Oben steht heute, darunter die Tage davor. Ein erfuelltes Feld
+   leuchtet in der Farbe seiner Aufgabe, ein offenes bleibt gedaempft -
+   dadurch wird ueber HABIT_PATTERN_DAYS Tage sichtbar, was sich wiederholt. */
 function habitBuildPattern(data, userId) {
-  const step = HABIT_PATTERN_CELL + HABIT_GAP;
-  const kopf = 13;                       // Zeile mit den Wochentagen
-  const width = 7 * step - HABIT_GAP;
-  const height = kopf + HABIT_PATTERN_WEEKS * step - HABIT_GAP;
+  const typen = habitTypesOf(userId);
+  const stepX = HABIT_PATTERN_W + HABIT_PATTERN_GX;
+  const stepY = HABIT_PATTERN_H + HABIT_PATTERN_GY;
+  const width = typen.length * stepX - HABIT_PATTERN_GX;
+  const height = HABIT_PATTERN_DAYS * stepY - HABIT_PATTERN_GY;
 
   const user = habitUserById(userId);
-  const anzahl = habitTypesOf(userId).length;
-  const farbe = user ? user.color : '#94a6b5';
-
   const svg = habitSvg('svg', {
     class: 'habit-pattern',
     viewBox: `0 0 ${width} ${height}`,
     width: width,
     height: height,
     role: 'img',
-    'aria-label': `Letzte ${HABIT_PATTERN_WEEKS * 7} Tage von ${user ? user.name : userId}`
+    'aria-label': `${user ? user.name : userId}: letzte ${HABIT_PATTERN_DAYS} Tage, ` +
+                  `eine Zeile je Tag, eine Spalte je Aufgabe`
   });
 
-  /* Ohne die Wochentage waere eine leere Spalte nicht zu deuten. */
-  HABIT_WEEKDAYS.forEach((name, i) => {
-    const label = habitSvg('text', {
-      x: i * step + HABIT_PATTERN_CELL / 2, y: kopf - 5,
-      'text-anchor': 'middle', class: 'habit-weekday'
-    });
-    label.textContent = name;
-    svg.appendChild(label);
-  });
-
-  const todayKey = habitToday();
-  const firstMonday = habitAddDays(habitMondayOf(new Date()), -(HABIT_PATTERN_WEEKS - 1) * 7);
-
-  for (let week = 0; week < HABIT_PATTERN_WEEKS; week++) {
-    for (let day = 0; day < 7; day++) {
-      const date = habitAddDays(firstMonday, week * 7 + day);
-      const key = habitDateKey(date);
-      const future = key > todayKey;
-      const done = future ? 0 : habitCountDone(data, userId, key);
-
-      const cell = habitSvg('rect', {
-        x: day * step,
-        y: kopf + week * step,
-        width: HABIT_PATTERN_CELL,
-        height: HABIT_PATTERN_CELL,
-        rx: 3,
-        class: 'habit-cell' + (done > 0 ? ' is-done' : '') + (future ? ' is-future' : '') +
-               (key === todayKey ? ' is-today' : '')
+  const heute = new Date();
+  for (let zeile = 0; zeile < HABIT_PATTERN_DAYS; zeile++) {
+    const key = habitDateKey(habitAddDays(heute, -zeile));   // oben ist heute
+    typen.forEach((habit, spalte) => {
+      const done = habitIsDone(data, userId, key, habit.id);
+      const feld = habitSvg('rect', {
+        x: spalte * stepX,
+        y: zeile * stepY,
+        width: HABIT_PATTERN_W,
+        height: HABIT_PATTERN_H,
+        rx: 2,
+        class: 'habit-cell' + (done ? ' is-done' : '') + (zeile === 0 ? ' is-today' : '')
       });
-      if (done > 0 && anzahl > 0) {
-        cell.style.fill = farbe;
-        // Ein einzelnes Haekchen bleibt sichtbar, ein voller Tag leuchtet ganz.
-        cell.style.fillOpacity = String(0.3 + 0.7 * (done / anzahl));
-      }
-      cell.appendChild(habitSvg('title', {})).textContent = future
-        ? `${habitFormatDate(key)} – noch offen`
-        : `${habitFormatDate(key)} – ${done} von ${anzahl}`;
-      svg.appendChild(cell);
-    }
+      if (done) feld.style.fill = habit.color;
+      feld.appendChild(habitSvg('title', {})).textContent =
+        `${habitFormatDate(key)} – ${habit.label}: ${done ? 'erledigt' : 'offen'}`;
+      svg.appendChild(feld);
+    });
   }
   return svg;
 }

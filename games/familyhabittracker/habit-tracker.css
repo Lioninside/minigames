@@ -81,7 +81,7 @@ button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .ghost.file:focus-within { outline: 3px solid var(--focus); outline-offset: 3px; }
 
 /* ---------- Übersicht ---------- */
-.user-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; }
+.user-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 18px; }
 
 .user-card {
   display: flex; flex-direction: column; align-items: center; gap: 12px;
@@ -199,7 +199,6 @@ button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .habit-cell.is-today { stroke: var(--dim); stroke-width: 1.4; }
 
 .habit-pattern { display: block; }
-.habit-weekday { fill: var(--dim); font-size: 9px; font-family: inherit; }
 
 @media (max-width: 620px) {
   .screen { padding: 20px 14px 26px; }
