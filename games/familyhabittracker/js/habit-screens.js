@@ -3,6 +3,7 @@
      1. Übersicht  - wer hat heute was erledigt, Auswahl des Benutzers
      2. PIN        - dreistellige Zahl auf einem grossen Ziffernblock
      3. Tracker    - die fuenf Habits des heutigen Tages an- und abwaehlen
+     4. Sicherung  - Verlauf als Datei ablegen oder wieder einspielen
 
    Nach SESSION_MS ohne Beruehrung geht es automatisch zurueck zur Übersicht,
    damit niemand versehentlich fuer jemand anderen eintraegt.
@@ -17,12 +18,13 @@ const habitApp = {
   pin: '',
   sessionEndsAt: 0,
   dayKey: '',
+  pending: null,     // geprüfte, noch nicht eingespielte Sicherung
   el: {}
 };
 
 /* ---------- Bildschirmwechsel ---------- */
 function habitShow(screen) {
-  for (const name of ['overview', 'pin', 'tracker']) {
+  for (const name of ['overview', 'pin', 'tracker', 'backup']) {
     habitApp.el[name].classList.toggle('is-active', name === screen);
   }
 }
@@ -193,4 +195,51 @@ function habitTick() {
   if (!habitApp.userId) return;
   if (Date.now() >= habitApp.sessionEndsAt) { habitGoOverview(); return; }
   habitRenderSession();
+}
+
+
+/* ---------- Sicherung ---------- */
+function habitOpenBackup() {
+  habitApp.userId = null;          // Sicherung ist kein Ort fuer eine laufende Sitzung
+  habitApp.sessionEndsAt = 0;
+  habitResetBackupImport();
+  habitApp.el.backupText.value = habitExportText(habitApp.data);
+  habitApp.el.backupInfo.textContent = habitDescribeStats(habitBackupStats(habitApp.data.users));
+  habitShow('backup');
+}
+
+function habitResetBackupImport() {
+  habitApp.pending = null;
+  habitApp.el.backupPaste.value = '';
+  habitApp.el.backupStatus.textContent = '';
+  habitApp.el.backupConfirm.hidden = true;
+}
+
+/* Prueft einen Text und zeigt, was daraus wuerde - eingespielt wird erst danach. */
+function habitCheckBackup(text) {
+  const result = habitParseBackup(text);
+  if (!result.ok) {
+    habitApp.pending = null;
+    habitApp.el.backupConfirm.hidden = true;
+    habitApp.el.backupStatus.textContent = result.error;
+    return;
+  }
+  habitApp.pending = result.users;
+  habitApp.el.backupConfirm.hidden = false;
+  habitApp.el.backupStatus.textContent =
+    `Gefunden: ${habitDescribeStats(result.stats)}` +
+    (result.ignored > 0 ? ` ${result.ignored} unbekannte Angaben werden übergangen.` : '');
+}
+
+function habitRunBackup(mode) {
+  if (!habitApp.pending) return;
+  habitApplyBackup(habitApp.data, habitApp.pending, mode);
+  const stats = habitBackupStats(habitApp.data.users);
+  habitResetBackupImport();
+  habitApp.el.backupText.value = habitExportText(habitApp.data);
+  habitApp.el.backupInfo.textContent = habitDescribeStats(stats);
+  habitApp.el.backupStatus.textContent =
+    mode === 'replace' ? 'Sicherung eingespielt, bisheriger Stand ersetzt.'
+                       : 'Sicherung dazugelegt, nichts wurde entfernt.';
+  habitRenderOverview();
 }

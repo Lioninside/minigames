@@ -16,6 +16,9 @@
 
 * { box-sizing: border-box; }
 
+/* Ohne diese Zeile wuerde display:flex weiter unten das hidden-Attribut aushebeln. */
+[hidden] { display: none !important; }
+
 html, body { height: 100%; }
 
 body {
@@ -64,6 +67,18 @@ button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
   border-radius: 12px; padding: 12px 22px; font-weight: 600;
 }
 .ghost:active { background: var(--surface); }
+.ghost.small { padding: 8px 14px; font-size: 14px; }
+
+.danger {
+  background: #fb7185; color: #1a0d10; border: 1px solid #fb7185;
+  border-radius: 12px; padding: 12px 22px; font-weight: 700;
+}
+.danger:active { background: #f2596f; }
+
+/* Dateiauswahl sieht aus wie die uebrigen Schalter, das Feld selbst bleibt verborgen. */
+.ghost.file { display: inline-flex; align-items: center; cursor: pointer; }
+.ghost.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ghost.file:focus-within { outline: 3px solid var(--focus); outline-offset: 3px; }
 
 /* ---------- Übersicht ---------- */
 .user-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
@@ -153,6 +168,29 @@ button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
   color: #10151b;
 }
 .habit-toggle:active { transform: scale(0.96); }
+
+/* ---------- Sicherung ---------- */
+.backup { display: flex; flex-direction: column; gap: 22px; max-width: 640px; }
+
+.backup-block {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.backup-block h2 { margin: 0; font-size: 18px; }
+.backup-info, .backup-note, .backup-status { margin: 0; color: var(--dim); font-size: 14px; }
+.backup-status:empty { display: none; }
+
+.backup-actions { display: flex; flex-wrap: wrap; gap: 10px; position: relative; }
+
+.backup textarea {
+  width: 100%;
+  background: var(--bg); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px; font-family: ui-monospace, 'Consolas', monospace; font-size: 12.5px;
+  resize: vertical; -webkit-user-select: text; user-select: text;
+}
+.backup textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
 /* ---------- Punktraster ---------- */
 .habit-grid { display: block; flex: none; max-width: 100%; height: auto; }
