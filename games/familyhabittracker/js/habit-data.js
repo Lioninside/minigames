@@ -27,7 +27,7 @@ const HABIT_TYPES = [
 const HABIT_USERS = [
   { id: 'M', name: 'M', pin: '324', color: '#c084fc',
     habits: ['instrument', 'hausaufgaben', 'aemtli', 'zuhause', 'spezialjob'] },
-  { id: 'N', name: 'N', pin: '619', color: '#f5b83c',
+  { id: 'N', name: 'N', pin: '313', color: '#f5b83c',
     habits: ['instrument', 'hausaufgaben', 'aemtli', 'zuhause', 'spezialjob'] },
   { id: 'L', name: 'L', pin: '171', color: '#4ade80',
     habits: ['instrument', 'hausaufgaben', 'aemtli', 'zuhause', 'spezialjob'] },
