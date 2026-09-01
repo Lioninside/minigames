@@ -22,8 +22,11 @@ Wer welche Habits sieht, steht in `js/habit-data.js`: `HABIT_TYPES` ist der Kata
 
 ## Bedienung
 
-1. **Übersicht** – zeigt für alle vier, wie viele Habits sie heute schon erledigt haben. Diese
-   Ansicht ist ohne PIN sichtbar, damit ein Blick im Vorbeigehen genügt.
+1. **Übersicht** – pro Person der heutige Stand und ein Kalenderraster der letzten sechs Wochen
+   (42 Tage): Wochentage als Spalten, die laufende Woche unten. Je mehr an einem Tag erledigt
+   wurde, desto kräftiger leuchtet der Punkt in der Farbe der Person – so fällt auf, was sich
+   wiederholt, etwa ein immer offener Sonntag. Diese Ansicht ist ohne PIN sichtbar, damit ein
+   Blick im Vorbeigehen genügt.
 2. **PIN** – Benutzer antippen und die dreistellige Zahl auf dem Ziffernblock eingeben. Die PIN
    steht in `js/habit-data.js` (`HABIT_USERS`).
 3. **Tracker** – die eigenen Habits des heutigen Tages an- und abwählen. Daneben zeigt ein

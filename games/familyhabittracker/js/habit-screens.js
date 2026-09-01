@@ -62,7 +62,7 @@ function habitRenderOverview() {
       `${habitCountDone(habitApp.data, user.id, todayKey)} von ${user.habits.length} heute`;
     button.appendChild(count);
 
-    button.appendChild(habitBuildTodayDots(habitApp.data, user.id));
+    button.appendChild(habitBuildPattern(habitApp.data, user.id));
     list.appendChild(button);
   }
 

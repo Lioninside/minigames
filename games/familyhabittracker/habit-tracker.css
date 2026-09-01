@@ -198,8 +198,8 @@ button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .habit-cell.is-future { fill: transparent; stroke: var(--line); stroke-width: 1; }
 .habit-cell.is-today { stroke: var(--dim); stroke-width: 1.4; }
 
-.habit-dots { display: block; }
-.habit-dot { fill: var(--surface-2); }
+.habit-pattern { display: block; }
+.habit-weekday { fill: var(--dim); font-size: 9px; font-family: inherit; }
 
 @media (max-width: 620px) {
   .screen { padding: 20px 14px 26px; }
