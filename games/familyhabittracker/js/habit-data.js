@@ -5,22 +5,44 @@
 
 const HABIT_STORAGE_KEY = 'familyhabittracker.data.v1';
 
-/* Die drei Benutzer. Die PIN ist bewusst kurz: das Geraet steht zuhause am
-   Touchscreen, sie verhindert nur das versehentliche Eintragen fuer jemand anderen. */
-const HABIT_USERS = [
-  { id: 'M', name: 'M', pin: '324', color: '#c084fc' },
-  { id: 'N', name: 'N', pin: '619', color: '#f5b83c' },
-  { id: 'L', name: 'L', pin: '171', color: '#4ade80' }
+/* Katalog aller Habits. Wer welche davon sieht, steht bei den Benutzern.
+   Die fuenf Farben wiederholen sich pro Person, damit die Raster gleich lesen. */
+const HABIT_TYPES = [
+  { id: 'instrument',   label: 'Instrument geübt',      icon: '🎵', color: '#c084fc' },
+  { id: 'hausaufgaben', label: 'Hausaufgaben gemacht',  icon: '📚', color: '#f5b83c' },
+  { id: 'aemtli',       label: 'Ämtli ausgeführt',      icon: '🧹', color: '#5aa9f8' },
+  { id: 'zuhause',      label: 'Rechtzeitig zu Hause',  icon: '🏠', color: '#4ade80' },
+  { id: 'spezialjob',   label: 'Spezial Job',           icon: '⭐', color: '#fb7185' },
+
+  { id: 'socken',       label: 'Socken weggeräumt',     icon: '🧦', color: '#c084fc' },
+  { id: 'kleider',      label: 'Nasse Kleider aufgehängt', icon: '👕', color: '#f5b83c' },
+  { id: 'bett',         label: 'Bett gemacht',          icon: '🛏️', color: '#5aa9f8' },
+  { id: 'handy',        label: 'Handy auf dem Regal',   icon: '📱', color: '#4ade80' },
+  { id: 'tee',          label: 'Tee gekocht',           icon: '🍵', color: '#fb7185' }
 ];
 
-/* Fuer alle drei Benutzer dieselben fuenf Habits. */
-const HABIT_TYPES = [
-  { id: 'instrument',  label: 'Instrument geübt',    icon: '🎵', color: '#c084fc' },
-  { id: 'hausaufgaben', label: 'Hausaufgaben gemacht', icon: '📚', color: '#f5b83c' },
-  { id: 'aemtli',      label: 'Ämtli ausgeführt',    icon: '🧹', color: '#5aa9f8' },
-  { id: 'zuhause',     label: 'Rechtzeitig zu Hause', icon: '🏠', color: '#4ade80' },
-  { id: 'spezialjob',  label: 'Spezial Job',          icon: '⭐', color: '#fb7185' }
+/* Die Benutzer mit ihren eigenen Habits. Die PIN ist bewusst kurz: das Geraet
+   steht zuhause am Touchscreen, sie verhindert nur das versehentliche
+   Eintragen fuer jemand anderen. */
+const HABIT_USERS = [
+  { id: 'M', name: 'M', pin: '324', color: '#c084fc',
+    habits: ['instrument', 'hausaufgaben', 'aemtli', 'zuhause', 'spezialjob'] },
+  { id: 'N', name: 'N', pin: '619', color: '#f5b83c',
+    habits: ['instrument', 'hausaufgaben', 'aemtli', 'zuhause', 'spezialjob'] },
+  { id: 'L', name: 'L', pin: '171', color: '#4ade80',
+    habits: ['instrument', 'hausaufgaben', 'aemtli', 'zuhause', 'spezialjob'] },
+  { id: 'C', name: 'C', pin: '861', color: '#2dd4bf',
+    habits: ['socken', 'kleider', 'bett', 'handy', 'tee'] }
 ];
+
+/* Die Habits einer Person, in ihrer Reihenfolge. */
+function habitTypesOf(userId) {
+  const user = HABIT_USERS.find(u => u.id === userId);
+  if (!user) return [];
+  return user.habits
+    .map(id => HABIT_TYPES.find(h => h.id === id))
+    .filter(Boolean);
+}
 
 /* ---------- Datum ----------
    Bewusst lokale Datumsfelder statt toISOString(): sonst wechselt der "Tag"
@@ -97,7 +119,7 @@ function habitIsDone(data, userId, dateKey, habitId) {
 
 function habitCountDone(data, userId, dateKey) {
   const list = habitEntriesOf(data, userId, dateKey);
-  return HABIT_TYPES.filter(h => list.indexOf(h.id) !== -1).length;
+  return habitTypesOf(userId).filter(h => list.indexOf(h.id) !== -1).length;
 }
 
 /* Setzt einen Habit fuer HEUTE. Vergangene Tage sind bewusst nicht aenderbar:

@@ -69,7 +69,6 @@ function habitParseBackup(text) {
   }
 
   const knownUsers = HABIT_USERS.map(u => u.id);
-  const knownHabits = HABIT_TYPES.map(h => h.id);
   const today = habitToday();
   const users = {};
   let ignored = 0;
@@ -78,6 +77,7 @@ function habitParseBackup(text) {
     if (knownUsers.indexOf(userId) === -1) { ignored++; continue; }
     const days = parsed.users[userId];
     if (!days || typeof days !== 'object') { ignored++; continue; }
+    const knownHabits = habitTypesOf(userId).map(h => h.id);
 
     for (const dateKey in days) {
       if (!habitValidDateKey(dateKey) || dateKey > today) { ignored++; continue; }

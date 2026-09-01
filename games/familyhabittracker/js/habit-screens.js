@@ -58,7 +58,8 @@ function habitRenderOverview() {
 
     const count = document.createElement('span');
     count.className = 'user-count';
-    count.textContent = `${habitCountDone(habitApp.data, user.id, todayKey)} von ${HABIT_TYPES.length} heute`;
+    count.textContent =
+      `${habitCountDone(habitApp.data, user.id, todayKey)} von ${user.habits.length} heute`;
     button.appendChild(count);
 
     button.appendChild(habitBuildTodayDots(habitApp.data, user.id));
@@ -129,7 +130,7 @@ function habitRenderTracker() {
   list.textContent = '';
   const todayKey = habitToday();
 
-  for (const habit of HABIT_TYPES) {
+  for (const habit of habitTypesOf(user.id)) {
     const done = habitIsDone(habitApp.data, user.id, todayKey, habit.id);
 
     const card = document.createElement('article');

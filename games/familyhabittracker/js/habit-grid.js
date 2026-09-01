@@ -62,7 +62,8 @@ function habitBuildGrid(data, userId, habit) {
 function habitBuildTodayDots(data, userId) {
   const step = 22;
   const size = 16;
-  const width = HABIT_TYPES.length * step - (step - size);
+  const typen = habitTypesOf(userId);
+  const width = typen.length * step - (step - size);
 
   const svg = habitSvg('svg', {
     class: 'habit-dots',
@@ -70,11 +71,11 @@ function habitBuildTodayDots(data, userId) {
     width: width,
     height: size,
     role: 'img',
-    'aria-label': `Heute erledigt: ${habitCountDone(data, userId, habitToday())} von ${HABIT_TYPES.length}`
+    'aria-label': `Heute erledigt: ${habitCountDone(data, userId, habitToday())} von ${typen.length}`
   });
 
   const todayKey = habitToday();
-  HABIT_TYPES.forEach((habit, i) => {
+  typen.forEach((habit, i) => {
     const done = habitIsDone(data, userId, todayKey, habit.id);
     const dot = habitSvg('rect', {
       x: i * step, y: 0, width: size, height: size, rx: 4,

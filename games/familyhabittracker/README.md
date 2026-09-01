@@ -1,29 +1,33 @@
 # Family Habit Tracker
 
 Kleiner Habit-Tracker für die Familie, gedacht für einen fest montierten Touchscreen zuhause.
-**M**, **N** und **L** tragen selbst ein, was sie an einem Tag erledigt haben.
+**M**, **N**, **L** und **C** tragen selbst ein, was sie an einem Tag erledigt haben.
 
 ## Habits
 
-| Habit | Farbe |
-|---|---|
-| 🎵 Instrument geübt | violett |
-| 📚 Hausaufgaben gemacht | gelb |
-| 🧹 Ämtli ausgeführt | blau |
-| 🏠 Rechtzeitig zu Hause | grün |
-| ⭐ Spezial Job | rot |
+Jede Person hat ihre eigene Liste. M, N und L teilen sich eine, C hat eine eigene:
 
-Für alle drei gelten dieselben fünf Habits. Standard ist immer *nicht gemacht* – eingetragen wird
-also nur, was tatsächlich erledigt wurde.
+| M, N und L | C |
+|---|---|
+| 🎵 Instrument geübt | 🧦 Socken weggeräumt |
+| 📚 Hausaufgaben gemacht | 👕 Nasse Kleider aufgehängt |
+| 🧹 Ämtli ausgeführt | 🛏️ Bett gemacht |
+| 🏠 Rechtzeitig zu Hause | 📱 Handy auf dem Regal |
+| ⭐ Spezial Job | 🍵 Tee gekocht |
+
+Standard ist immer *nicht gemacht* – eingetragen wird also nur, was tatsächlich erledigt wurde.
+
+Wer welche Habits sieht, steht in `js/habit-data.js`: `HABIT_TYPES` ist der Katalog aller Habits,
+`HABIT_USERS` gibt jeder Person ihre Liste. Eine Person umzustellen heisst dort eine Zeile ändern.
 
 ## Bedienung
 
-1. **Übersicht** – zeigt für M, N und L, wie viele Habits sie heute schon erledigt haben. Diese
+1. **Übersicht** – zeigt für alle vier, wie viele Habits sie heute schon erledigt haben. Diese
    Ansicht ist ohne PIN sichtbar, damit ein Blick im Vorbeigehen genügt.
 2. **PIN** – Benutzer antippen und die dreistellige Zahl auf dem Ziffernblock eingeben. Die PIN
    steht in `js/habit-data.js` (`HABIT_USERS`).
-3. **Tracker** – die fünf Habits des heutigen Tages an- und abwählen. Darunter zeigt ein Punktraster
-   die letzten 13 Wochen und die aktuelle Serie.
+3. **Tracker** – die eigenen Habits des heutigen Tages an- und abwählen. Daneben zeigt ein
+   Punktraster die letzten 13 Wochen und die aktuelle Serie.
 
 Nach zwei Minuten ohne Berührung geht es automatisch zurück zur Übersicht; jede Berührung im
 Tracker verlängert die Sitzung. Mit **Fertig** lässt sich sofort abmelden.
@@ -42,8 +46,9 @@ ablegen und zurückholen:
   - **Zusammenführen** legt die Sicherung zum vorhandenen Bestand dazu und entfernt dabei nichts –
     gedacht für zwei Geräte, auf denen unabhängig eingetragen wurde.
 
-Beim Einlesen wird streng geprüft: unbekannte Benutzer, unbekannte Habits, unmögliche Datumsangaben
-und Tage in der Zukunft werden verworfen und gezählt, statt ungeprüft in den Bestand zu wandern.
+Beim Einlesen wird streng geprüft: unbekannte Benutzer, unmögliche Datumsangaben, Tage in der
+Zukunft und Habits, die der jeweiligen Person gar nicht gehören, werden verworfen und gezählt,
+statt ungeprüft in den Bestand zu wandern.
 
 Das Einspielen ist der einzige Weg, an einem vergangenen Tag etwas zu ändern – im Alltag bleibt
 jeder abgeschlossene Tag fest.
@@ -78,7 +83,8 @@ js/main.js            einzige Datei, die beim Laden startet
 Gespeichert wird unter dem Schlüssel `familyhabittracker.data.v1` im `localStorage` des Browsers:
 
 ```json
-{ "version": 1, "users": { "M": { "2026-08-31": ["instrument", "aemtli"] } } }
+{ "version": 1, "users": { "M": { "2026-08-31": ["instrument", "aemtli"] },
+                           "C": { "2026-08-31": ["bett", "tee"] } } }
 ```
 
 Die Daten liegen damit nur auf dem Gerät, auf dem eingetragen wird. Für den Umzug auf ein anderes
