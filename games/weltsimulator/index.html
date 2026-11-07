@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welt-Simulator – Neu-Zürich</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="canvas-wrap"></div>
+
+<div id="menu" class="overlay">
+  <div class="card">
+    <h1>🏙️ Welt-Simulator</h1>
+    <p class="sub">
+      Neu-Zürich am Meer: 5 × 5 km Stadt mit Fluss, Klein-Venedig, Luxushotels an der Riviera,
+      Hügeln, Bergen und dem Hochschulhügel mit der ETH. Fahre mit Bus, Tram und U-Bahn
+      und betritt jedes Gebäude durch seine Haupttür.
+    </p>
+    <table class="keys">
+      <tr><td>↑ ↓</td><td>vorwärts / rückwärts gehen</td></tr>
+      <tr><td>← →</td><td>drehen</td></tr>
+      <tr><td>Maus</td><td>umschauen (ins Bild klicken)</td></tr>
+      <tr><td>Leertaste</td><td>springen (im Wasser: ans Ufer klettern)</td></tr>
+      <tr><td>Shift</td><td>rennen</td></tr>
+      <tr><td>E</td><td>Gebäude betreten / verlassen (an der Haupttür)</td></tr>
+      <tr><td>L</td><td>Lift ein- und aussteigen</td></tr>
+      <tr><td>M</td><td>Netzplan</td></tr>
+      <tr><td>V</td><td>Ego- / Verfolgeransicht</td></tr>
+      <tr><td>T</td><td>Zeitraffer an/aus</td></tr>
+    </table>
+    <p class="sub small">Bus, Tram und U-Bahn halten 10 Sekunden mit offenen Türen: einfach hineinlaufen.
+      Zum Aussteigen bei offenen Türen hinausgehen.</p>
+    <div class="loadwrap"><div id="loadbar"></div></div>
+    <div id="loadtxt">Welt wird erzeugt …</div>
+    <button id="btnStart" class="primary" disabled>Bitte warten …</button>
+  </div>
+</div>
+
+<div id="hud" class="hidden">
+  <div id="topleft" class="panel"><div id="clock"></div><div id="place"></div></div>
+  <div id="info" class="panel"></div>
+  <div id="prompt"></div>
+  <div id="crosshair"></div>
+  <canvas id="minimap" width="210" height="210"></canvas>
+  <div id="hintBar">↑↓ gehen · ←→ drehen · Klick: Maus schauen · Leertaste springen · Shift rennen · E Tür · L Lift · M Netzplan · V Ansicht · T Zeitraffer</div>
+</div>
+
+<div id="mapOverlay" class="overlay hidden">
+  <div class="mapCard">
+    <div class="mapHead">
+      <h2>Netzplan Neu-Zürich</h2>
+      <div class="legend">
+        <span><i style="background:#e30613"></i>U1</span><span><i style="background:#0069b4"></i>U2</span>
+        <span><i style="background:#00963f"></i>U3</span><span><i style="background:#f29400"></i>U4</span>
+        <span><i style="background:#1b5db5"></i>Tram 6</span><span><i class="dash"></i>Buslinien</span>
+        <span><i style="background:#e8001c;border-radius:50%"></i>Du</span>
+      </div>
+      <button id="mapClose">Schliessen (M)</button>
+    </div>
+    <canvas id="bigmap"></canvas>
+  </div>
+</div>
+
+<div id="liftMenu" class="overlay hidden">
+  <div class="liftCard">
+    <div id="liftTitle"></div>
+    <div class="liftSub">Stockwerk wählen</div>
+    <div id="liftGrid"></div>
+    <p class="liftHint">Klicken oder Pfeiltasten + Enter · Esc: Tür wieder öffnen</p>
+    <button id="liftCancel">Abbrechen</button>
+  </div>
+</div>
+
+<div id="loaderr" class="overlay hidden">
+  <div class="card">
+    <h2>3D-Bibliothek fehlt</h2>
+    <p class="sub">Weder <code>shared/three-r128.min.js</code> noch das CDN konnten geladen werden.</p>
+  </div>
+</div>
+
+<script src="../../shared/three-r128.min.js"></script>
+<script>
+  if (!window.THREE) {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+  }
+</script>
+
+<script src="js/util.js"></script>
+<script src="js/config.js"></script>
+<script src="js/terrain.js"></script>
+<script src="js/roads.js"></script>
+<script src="js/transit.js"></script>
+<script src="js/vehicles.js"></script>
+<script src="js/buildings.js"></script>
+<script src="js/nature.js"></script>
+<script src="js/interior.js"></script>
+<script src="js/sky.js"></script>
+<script src="js/traffic.js"></script>
+<script src="js/player.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
