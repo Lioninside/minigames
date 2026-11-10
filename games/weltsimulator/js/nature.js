@@ -190,10 +190,23 @@ function buildTreeMeshes(scene) {
   const leafCols = [0x4e7a2c, 0x5b8a33, 0x6a9338, 0x3f6b28, 0x76923a, 0x587f2f, 0x8a9a3c].map(c => lin(c));
   const needleCols = [0x2f5428, 0x2a4a24, 0x36602c, 0x3d5f30].map(c => lin(c));
   const groups = [
-    { list: TREES.deciduous, parts: [[G.trunk, mats.trunk, false], [G.crown, mats.leaf, true]], cols: leafCols },
-    { list: TREES.conifer, parts: [[G.cTrunk, mats.trunk, false], [G.conifer, mats.needle, true]], cols: needleCols },
-    { list: TREES.palm, parts: [[G.palmTrunk, mats.palmTrunk, false], [G.palmLeaves, mats.palmLeaf, false]], cols: null }
+    { list: TREES.deciduous, parts: [[G.trunk, mats.trunk, false], [G.crown, mats.leaf, true]], cols: leafCols, imp: [7, 9] },
+    { list: TREES.conifer, parts: [[G.cTrunk, mats.trunk, false], [G.conifer, mats.needle, true]], cols: needleCols, imp: [6, 9.5] },
+    { list: TREES.palm, parts: [[G.palmTrunk, mats.palmTrunk, false], [G.palmLeaves, mats.palmLeaf, false]], cols: null, imp: [10, 10] }
   ];
+  // Impostor je Baumart: einmal von der Seite rendern, in der Ferne als zwei gekreuzte Flächen zeigen
+  for (const grp of groups) {
+    if (!WORLD.renderer) break;
+    const [w, h] = grp.imp;
+    const tex = renderImpostor(grp.parts, w, h, !!grp.cols);
+    const g1 = new THREE.PlaneGeometry(w, h); g1.translate(0, h / 2, 0);
+    const g2 = g1.clone(); g2.rotateY(Math.PI / 2);
+    const mbI = new MB(); mbI.addGeom(g1, new THREE.Matrix4(), null); mbI.addGeom(g2, new THREE.Matrix4(), null);
+    const gi = mbI.build(); gi.deleteAttribute('color');
+    const nn = gi.attributes.normal; for (let i = 0; i < nn.count; i++) nn.setXYZ(i, 0, 1, 0);
+    grp.impGeo = gi;
+    grp.impMat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide });
+  }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const CH = 625;
   for (const grp of groups) {
@@ -205,22 +218,50 @@ function buildTreeMeshes(scene) {
     for (const [k, arr] of buckets) {
       let cx = 0, cz = 0; for (const t of arr) { cx += t.x; cz += t.z; } cx /= arr.length; cz /= arr.length;
       let rad = 0, ymin = 1e9, ymax = -1e9; for (const t of arr) { rad = Math.max(rad, Math.hypot(t.x - cx, t.z - cz)); ymin = Math.min(ymin, t.y); ymax = Math.max(ymax, t.y); }
-      for (const [geo, mat, colored] of grp.parts) {
+      const lodEntry = { x: cx, z: cz, r: rad, full: [], imp: null };
+      const parts = grp.impGeo ? grp.parts.concat([[grp.impGeo, grp.impMat, !!grp.cols, true]]) : grp.parts;
+      for (const [geo, mat, colored, isImp] of parts) {
         const g = geo.clone();
         g.boundingSphere = new THREE.Sphere(new THREE.Vector3(cx, (ymin + ymax) / 2 + 5, cz), rad + 15 + (ymax - ymin) / 2);
         const im = new THREE.InstancedMesh(g, mat, arr.length);
         arr.forEach((t, i) => {
-          q.setFromAxisAngle(up, t.r); sc.set(t.s, t.s * rr(0.9, 1.1), t.s); ps.set(t.x, t.y - 0.1, t.z);
+          if (!t.sy) t.sy = t.s * rr(0.9, 1.1);
+          q.setFromAxisAngle(up, t.r); sc.set(t.s, t.sy, t.s); ps.set(t.x, t.y - 0.1, t.z);
           m4.compose(ps, q, sc); im.setMatrixAt(i, m4);
           if (colored && grp.cols) { const c = grp.cols[Math.floor(hash2i(i, t.x | 0) * grp.cols.length)]; im.setColorAt(i, c); }
         });
         im.instanceMatrix.needsUpdate = true;
         if (im.instanceColor) im.instanceColor.needsUpdate = true;
-        im.castShadow = true; im.receiveShadow = true;
+        im.castShadow = !isImp; im.receiveShadow = true;
         scene.add(im);
+        if (isImp) { lodEntry.imp = im; im.visible = false; } else lodEntry.full.push(im);
       }
+      LOD.trees.push(lodEntry);
     }
   }
+}
+
+function renderImpostor(parts, w, h, tinted) {
+  const r = WORLD.renderer;
+  const W = 256, H = Math.round(256 * h / w);
+  const rt = new THREE.WebGLRenderTarget(W, H, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat });
+  const sc = new THREE.Scene();
+  sc.add(new THREE.AmbientLight(0xffffff, 0.75));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.55); dl.position.set(0.4, 1, 1); sc.add(dl);
+  for (const [geo, mat, colored] of parts) {
+    const m = new THREE.Mesh(geo, mat);
+    sc.add(m);
+    if (!tinted && colored) { /* keine Einfärbung */ }
+  }
+  const cam = new THREE.OrthographicCamera(-w / 2, w / 2, h, 0, -50, 50);
+  cam.position.set(0, 0, 10); cam.lookAt(0, 0, 0);
+  const oldTM = r.toneMapping, oldCol = r.getClearColor(new THREE.Color()), oldA = r.getClearAlpha(), oldEnv = sc.environment;
+  r.toneMapping = THREE.NoToneMapping;
+  r.setClearColor(0x000000, 0);
+  r.setRenderTarget(rt); r.clear(); r.render(sc, cam);
+  r.setRenderTarget(null);
+  r.toneMapping = oldTM; r.setClearColor(oldCol, oldA);
+  return rt.texture;
 }
 
 /* ---------- Parks, Brunnen, Bänke, Strand ---------- */

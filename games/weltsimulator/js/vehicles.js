@@ -2,7 +2,7 @@
    Modelle (Stadtbus, altes Zürcher Tram, mehrteilige Londoner U-Bahn), autonome Fahrt entlang
    ihrer Pfade, 10 Sekunden Halt mit offenen Türen, Hindernis-Erkennung. */
 
-const VEH = { list: [], mats: null, templates: {}, obstacles: null };
+const VEH = { list: [], mats: null, templates: {}, obstacles: new SHash(25) };
 
 function initVehicleMats() {
   const phys = (c, r, m, cc) => new THREE.MeshPhysicalMaterial({ color: c, roughness: r, metalness: m || 0, clearcoat: cc || 0, clearcoatRoughness: 0.12 });

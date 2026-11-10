@@ -271,7 +271,7 @@ function finishBuilding(b) {
 }
 
 /* ---------- Geometrie eines Gebäudes ---------- */
-function emitBuilding(cm, b) {
+function emitBuilding(cm, b, lod) {
   const st = STYLE[b.style] || STYLE.plaster;
   const bay = st.bay;
   const col = b.color;
@@ -303,7 +303,7 @@ function emitBuilding(cm, b) {
         const v0 = 0 + b.vOff, v1 = (yTop - yShop) / b.fh + b.vOff;
         if (yTop > y0 + 0.1) mbF.quadUV(P(a[0], y0, a[1]), P(c[0], y0, c[1]), P(c[0], yTop, c[1]), P(a[0], yTop, a[1]), [u0, v0], [u1, v0], [u1, v1], [u0, v1], col);
         // Gesims über dem Erdgeschoss
-        mbT.quad(P(a[0], yShop - 0.05, a[1]), P(c[0], yShop - 0.05, c[1]), P(c[0], yShop + 0.3, c[1]), P(a[0], yShop + 0.3, a[1]), null, trimCol);
+        if (!lod) mbT.quad(P(a[0], yShop - 0.05, a[1]), P(c[0], yShop - 0.05, c[1]), P(c[0], yShop + 0.3, c[1]), P(a[0], yShop + 0.3, a[1]), null, trimCol);
       } else {
         const v0 = (yBottom - b.base) / b.fh + b.vOff, v1 = (yTop - b.base) / b.fh + b.vOff;
         mbF.quadUV(P(a[0], yBottom, a[1]), P(c[0], yBottom, c[1]), P(c[0], yTop, c[1]), P(a[0], yTop, a[1]), [u0, v0], [u1, v0], [u1, v1], [u0, v1], col);
@@ -319,7 +319,7 @@ function emitBuilding(cm, b) {
         [0, 0], [t.w / 4, 0], [t.w / 4, t.d / 4], [0, t.d / 4], rc, [0, 1, 0]);
       // Brüstung
       const ph = 0.9, pt = 0.25;
-      for (let k = 0; k < 4; k++) {
+      for (let k = 0; k < (lod ? 0 : 4); k++) {
         const a = corners[k], c = corners[(k + 1) % 4];
         mbT.quad(P(a[0], yTop - 0.1, a[1]), P(c[0], yTop - 0.1, c[1]), P(c[0], yTop + ph, c[1]), P(a[0], yTop + ph, a[1]), null, col);
         // Innenseite
@@ -328,7 +328,7 @@ function emitBuilding(cm, b) {
         mbT.quad(P(a[0], yTop + ph, a[1]), P(c[0], yTop + ph, c[1]), P(ic[0], yTop + ph, ic[1]), P(ia[0], yTop + ph, ia[1]), null, trimCol);
       }
       // Dachaufbauten
-      if (isTop && t.w > 12 && t.d > 10 && !b.noClutter) {
+      if (!lod && isTop && t.w > 12 && t.d > 10 && !b.noClutter) {
         const n = ri(1, 3);
         for (let i = 0; i < n; i++) {
           const lx = t.ox + rr(-hw + 3, hw - 3), lz = t.oz + rr(-hd + 5, hd - 3);
@@ -338,6 +338,7 @@ function emitBuilding(cm, b) {
       }
     }
   }
+  if (lod) return; // Fernversion: nur Wände und Dach
   // Lifthaus
   if (!b.noLiftHouse) {
     const L = b.lift;
@@ -765,10 +766,13 @@ function emitSigns(scene) {
 function buildBuildingMeshes(scene) {
   const M = makeBuildingMaterials();
   BLD.mats = M;
-  const cm = new ChunkedMB(WS.CHUNK);
-  for (const b of BLD.list) emitBuilding(cm, b);
+  const atlas = WORLD.renderer && WORLD.renderer.capabilities.isWebGL2;
+  const CH = atlas ? 625 : WS.CHUNK;
+  const cm = new ChunkedMB(CH);
+  const cmLod = atlas ? new ChunkedMB(CH) : null;
+  for (const b of BLD.list) { emitBuilding(cm, b, false); if (cmLod) emitBuilding(cmLod, b, true); }
   // Venedig: Brücken
-  for (const br of BLD.vBridges) emitVeniceBridge(cm, br);
+  for (const br of BLD.vBridges) { emitVeniceBridge(cm, br); if (cmLod) emitVeniceBridge(cmLod, br, true); }
   // Piazza-Pflaster und Venedig-Pflaster vor dem Wasser
   const PZ = WS.PIAZZA;
   const pg = cm.get('ground', PZ.x, PZ.z);
@@ -780,9 +784,19 @@ function buildBuildingMeshes(scene) {
     const y = terrainH(st.cell.cx, st.cell.cz) + 0.04;
     emitPlazaWithHole(cm.get('ground', st.cell.cx, st.cell.cz), q, y, st);
   }
-  const mats = Object.assign({}, M);
-  const cast = {}; for (const k in M) cast[k] = k !== 'ground';
-  const meshes = cm.finish(mats, scene, { cast });
+  let meshes;
+  if (atlas) {
+    M.atlas = makeAtlasMaterial(buildAtlasTexture());
+    const near = finishAtlas(cm, M.atlas, scene, CH);
+    const far = finishAtlas(cmLod, M.atlas, scene, CH);
+    for (const k in near) LOD.bld.push(Object.assign({ near: near[k].mesh, far: far[k] ? far[k].mesh : null }, near[k].c));
+    for (const k in far) if (!near[k]) LOD.bld.push(Object.assign({ near: null, far: far[k].mesh }, far[k].c));
+    meshes = cm.finish({ ground: M.ground }, scene, {});
+  } else {
+    const mats = Object.assign({}, M);
+    const cast = {}; for (const k in M) cast[k] = k !== 'ground';
+    meshes = cm.finish(mats, scene, { cast });
+  }
   emitSpecials(scene, M);
   emitSigns(scene);
   return meshes;
@@ -813,7 +827,7 @@ function emitPlazaWithHole(mb, q, y, st) {
   }
 }
 
-function emitVeniceBridge(cm, br) {
+function emitVeniceBridge(cm, br, noDeck) {
   const mb = cm.get('trim', br.x, br.z);
   const half = br.span / 2, W = 3.4, arch = 1.7;
   const tx = -br.nz, tz = br.nx; // entlang Kanal
@@ -835,7 +849,7 @@ function emitVeniceBridge(cm, br) {
       mb.quad(P(a1, s * (W / 2 - 0.25), h1 + 0.9), P(a0, s * (W / 2 - 0.25), h0 + 0.9), P(a0, s * W / 2, h0 + 0.9), P(a1, s * W / 2, h1 + 0.9), null, col);
     }
   }
-  addDeck({ kind: 'vbridge', ox: br.x - br.nx * half, oz: br.z - br.nz * half, dx: br.nx, dz: br.nz, a0: 0, a1: br.span, hw: W / 2, h: (a) => hAt(a - half), rails: [1.5, br.span - 1.5] });
+  if (!noDeck) addDeck({ kind: 'vbridge', ox: br.x - br.nx * half, oz: br.z - br.nz * half, dx: br.nx, dz: br.nz, a0: 0, a1: br.span, hw: W / 2, h: (a) => hAt(a - half), rails: [1.5, br.span - 1.5] });
 }
 
 /* Nächste Tür in Reichweite */
@@ -862,4 +876,117 @@ function buildingLabel(b) {
   if (b.cat === 'eth') return 'ETH Hauptgebäude';
   if (b.name) return b.name;
   return cat + ', ' + (b.address || '');
+}
+
+/* ---------- Fassaden-Atlas (WebGL2: 2D-Textur-Array) ----------
+   Alle Gebäudetexturen liegen als Ebenen in einem Array. Jede Ebene kachelt für sich, deshalb
+   genügt ein einziges Material für alle Gebäude einer Kachel (ein Draw-Call statt ~17). */
+const ATLAS_LAYERS = ['f_plaster', 'f_plaster2', 'f_brick', 'f_glass', 'f_office', 'f_hotel', 'f_venice', 'f_stone', 'f_shop', 'f_lobby',
+  'door', 'wooddoor', 'liftdoor', 'roof', 'tile', 'trim'];
+const ATLAS_ROUGH = [0.85, 0.85, 0.85, 0.4, 0.85, 0.8, 0.85, 0.8, 0.6, 0.6, 0.4, 0.7, 0.3, 0.95, 0.8, 0.8];
+const ATLAS_METAL = [0, 0, 0, 0.1, 0, 0, 0, 0, 0, 0, 0.2, 0, 0.8, 0, 0, 0];
+
+function buildAtlasTexture() {
+  const S = 256, N = ATLAS_LAYERS.length;
+  const data = new Uint8Array(S * S * 4 * N);
+  const cv = makeCanvas(S, S), ctx = cv.getContext('2d');
+  ATLAS_LAYERS.forEach((k, i) => {
+    ctx.clearRect(0, 0, S, S);
+    const m = BLD.mats[k];
+    if (k === 'trim') { ctx.fillStyle = '#d9d4ca'; ctx.fillRect(0, 0, S, S); }
+    else if (m && m.map && m.map.image) ctx.drawImage(m.map.image, 0, 0, S, S);
+    // Canvas-Zeile 0 ist oben; Textur-v=1 soll oben sein -> Zeilen umdrehen
+    const px = ctx.getImageData(0, 0, S, S).data;
+    for (let y = 0; y < S; y++) data.set(px.subarray((S - 1 - y) * S * 4, (S - y) * S * 4), (i * S * S + y * S) * 4);
+  });
+  const t = new THREE.DataTexture2DArray(data, S, S, N);
+  t.format = THREE.RGBAFormat; t.type = THREE.UnsignedByteType;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter;
+  t.generateMipmaps = true; t.anisotropy = 8; t.needsUpdate = true;
+  return t;
+}
+
+function makeAtlasMaterial(tex) {
+  const dummy = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+  dummy.needsUpdate = true;
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, map: dummy, roughness: 1, metalness: 0, envMapIntensity: 1.0 });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uAtlas = { value: tex };
+    sh.uniforms.uNight = NIGHT_U;
+    sh.uniforms.uLiftCut = LIFTCUT;
+    sh.uniforms.uRough = { value: ATLAS_ROUGH };
+    sh.uniforms.uMetal = { value: ATLAS_METAL };
+    sh.vertexShader = 'attribute float aLayer;\nvarying float vLayer;\nvarying vec3 vWP;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\nvLayer = aLayer;\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = 'precision highp sampler2DArray;\nuniform sampler2DArray uAtlas;\nuniform float uNight;\nuniform vec4 uLiftCut;\nuniform float uRough[16];\nuniform float uMetal[16];\nvarying float vLayer;\nvarying vec3 vWP;\nfloat winMask = 0.0;\nint gLayer = 0;\n' +
+      sh.fragmentShader
+        .replace('void main() {', `void main() {
+          {
+            vec3 d = vWP - uLiftCut.xyz;
+            float c = cos(uLiftCut.w), s = sin(uLiftCut.w);
+            float lx = d.x * c - d.z * s, lz = d.x * s + d.z * c;
+            if (abs(lx) < 1.86 && abs(lz) < 1.86 && d.y > -0.05 && d.y < 3.25) discard;
+          }`)
+        .replace('#include <map_fragment>', `
+          gLayer = int(vLayer + 0.5);
+          vec4 texelColor = texture(uAtlas, vec3(vUv, float(gLayer)));
+          winMask = clamp((0.9 - texelColor.a) / 0.22, 0.0, 1.0);
+          texelColor.a = 1.0;
+          texelColor = sRGBToLinear(texelColor);
+          diffuseColor *= texelColor;`)
+        .replace('#include <color_fragment>', `
+          #ifdef USE_COLOR
+            diffuseColor.rgb *= mix(vColor, vec3(1.0), winMask);
+          #endif`)
+        .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(uRough[gLayer], 0.07, winMask);')
+        .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = mix(uMetal[gLayer], 0.55, winMask);')
+        .replace('#include <emissivemap_fragment>', `
+          {
+            vec2 cell = floor(vUv + vec2(0.003));
+            float hsh = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
+            float lit = step(hsh, 0.30);
+            float dim = 0.55 + 0.45 * fract(hsh * 13.7);
+            vec3 lc = mix(vec3(1.0, 0.68, 0.38), vec3(0.78, 0.86, 1.0), step(0.75, fract(hsh * 7.31)));
+            totalEmissiveRadiance += winMask * lit * uNight * lc * 1.05 * dim;
+          }`);
+  };
+  return m;
+}
+
+/* Alle Atlas-Ebenen einer Kachel zu einer Geometrie mit Ebenen-Attribut zusammenfügen */
+function finishAtlas(cm, mat, parent, CH) {
+  const groups = {};
+  for (const [k, mb] of cm.map) {
+    const li = ATLAS_LAYERS.indexOf(mb.key);
+    if (li < 0 || mb.empty()) continue;
+    const ck = k.slice(k.indexOf('|') + 1);
+    (groups[ck] = groups[ck] || []).push({ mb, li });
+  }
+  const out = {};
+  for (const ck in groups) {
+    const list = groups[ck];
+    let nv = 0, ni = 0; for (const o of list) { nv += o.mb.vc; ni += o.mb.idx.length; }
+    const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), col = new Float32Array(nv * 3), lay = new Float32Array(nv);
+    const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+    let vo = 0, io = 0;
+    for (const { mb, li } of list) {
+      pos.set(mb.p, vo * 3); nor.set(mb.n, vo * 3); uv.set(mb.uv, vo * 2); col.set(mb.c, vo * 3); lay.fill(li, vo, vo + mb.vc);
+      for (let i = 0; i < mb.idx.length; i++) idx[io + i] = mb.idx[i] + vo;
+      vo += mb.vc; io += mb.idx.length;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setAttribute('aLayer', new THREE.BufferAttribute(lay, 1));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, mat);
+    m.name = 'chunk:atlas'; m.castShadow = true; m.receiveShadow = true; m.matrixAutoUpdate = false;
+    parent.add(m);
+    const [cx, cz] = ck.split('|').map(Number);
+    out[ck] = { mesh: m, c: { x: (cx + 0.5) * CH - 2500, z: (cz + 0.5) * CH - 2500, r: CH * 0.5 } };
+  }
+  for (const k of [...cm.map.keys()]) if (ATLAS_LAYERS.includes(cm.map.get(k).key)) cm.map.delete(k);
+  return out;
 }

@@ -2,7 +2,7 @@
    Einziger Ort, der beim Laden Code ausführt: Renderer, Materialien, Welterzeugung in Schritten
    (mit Ladebalken), Eingabe, Kamera und Spielschleife. */
 
-const WORLD = { scene: null, renderer: null, camera: null, clock: null, t: 0, hudT: 0, avatar: null };
+const WORLD = { timing: [], scene: null, renderer: null, camera: null, clock: null, t: 0, hudT: 0, avatar: null };
 let MATS = {};
 let SPAWN = { x: 0, z: 0 };
 
@@ -61,8 +61,10 @@ let SPAWN = { x: 0, z: 0 };
   }
 
   function init() {
+    loadQualitySettings();
     const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.info.autoReset = false;
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -77,6 +79,10 @@ let SPAWN = { x: 0, z: 0 };
     WORLD.scene = scene; WORLD.renderer = renderer; WORLD.camera = camera; WORLD.clock = new THREE.Clock();
     window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
     initSky(scene, renderer);
+    initPost(renderer);
+    applyQuality(renderer, camera);
+    document.querySelectorAll('.qbtn').forEach(b => { b.onclick = () => { QUALITY.key = b.dataset.q; QUALITY.dyn = 1; applyQuality(renderer, camera); }; });
+    document.getElementById('qAuto').onchange = (e) => { QUALITY.auto = e.target.checked; if (!QUALITY.auto) { QUALITY.dyn = 1; applyQuality(renderer, camera); } saveQualitySettings(); };
     initHUD();
     renderer.render(scene, camera);
     generate().catch(err => { console.error(err); document.getElementById('loadtxt').textContent = 'Fehler bei der Erzeugung: ' + err.message; });
@@ -88,7 +94,7 @@ let SPAWN = { x: 0, z: 0 };
     const scene = WORLD.scene;
     const surf = new THREE.Group(); surf.name = 'surface'; scene.add(surf); WORLD.surface = surf;
     const steps = [
-      ['Landschaft und Gewässer', () => { seedRng(WS.SEED); initWater(); initReserves(); initBuildings(); initNature(); makeMats(); }],
+      ['Landschaft und Gewässer', () => { seedRng(WS.SEED); initWater(); buildHeightGrid(); initReserves(); initBuildings(); initNature(); makeMats(); }],
       ['Strassennetz', () => genRoads(planMetroStations)],
       ['Buslinien, Tram und U-Bahn planen', () => { planBusLines(); planTram(); planMetroLines(); }],
       ['Strassen, Brücken und Laternen', () => { buildRoadMeshes(surf, MATS); buildQuays(surf, MATS); MATS.pools = buildLightPools(surf); }],
@@ -96,26 +102,54 @@ let SPAWN = { x: 0, z: 0 };
       ['Stadthäuser', () => genCityBuildings()],
       ['Fassaden', () => buildBuildingMeshes(surf)],
       ['Parks, Bäume und Strand', () => { genTrees(); buildParksAndProps(surf); buildTreeMeshes(surf); buildBoats(surf); }],
-      ['U-Bahn-Stationen und Tramgleise', () => { buildMetro(scene, surf, MATS); buildTramTracks(surf); }],
+      ['Tramgleise', () => { buildTramTracks(surf); }],
       ['Gelände', () => { buildWaterMask(); buildTerrain(surf); buildWater(surf); }],
-      ['Fahrzeuge und Menschen', () => { spawnTransitVehicles(surf); spawnTraffic(surf); }],
-      ['Karte', () => { buildMapImage(); placeSpawn(); }]
+      ['Karte', () => { buildMapImage(); placeSpawn(); }],
+      ['Shader vorbereiten', () => precompile()]
+    ];
+    // Erst nach dem Start-Knopf, im Hintergrund (nicht nötig für das erste Bild)
+    const later = [
+      ['U-Bahn-Stationen', () => buildMetro(scene, surf, MATS)],
+      ['Busse, Trams und U-Bahnen', () => spawnTransitVehicles(surf)],
+      ['Autos und Fussgänger', () => spawnTraffic(surf)],
+      ['Shader der Fahrzeuge', () => precompile()]
     ];
     for (let i = 0; i < steps.length; i++) {
       txt.textContent = steps[i][0] + ' …';
       bar.style.width = Math.round(i / steps.length * 100) + '%';
       await frame();
+      const t0 = performance.now();
       steps[i][1]();
+      WORLD.timing.push([steps[i][0], Math.round(performance.now() - t0)]);
     }
     bar.style.width = '100%';
-    txt.textContent = 'Fertig: ' + BLD.list.length + ' Gebäude, ' + TRANSIT.busLines.length + ' Buslinien, ' + TRANSIT.metro.length + ' U-Bahn-Linien, 1 Tramlinie.';
     WORLD.avatar = buildAvatar(); scene.add(WORLD.avatar); WORLD.avatar.visible = false;
-    for (const v of VEH.list) v.onDoorsClose = (veh) => { const p = veh.cars[0].g.position; if (Math.hypot(p.x - P.x, p.z - P.z) < 35 && GAME.mode === 'world') sfxChime(); };
     const btn = document.getElementById('btnStart');
     btn.disabled = false; btn.textContent = 'Welt betreten';
     btn.onclick = start;
     GAME.ready = true;
+    WORLD.readyMs = Math.round(performance.now());
     requestAnimationFrame(loop);
+    for (const [label, fn] of later) {
+      txt.textContent = 'Spielbereit · im Hintergrund: ' + label + ' …';
+      await new Promise(r => setTimeout(r, 30));
+      const t0 = performance.now(); fn(); WORLD.timing.push(['(später) ' + label, Math.round(performance.now() - t0)]);
+    }
+    for (const v of VEH.list) v.onDoorsClose = (veh) => { const p = veh.cars[0].g.position; if (Math.hypot(p.x - P.x, p.z - P.z) < 35 && GAME.mode === 'world') sfxChime(); };
+    WORLD.allMs = Math.round(performance.now());
+    txt.textContent = 'Fertig: ' + BLD.list.length + ' Gebäude, ' + TRANSIT.busLines.length + ' Buslinien, ' + TRANSIT.metro.length + ' U-Bahn-Linien, 1 Tramlinie.';
+  }
+
+  /* Alle Shader schon beim Laden übersetzen (sonst ruckelt das erste Hinschauen) */
+  function precompile() {
+    const r = WORLD.renderer;
+    const oldTM = r.toneMapping;
+    if (QUALITY.cur.post && POST.ok) r.toneMapping = THREE.NoToneMapping;
+    const hidden = [];
+    WORLD.scene.traverse(o => { if (o.visible === false) { hidden.push(o); o.visible = true; } });
+    r.compile(WORLD.scene, WORLD.camera);
+    for (const o of hidden) o.visible = false;
+    r.toneMapping = oldTM;
   }
 
   function placeSpawn() {
@@ -150,6 +184,8 @@ let SPAWN = { x: 0, z: 0 };
     if (e.code === 'KeyM') toggleMap();
     if (e.code === 'KeyV') P.third = !P.third;
     if (e.code === 'KeyT') GAME.timeScale = GAME.timeScale > 1 ? 1 : 40;
+    if (e.code === 'KeyF') { QUALITY.showStats = !QUALITY.showStats; updateQualityUI(); saveQualitySettings(); }
+    if (e.code === 'KeyQ') cycleQuality(WORLD.renderer, WORLD.camera);
   });
   window.addEventListener('keyup', (e) => { KEYS[e.code] = false; });
   window.addEventListener('blur', () => { for (const k in KEYS) KEYS[k] = false; });
@@ -201,8 +237,11 @@ let SPAWN = { x: 0, z: 0 };
   let saveT = 0;
   function loop() {
     requestAnimationFrame(loop);
-    const dt = Math.min(0.05, WORLD.clock.getDelta());
+    const rawDt = WORLD.clock.getDelta();
+    const dt = Math.min(0.05, rawDt);
     const scene = WORLD.scene, renderer = WORLD.renderer, cam = WORLD.camera;
+    renderer.info.reset();
+    const Q = QUALITY.cur, usePost = Q.post && POST.ok;
     if (!GAME.paused) {
       WORLD.t += dt;
       GAME.hour = (GAME.hour + dt * 24 / (WS.DAY_MINUTES * 60) * GAME.timeScale) % 24;
@@ -246,14 +285,19 @@ let SPAWN = { x: 0, z: 0 };
       if (TRAFFIC.headMat) { TRAFFIC.headMat.emissiveIntensity = 0.2 + n * 2.0; TRAFFIC.tailMat.emissiveIntensity = 0.3 + n * 1.2; }
       for (const m of BLD.signs) m.emissiveIntensity = 0.3 + n * 1.4;
       if (VEH.mats) { VEH.mats.head.emissiveIntensity = 0.4 + n * 2; VEH.mats.ilight.emissiveIntensity = 0.9 + n * 0.8; }
-      renderer.render(scene, cam);
+      updateLOD(cam.position, dt);
+      if (usePost) renderPost(renderer, scene, cam, { ao: Q.ao, bloom: Q.bloom, fxaa: Q.fxaa, exposure: renderer.toneMappingExposure, bloomStrength: ug ? 0.22 : 0.18 + n * 0.7, bloomThreshold: ug ? 1.5 : lerp(0.92, 0.45, n) });
+      else renderer.render(scene, cam);
     } else {
       const day = 1 - SKY.night;
       INT.viewMat.color.setRGB(0.12 + 0.88 * day, 0.14 + 0.86 * day, 0.22 + 0.78 * day);
       renderer.toneMappingExposure = 1.0;
       updateInterior(WORLD.t);
-      renderer.render(INT.scene, cam);
+      if (usePost) renderPost(renderer, INT.scene, cam, { ao: Q.ao, bloom: Q.bloom, fxaa: Q.fxaa, exposure: 1.0, bloomStrength: 0.18, bloomThreshold: 1.6 });
+      else renderer.render(INT.scene, cam);
     }
+    QUALITY.lastCalls = renderer.info.render.calls; QUALITY.lastTris = renderer.info.render.triangles;
+    qualityFrame(rawDt, renderer, cam);
     if (GAME.started) {
       WORLD.hudT += dt;
       if (WORLD.hudT > 0.1) { WORLD.hudT = 0; updateHUD(); }

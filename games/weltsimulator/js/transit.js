@@ -22,8 +22,9 @@ function isReserved(x, z, m) {
 
 /* ---------- Pfad mit 1-m-Stützstellen ---------- */
 class TPath {
-  constructor(pts, marks) {
+  constructor(pts, marks, opts) {
     // pts: [[x,y,z],...] geschlossene Schleife. marks: Indizes in pts, deren s gesucht ist.
+    // opts.ds: Stützstellen-Abstand (Standard 1 m), opts.noSpeed: kein Geschwindigkeitsprofil
     const n = pts.length;
     const cum = new Float64Array(n + 1);
     for (let i = 1; i <= n; i++) {
@@ -32,7 +33,7 @@ class TPath {
     }
     this.L = cum[n];
     this.markS = (marks || []).map(i => cum[i]);
-    const m = Math.max(2, Math.ceil(this.L));
+    const m = Math.max(2, Math.ceil(this.L / ((opts && opts.ds) || 1)));
     this.n = m; this.ds = this.L / m;
     this.X = new Float32Array(m); this.Y = new Float32Array(m); this.Z = new Float32Array(m);
     let j = 0;
@@ -44,7 +45,7 @@ class TPath {
       const f = seg > 1e-6 ? (s - cum[j]) / seg : 0;
       this.X[k] = lerp(a[0], b[0], f); this.Y[k] = lerp(a[1], b[1], f); this.Z[k] = lerp(a[2], b[2], f);
     }
-    this.computeSpeed(1.6, 1.1);
+    if (!(opts && opts.noSpeed)) this.computeSpeed(1.6, 1.1);
   }
   idx(s) { let t = s / this.ds; t = ((t % this.n) + this.n) % this.n; return t; }
   at(s, out) {
@@ -374,7 +375,7 @@ function planTram() {
     marks.push(ba); stopInfo.push({ st, track: 'A', i: ba });
     marks.push(bb); stopInfo.push({ st, track: 'B', i: bb });
   }
-  tram.path = new TPath(pts3, marks);
+  tram.path = new TPath(pts3, marks, { noSpeed: true });
   tram.path.computeSpeed(1.2, 0.9);
   tram.stopList = stopInfo.map((o, k) => ({ s: tram.path.markS[k], stop: o.st, track: o.track, i: marks[k] }));
   tram.stopList.sort((a, b) => a.s - b.s);
@@ -457,7 +458,7 @@ function planMetroLines() {
     line.C = C;
     const tl = trackLoop(C, M.TL, 25, 48, 130);
     line.tl = tl;
-    line.path = new TPath(tl.loop.map(p => [p[0], line.trackY, p[1]]), []);
+    line.path = new TPath(tl.loop.map(p => [p[0], line.trackY, p[1]]), [], { noSpeed: true });
     line.path.computeSpeed(1.4, 1.0);
     // Halte: Zugmitte auf Stationsmitte, Gleis A und B
     line.stopList = [];

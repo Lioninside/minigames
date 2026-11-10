@@ -67,8 +67,31 @@ function riverDist(x, z) {
 }
 function isWaterAt(x, z) { return waterDist(x, z) < -0.5 || terrainH(x, z) < WS.WATER_Y - 0.05; }
 
-/* ---------- Höhenfunktion ---------- */
+/* ---------- Höhenraster ----------
+   Die Höhenformel ist teuer. Sie wird einmal pro Rasterpunkt gerechnet (genau die Punkte des
+   Gelände-Meshes); danach liefert terrainH() dieselben Dreiecke, die auch gezeichnet werden. */
+const TGRID = { seg: 560, step: 5000 / 560, h: null };
+function buildHeightGrid() {
+  const n = TGRID.seg + 1, h = new Float32Array(n * n), st = TGRID.step;
+  for (let iz = 0; iz < n; iz++) for (let ix = 0; ix < n; ix++) h[iz * n + ix] = terrainHRaw(-2500 + ix * st, -2500 + iz * st);
+  TGRID.h = h;
+}
 function terrainH(x, z) {
+  const H = TGRID.h;
+  if (!H) return terrainHRaw(x, z);
+  const n = TGRID.seg + 1;
+  let fx = (x + 2500) / TGRID.step, fz = (z + 2500) / TGRID.step;
+  if (fx < 0) fx = 0; else if (fx > TGRID.seg - 1e-6) fx = TGRID.seg - 1e-6;
+  if (fz < 0) fz = 0; else if (fz > TGRID.seg - 1e-6) fz = TGRID.seg - 1e-6;
+  const ix = fx | 0, iz = fz | 0, u = fx - ix, v = fz - iz;
+  const a = H[iz * n + ix], b = H[(iz + 1) * n + ix], d = H[iz * n + ix + 1], c = H[(iz + 1) * n + ix + 1];
+  // gleiche Diagonale wie PlaneGeometry (von (ix,iz+1) nach (ix+1,iz))
+  if (u + v <= 1) return a + (d - a) * u + (b - a) * v;
+  return c + (b - c) * (1 - u) + (d - c) * (1 - v);
+}
+
+/* ---------- Höhenfunktion ---------- */
+function terrainHRaw(x, z) {
   let h = WS.CITY_Y + fbm(x * 0.0009 + 3, z * 0.0009 - 7, 3) * 1.2;
   const fadeE = 1 - smooth(1250, 1950, x);
   const mw = smooth(1750, 2450, -x), mn = smooth(1750, 2450, -z) * fadeE, ms = smooth(1750, 2450, z) * fadeE;
@@ -133,15 +156,13 @@ function buildWaterMask() {
 const TERRAIN = { mesh: null, mat: null, holes: [] };
 
 function buildTerrain(scene) {
-  const SEG = 560, SIZE = 5000;
+  const SEG = TGRID.seg, SIZE = 5000;
   const g = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
   g.rotateX(-Math.PI / 2);
   const pos = g.attributes.position;
   const cols = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), z = pos.getZ(i);
-    pos.setY(i, terrainH(x, z));
-  }
+  if (!TGRID.h) buildHeightGrid();
+  for (let i = 0; i < pos.count; i++) pos.setY(i, TGRID.h[i]);
   g.computeVertexNormals();
   const nor = g.attributes.normal;
   const cGrass1 = lin(0x5b8636), cGrass2 = lin(0x7d9c45), cDry = lin(0x9c9a5c), cForest = lin(0x45652c),

@@ -35,7 +35,7 @@ function spawnTraffic(scene) {
     for (let t = 0; t < 10 && !r; t++) { const rt = randomRoute(pick(nodes), 1200, 2600, false); if (rt.len > 700) r = rt; }
     if (!r) continue;
     const p = buildRoadPath(r.seq, 'car');
-    const path = new TPath(p.pts, []);
+    const path = new TPath(p.pts, [], { ds: 2 });
     TRAFFIC.cars.push({ path, s: rnd() * path.L, v: 0, vmax: rr(10, 14), blockedT: 0, ignoreT: 0, x: 0, z: 0, yaw: 0 });
   }
   const G = carGeometries();
@@ -58,7 +58,7 @@ function spawnTraffic(scene) {
     const r = randomRoute(start, 250, 800, true);
     if (r.seq.length < 2) continue;
     const p = buildRoadPath(r.seq, 'ped');
-    const path = new TPath(p.pts, []);
+    const path = new TPath(p.pts, [], { ds: 2, noSpeed: true });
     TRAFFIC.peds.push({ path, s: rnd() * path.L, v: rr(1.1, 1.6), ph: rnd() * 6, lat: rr(-0.5, 0.5), h: rr(0.92, 1.08) });
   }
   const box = (w, h, d, y) => { const g = new THREE.BoxGeometry(w, h, d); g.translate(0, y, 0); return g; };
@@ -83,6 +83,7 @@ const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Eul
 const _pt = {};
 function updateTraffic(dt, camPos) {
   const cm = TRAFFIC.carMeshes;
+  if (!cm) return;
   for (let i = 0; i < TRAFFIC.cars.length; i++) {
     const c = TRAFFIC.cars[i];
     const P = c.path;

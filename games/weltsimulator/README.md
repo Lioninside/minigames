@@ -19,6 +19,8 @@ bei jedem Besuch gleich aus.
 | M | Netzplan mit U-Bahn, Tram und Buslinien |
 | V | Ego- oder Verfolgerkamera (zeigt die Figur) |
 | T | Zeitraffer an/aus |
+| Q | Grafikstufe wechseln (Niedrig, Mittel, Hoch) |
+| F | Bildraten-Anzeige ein/aus |
 
 ## Die Stadt
 
@@ -62,9 +64,36 @@ und schliessen sich die Lifttüren sichtbar. Jedes Stockwerk ist anders eingeric
   Teeküche.
 - **ETH:** Halle mit Säulen; Hörsäle, Bibliothek, Rechnerraum.
 
+## Grafikstufen und Leistung
+
+Die Stufe wird im Startmenü gewählt (oder im Spiel mit **Q**) und im Browser gespeichert.
+
+| | Niedrig | Mittel | Hoch |
+|---|---|---|---|
+| Auflösung | 85 % | 100 % | bis 150 % (HiDPI) |
+| Schattenkarte | 1024, ±90 m | 2048, ±140 m | 4096, ±180 m |
+| Sichtweite | 1,9 km | 2,7 km | 3,4 km |
+| Bäume voll / als Bild ab | 230 m | 380 m | 600 m |
+| Gebäude voll / vereinfacht ab | 450 m | 750 m | 1150 m |
+| Nachbearbeitung | – | Bloom, FXAA, ACES | zusätzlich SSAO |
+
+- **Automatische Auflösung** (im Menü abschaltbar): Fällt die Bildrate unter etwa 42 FPS, wird die
+  Auflösung schrittweise bis auf 55 % gesenkt. Ab etwa 57 FPS steigt sie wieder.
+- **Bildraten-Anzeige** (F): FPS, Millisekunden pro Bild, Draw-Calls, Dreiecke, Auflösung.
+- **Laden:** Das Gelände wird einmal in ein Höhenraster gerechnet. Shader werden während des
+  Ladebalkens übersetzt. U-Bahn-Stationen, Fahrzeuge und Menschen entstehen erst nach dem
+  Start-Knopf im Hintergrund.
+- **Detailstufen:** Gebäude haben eine vereinfachte Fernversion (ohne Brüstung, Tür, Lifthaus).
+  Bäume werden in der Ferne als vorgerenderte Bilder (Impostors) gezeichnet.
+- **Fassaden-Atlas:** Alle Gebäudetexturen liegen in einem 2D-Textur-Array (WebGL2). Damit braucht
+  jede 625-m-Kachel nur einen Draw-Call für alle Gebäude.
+- **Nachbearbeitung** (`js/post.js`): eigene SSAO direkt aus dem logarithmischen Tiefenpuffer
+  (ohne zweiten Szenen-Durchgang), Bloom, ACES-Tonemapping, leichte Farbkorrektur und Vignette, FXAA.
+  Bloom und FXAA stammen unverändert aus `shared/three-r128-postfx.js` (three.js r128, MIT).
+
 ## Technik
 
-- Three.js r128 aus `shared/`, ohne weitere Bibliotheken und ohne Build-Schritt.
+- Three.js r128 und die Nachbearbeitungs-Module aus `shared/`, ohne Build-Schritt.
 - Alle Texturen (Fassaden, Asphalt, Pflaster, Schilder) entstehen zur Laufzeit auf Canvas.
 - Nachts sind die Fenster zufällig beleuchtet (Shader-Erweiterung der Fassaden-Materialien).
 - Statische Geometrie wird pro Kachel zusammengefasst; Bäume, Autos und Fussgänger sind
@@ -86,4 +115,6 @@ und schliessen sich die Lifttüren sichtbar. Jedes Stockwerk ist anders eingeric
 | `js/traffic.js` | Autos und Fussgänger |
 | `js/player.js` | Bewegung, Kollision, Mitfahren, Türen, Lift-Ablauf |
 | `js/hud.js` | Anzeige, Minikarte, Netzplan, Lift-Tabelle, Töne |
+| `js/quality.js` | Grafikstufen, Bildraten-Anzeige, automatische Auflösung, Detailstufen |
+| `js/post.js` | Nachbearbeitung: SSAO, Bloom, Tonemapping, FXAA |
 | `js/main.js` | Renderer, Laden, Eingabe, Kamera, Spielschleife |

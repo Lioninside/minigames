@@ -64,7 +64,7 @@ function collideWorld(x, z, y, px, pz) {
   });
   // Pavillons der U-Bahn
   stationsNear(x, z, (st, lx, lz) => {
-    for (const w of st.pavWalls) {
+    for (const w of (st.pavWalls || [])) {
       if (y > w.top || y + 1.8 < st.surfY - 0.3) continue;
       const p = obbPushCircle(w.obb, x, z, PR); if (p) { x = p[0]; z = p[1]; }
     }
@@ -97,7 +97,7 @@ function collideWorld(x, z, y, px, pz) {
     if (inStation) {
       if (Math.abs(clx) > M.WALL - PR) { clx = Math.sign(clx) * (M.WALL - PR); ch = true; }
       if (Math.abs(clz) > M.SL - PR) { clz = Math.sign(clz) * (M.SL - PR); ch = true; }
-      for (const c of st.columns) { const dx = clx - c[0], dz = clz - c[1], d = Math.hypot(dx, dz); if (d < 0.35 + PR && d > 1e-4) { clx = c[0] + dx / d * (0.35 + PR); clz = c[1] + dz / d * (0.35 + PR); ch = true; } }
+      for (const c of (st.columns || [])) { const dx = clx - c[0], dz = clz - c[1], d = Math.hypot(dx, dz); if (d < 0.35 + PR && d > 1e-4) { clx = c[0] + dx / d * (0.35 + PR); clz = c[1] + dz / d * (0.35 + PR); ch = true; } }
     } else if (y < st.surfY - 0.4 && y > st.ceilY - 1.0 && lz > st.aBot && lz < st.aTop + 0.5 && Math.abs(lx) < 3) {
       if (Math.abs(clx) > 2.3 - PR) { clx = Math.sign(clx) * (2.3 - PR); ch = true; }
       if (clz < st.aTop - 5.6 && y > st.surfY - 3.2) { /* Kopfhöhe unter dem Pavillon */ }

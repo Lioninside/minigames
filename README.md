@@ -29,7 +29,8 @@ Details zu Steuerung und Spielregeln stehen jeweils in der README des Spiels.
 ├── tools/
 │   └── smoke-test.mjs          lädt jede Seite im Browser und prüft sie
 ├── shared/
-│   └── three-r128.min.js       Three.js – von allen Spielen gemeinsam genutzt
+│   ├── three-r128.min.js       Three.js – von allen Spielen gemeinsam genutzt
+│   └── three-r128-postfx.js    Nachbearbeitung (Bloom, FXAA) aus three.js r128, z. B. für den Welt-Simulator
 └── games/
     ├── _template/              Vorlage zum Kopieren (kein echtes Spiel)
     ├── trackeditor/            TrackEditor (SVG-Schienennetz-Editor)

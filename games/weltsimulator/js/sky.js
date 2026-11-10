@@ -103,7 +103,7 @@ function applyTimeOfDay(hour, scene, renderer, focus, underground, realT) {
     sun.position.set(focus.x + md.x * 400, focus.y + md.y * 400, focus.z + md.z * 400);
   }
   // Schattenkamera auf Texel rasten (kein Flimmern)
-  const snap = 280 / 2048;
+  const snap = (SKY.shadowRange || 140) * 2 / (sun.shadow.mapSize.x || 2048);
   const tx = Math.round(focus.x / snap) * snap, tz = Math.round(focus.z / snap) * snap;
   sun.target.position.set(tx, focus.y, tz);
   sun.position.x += tx - focus.x; sun.position.z += tz - focus.z;
@@ -113,7 +113,7 @@ function applyTimeOfDay(hour, scene, renderer, focus, underground, realT) {
   renderer.toneMappingExposure = lerp(1.25, 0.95, day);
   // Nebel
   scene.fog.color.copy(horizon).convertSRGBToLinear();
-  scene.fog.near = underground ? 30 : 350; scene.fog.far = underground ? 260 : lerp(2000, 3200, day);
+  scene.fog.near = underground ? 30 : 350; scene.fog.far = underground ? 260 : Math.min(lerp(2000, 3200, day), (WORLD.camera ? WORLD.camera.far : 3400) * 0.97);
   if (underground) { scene.fog.color.setRGB(0.02, 0.02, 0.025); SKY.sun.intensity = 0; SKY.hemi.intensity = 0.08; SKY.amb.intensity = 0.85; }
   else SKY.amb.intensity = 0.04 * (1 - day);
   // Nachtbeleuchtung
