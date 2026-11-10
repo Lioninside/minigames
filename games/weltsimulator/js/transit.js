@@ -505,15 +505,15 @@ function metroTextures() {
 }
 
 function stationSign(name, color) {
-  const cv = makeCanvas(512, 128), ctx = cv.getContext('2d');
-  ctx.fillStyle = '#123a7a'; ctx.fillRect(0, 0, 512, 128);
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 6; ctx.strokeRect(8, 8, 496, 112);
-  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(70, 64, 40, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 44px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('U', 70, 66);
-  ctx.textAlign = 'left'; let size = 58; ctx.font = `bold ${size}px Arial`;
-  while (ctx.measureText(name).width > 380 && size > 20) { size -= 2; ctx.font = `bold ${size}px Arial`; }
-  ctx.fillText(name, 128, 66);
-  return canvasTex(cv, { clamp: true });
+  return SIGNS.add('station|' + name, 384, 96, (ctx, w, h) => {
+    ctx.fillStyle = '#123a7a'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; ctx.strokeRect(6, 6, w - 12, h - 12);
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(52, h / 2, 30, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 34px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('U', 52, h / 2 + 2);
+    ctx.textAlign = 'left'; let size = 44; ctx.font = `bold ${size}px Arial`;
+    while (ctx.measureText(name).width > 285 && size > 16) { size -= 2; ctx.font = `bold ${size}px Arial`; }
+    ctx.fillText(name, 96, h / 2 + 2);
+  });
 }
 
 /* Stationen, Treppen, Pavillons und Tunnel erzeugen */
@@ -593,14 +593,15 @@ function buildMetro(scene, surfaceGroup, mats) {
       for (const k in mb) {
         if (mb[k].empty()) continue;
         const mat = k === 'band' ? bandMat : k === 'col' ? colMat : M2[k];
-        const m = new THREE.Mesh(mb[k].build(), mat);
+        const m = new THREE.Mesh(compactGeometry(mb[k].build(), false), mat);
         g.add(m);
       }
       // Stationsschilder
       const sign = stationSign(st.name, line.color);
-      const signMat = new THREE.MeshStandardMaterial({ map: sign, emissive: 0xffffff, emissiveMap: sign, emissiveIntensity: 0.35, roughness: 0.4 });
+      const signMat = signMaterial(sign, 'glow');
+      const signGeo = SIGNS.plane(sign, 3.2, 0.8), signGeo2 = SIGNS.plane(sign, 2.8, 0.7);
       for (const s of [1, -1]) for (let z = -SL + 10; z < SL - 5; z += 20) {
-        const pl = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.8), signMat);
+        const pl = new THREE.Mesh(signGeo, signMat);
         pl.position.set(s * (WALL - 0.03), pY + 2.6, z);
         pl.rotation.y = -s * Math.PI / 2;
         g.add(pl);
@@ -608,7 +609,7 @@ function buildMetro(scene, surfaceGroup, mats) {
       // Hängeschild über dem Perron
       for (const z of [-30, 45]) {
         if (z > st.aBot - 2 && z < hole1 + 2) continue;
-        const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 0.7), signMat);
+        const pl = new THREE.Mesh(signGeo2, signMat);
         pl.position.set(0, cY - 0.9, z); g.add(pl);
         const pl2 = pl.clone(); pl2.rotation.y = Math.PI; g.add(pl2);
       }
@@ -679,17 +680,21 @@ function buildPavilion(st, group, line, signTex) {
   mbF.box(2.32, sY + 0.5, st.aTop - 3.2, 0.12, 1.0, 6.0, 0);
   const g = new THREE.Group();
   g.position.set(st.x, 0, st.z); g.rotation.y = st.rot;
-  const frame = new THREE.Mesh(mbF.build(), MATS.metalDark); frame.castShadow = true; g.add(frame);
-  const glass = new THREE.Mesh(mbG.build(), MATS.glass); g.add(glass);
-  // Mast mit U-Würfel
-  const cv = makeCanvas(128, 128), ctx = cv.getContext('2d');
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 128, 128); ctx.fillStyle = line.color; ctx.beginPath(); ctx.arc(64, 64, 56, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 80px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('U', 64, 70);
-  const ut = canvasTex(cv);
-  const cube = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), new THREE.MeshStandardMaterial({ map: ut, emissive: 0xffffff, emissiveMap: ut, emissiveIntensity: 0.6 }));
+  const frame = new THREE.Mesh(compactGeometry(mbF.build(), false), MATS.metalDark); frame.castShadow = true; g.add(frame);
+  const glass = new THREE.Mesh(compactGeometry(mbG.build(), false), MATS.glass); g.add(glass);
+  // Mast mit U-Würfel (eine Textur und ein Material pro Linie)
+  if (!TRANSIT.uCube) TRANSIT.uCube = {};
+  if (!TRANSIT.uCube[line.color]) {
+    const cv = makeCanvas(128, 128), ctx = cv.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 128, 128); ctx.fillStyle = line.color; ctx.beginPath(); ctx.arc(64, 64, 56, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 80px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('U', 64, 70);
+    const ut = canvasTex(cv);
+    TRANSIT.uCube[line.color] = { geo: new THREE.BoxGeometry(0.9, 0.9, 0.9), mat: new THREE.MeshStandardMaterial({ map: ut, emissive: 0xffffff, emissiveMap: ut, emissiveIntensity: 0.6 }) };
+  }
+  const cube = new THREE.Mesh(TRANSIT.uCube[line.color].geo, TRANSIT.uCube[line.color].mat);
   cube.position.set(hw + 1.2, sY + 4.2, st.aTop + 1.0); g.add(cube);
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 3.8, 8), MATS.metalDark); pole.position.set(hw + 1.2, sY + 1.9, st.aTop + 1.0); g.add(pole);
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.15), new THREE.MeshStandardMaterial({ map: signTex, emissive: 0xffffff, emissiveMap: signTex, emissiveIntensity: 0.4 }));
+  const sign = signMesh(signTex, 'glow', 4.6, 1.15);
   sign.position.set(0, sY + H + 0.9, a1 + 0.42); g.add(sign);
   const sb = sign.clone(); sb.rotation.y = Math.PI; sb.position.z = a1 + 0.38; g.add(sb);
   group.add(g); nearVis(g, 450);
@@ -744,7 +749,7 @@ function buildTunnels(line, ug, M2) {
       mbR.box((p0[0] + p1[0]) / 2, y0 + 0.2, (p0[1] + p1[1]) / 2, 0.07, 0.15, Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) + 0.02, rot);
     }
   }
-  const add = (mb, mat) => { if (!mb.empty()) { const m = new THREE.Mesh(mb.build(), mat); m.frustumCulled = true; ug.add(m); } };
+  const add = (mb, mat) => { if (!mb.empty()) { const m = new THREE.Mesh(compactGeometry(mb.build(), false), mat); m.frustumCulled = true; ug.add(m); } };
   add(mbT, M2.tunnel); add(mbL, M2.light); add(mbS, M2.sleeper); add(mbR, M2.rail); add(mbD, M2.dark);
 }
 
@@ -829,12 +834,8 @@ function buildTramTracks(scene) {
     cm.get('glass', pl.x, pl.z).box(pl.x + pl.rx * 1.15, pl.y + H + 1.35, pl.z + pl.rz * 1.15, 0.04, 2.3, 10, rot);
     mt.box(pl.x - pl.rx * 0.2, pl.y + H + 0.45, pl.z - pl.rz * 0.2, 0.45, 0.06, 2.6, rot);
     // Schild
-    const st = makeCanvas(256, 64);
-    const ctx = st.getContext('2d'); ctx.fillStyle = '#0d3b8c'; ctx.fillRect(0, 0, 256, 64); ctx.fillStyle = '#fff'; ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    let fs = 30; while (ctx.measureText(pl.name).width > 236 && fs > 12) { fs -= 2; ctx.font = `bold ${fs}px Arial`; }
-    ctx.fillText(pl.name, 128, 34);
-    const tex = canvasTex(st, { clamp: true });
-    const sm = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.6), new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.3, side: THREE.DoubleSide }));
+    const rs = SIGNS.add('tram|' + pl.name, 256, 64, (ctx, w, h) => drawText(ctx, w, h, pl.name, { bg: '#0d3b8c', fg: '#fff', font: 'bold 30px Arial' }));
+    const sm = signMesh(rs, 'glow', 2.4, 0.6);
     sm.position.set(pl.x + pl.dx * 6.3 + pl.rx * 0.6, pl.y + H + 2.4, pl.z + pl.dz * 6.3 + pl.rz * 0.6);
     sm.rotation.y = rot + Math.PI / 2;
     scene.add(sm); nearVis(sm, 300);

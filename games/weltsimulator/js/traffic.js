@@ -40,14 +40,21 @@ function spawnTraffic(scene) {
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _s = new THREE.Vector3(1, 1, 1), _off = new THREE.Vector3();
 const _pt = {};
 function updateTraffic(dt, camPos) {
+  const dtFrame = dt;
   const L = TRAFFIC.carLOD;
   if (!L) return;
   const f = (typeof QUALITY !== 'undefined' && QUALITY.cur && QUALITY.cur.vehScale) || 1;
   const carNear2 = (110 * f) ** 2, pedNear2 = (80 * f) ** 2, pedFar = 450;
   L.begin();
+  const fr = TRAFFIC.frame = (TRAFFIC.frame || 0) + 1;
   for (let i = 0; i < TRAFFIC.cars.length; i++) {
     const c = TRAFFIC.cars[i];
     const P = c.path;
+    // Weit weg (über 300 m): nur jedes dritte Bild rechnen, dafür mit der aufgelaufenen Zeit
+    c.acc = (c.acc || 0) + dtFrame;
+    const farC = c.m4 && ((c.x - camPos.x) ** 2 + (c.z - camPos.z) ** 2) > 90000;
+    if (farC && (fr + i) % 3 !== 0) { L.add(c.m4, c.col, false); continue; }
+    dt = c.acc; c.acc = 0;
     let vt = Math.min(c.vmax, P.speedAt(c.s + c.v * 1.2));
     const range = Math.max(5, c.v * c.v / 5 + 4);
     const blocked = obstacleAhead(c, c.x, c.z, Math.sin(c.yaw), Math.cos(c.yaw), 2.3, range, c.obj);
@@ -60,8 +67,11 @@ function updateTraffic(dt, camPos) {
     _q.setFromAxisAngle(_v.set(0, 1, 0), c.yaw);
     _m4.compose(_off.set(_pt.x, _pt.y, _pt.z), _q, _s.set(1, 1, 1));
     const d2 = (_pt.x - camPos.x) ** 2 + (_pt.z - camPos.z) ** 2;
+    if (!c.m4) c.m4 = new THREE.Matrix4();
+    c.m4.copy(_m4);
     L.add(_m4, c.col, d2 < carNear2);
   }
+  dt = dtFrame;
   L.end();
   const C = TRAFFIC.crowd;
   C.begin();
@@ -69,7 +79,10 @@ function updateTraffic(dt, camPos) {
     const p = TRAFFIC.peds[i];
     p.s = (p.s + p.v * dt) % p.path.L;
     p.ph += p.v * dt * 4.2;
+    // weit weg: nur weiterzählen, nicht zeichnen (Position vom letzten Mal genügt für den Test)
+    if (p.lx !== undefined && (Math.abs(p.lx - camPos.x) > pedFar + 30 || Math.abs(p.lz - camPos.z) > pedFar + 30) && (fr + i) % 8 !== 0) continue;
     p.path.at(p.s, _pt);
+    p.lx = _pt.x; p.lz = _pt.z;
     const dx = _pt.x - camPos.x, dz = _pt.z - camPos.z;
     if (Math.abs(dx) > pedFar || Math.abs(dz) > pedFar) continue; // weit weg: nicht zeichnen
     const yaw = Math.atan2(_pt.dx, _pt.dz);

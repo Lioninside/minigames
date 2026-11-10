@@ -89,16 +89,7 @@ function addGeomOriented(mb, g, m, col) {
 /* Mehrere Baukästen zu einer Geometrie zusammenfügen */
 function mergeMBs(list) {
   const out = new MB();
-  for (const mb of list) {
-    if (!mb || mb.empty()) continue;
-    const base = out.vc;
-    for (let i = 0; i < mb.p.length; i++) out.p.push(mb.p[i]);
-    for (let i = 0; i < mb.n.length; i++) out.n.push(mb.n[i]);
-    for (let i = 0; i < mb.uv.length; i++) out.uv.push(mb.uv[i]);
-    for (let i = 0; i < mb.c.length; i++) out.c.push(mb.c[i]);
-    for (let i = 0; i < mb.idx.length; i++) out.idx.push(mb.idx[i] + base);
-    out.vc += mb.vc;
-  }
+  for (const mb of list) out.append(mb);
   return out;
 }
 
@@ -118,19 +109,19 @@ function finishAsset(name, k, data, leaf) {
   initAssetMats();
   const S = k.__slots;
   const M = ASSETS.mats;
-  const geo = (mb) => (mb && !mb.empty()) ? mb.build() : null;
+  const geo = (mb, vc) => (mb && !mb.empty()) ? compactGeometry(mb.build(), vc !== false) : null;
   const near = [], mid = [];
   const push = (arr, g, mat, key) => { if (g) arr.push({ geo: g, mat, key }); };
   push(near, geo(S.paint), M.paint, 'paint');
   push(near, geo(mergeMBs([S.matte, S.iMatte])), M.matte, 'matte');
-  push(near, geo(S.glass), M.glass, 'glass');
+  push(near, geo(S.glass, false), M.glass, 'glass');
   push(near, geo(mergeMBs([S.light, S.iLight])), M.light, 'light');
-  push(near, geo(S.iSeat), M.seat, 'seat');
-  push(near, geo(S.iMoq), M.moquette, 'moquette');
+  push(near, geo(S.iSeat, false), M.seat, 'seat');
+  push(near, geo(S.iMoq, false), M.moquette, 'moquette');
   push(mid, geo(mergeMBs([S.paint, S.matte])), M.mid, 'body');
-  push(mid, geo(S.glass), M.glass, 'glass');
+  push(mid, geo(S.glass, false), M.glass, 'glass');
   push(mid, geo(S.light), M.light, 'light');
-  const far = [{ geo: farBoxMB(data.len, data.hw, data.far).build(), mat: M.mid, key: 'far' }];
+  const far = [{ geo: compactGeometry(farBoxMB(data.len, data.hw, data.far).build(), true), mat: M.mid, key: 'far' }];
   // Türflügel: je (Seite, Richtung) ein Rahmen- und ein Glas-Mesh, in geschlossener Lage
   const doorGroups = [];
   const leafCol = lin(leaf.color);
@@ -144,7 +135,7 @@ function finishAsset(name, k, data, leaf) {
       if (leaf.panel) addGeomOriented(fr, leaf.panel, m, leafCol);
       addGeomOriented(gl, leaf.glass, m, null);
     }
-    doorGroups.push({ side, dir, frame: fr.build(), glass: gl.build() });
+    doorGroups.push({ side, dir, frame: compactGeometry(fr.build(), true), glass: compactGeometry(gl.build(), false) });
   }
   const asset = Object.assign({}, data, { name, near, mid, far, doorGroups, leafW: leaf.w, farSpec: data.far });
   asset.stats = assetStats(asset);

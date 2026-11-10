@@ -734,7 +734,7 @@ function emitSpecials(scene, M) {
       }
       for (let i = 0; i < 5; i++) { const x = -16 + i * 8; mbS.box(x, 9, 17.3, 6.2, 0.6, 0.8, 0); mbS.cyl(x - 2.8, 0, 17.4, 0.35, 0.35, 9, 10, null, false); mbS.cyl(x + 2.8, 0, 17.4, 0.35, 0.35, 9, 10, null, false); }
     }
-    const add = (mb, mat) => { if (!mb.empty()) { const m = new THREE.Mesh(mb.build(), mat); m.castShadow = true; m.receiveShadow = true; g.add(m); } };
+    const add = (mb, mat) => { if (!mb.empty()) { const m = new THREE.Mesh(compactGeometry(mb.build(), !!mat.vertexColors), mat); m.castShadow = true; m.receiveShadow = true; g.add(m); } };
     add(mbS, M.stoneTrim); add(mbC, M.copper); add(mbF, M.f_stone); add(mbL, M.trim); add(mbLD, M.liftdoor);
     scene.add(g);
   }
@@ -745,21 +745,20 @@ function emitSigns(scene) {
   for (const b of BLD.list) {
     if (!b.sign || !b.name) continue;
     const t = b.tiers[b.tiers.length - 1];
-    const cv = makeCanvas(512, 96), ctx = cv.getContext('2d');
-    ctx.clearRect(0, 0, 512, 96);
-    ctx.fillStyle = b.cat === 'hotel' ? '#f6d27a' : '#e8f4ff';
-    let fs = 64; ctx.font = (b.cat === 'hotel' ? 'italic bold ' : 'bold ') + fs + 'px ' + (b.cat === 'hotel' ? 'Georgia' : 'Arial');
-    while (ctx.measureText(b.name).width > 490 && fs > 16) { fs -= 2; ctx.font = ctx.font.replace(/\d+px/, fs + 'px'); }
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(b.name, 256, 50);
-    const tex = canvasTex(cv, { clamp: true });
-    const w = Math.min(t.w * 0.85, 40), h = w * 96 / 512;
-    const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.5, roughness: 0.5, depthWrite: false });
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    const r = SIGNS.add('bldsign|' + b.cat + '|' + b.name, 384, 72, (ctx, w, h) => {
+      ctx.fillStyle = b.cat === 'hotel' ? '#f6d27a' : '#e8f4ff';
+      let fs = 48; ctx.font = (b.cat === 'hotel' ? 'italic bold ' : 'bold ') + fs + 'px ' + (b.cat === 'hotel' ? 'Georgia' : 'Arial');
+      while (ctx.measureText(b.name).width > w - 12 && fs > 12) { fs -= 2; ctx.font = ctx.font.replace(/\d+px/, fs + 'px'); }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(b.name, w / 2, h / 2 + 2);
+    });
+    const w = Math.min(t.w * 0.85, 40), h = w * 72 / 384;
+    const mat = signMaterial(r, 'glow');
+    const m = new THREE.Mesh(SIGNS.plane(r, w, h), mat);
     const p = bLocal(b, t.ox, t.oz + t.d / 2 + 0.15);
     m.position.set(p[0], b.base + t.y1 - h * 0.7 - 0.6, p[1]);
     m.rotation.y = b.rot;
     scene.add(m); nearVis(m, 1800);
-    BLD.signs.push(mat);
+    if (!BLD.signs.includes(mat)) BLD.signs.push(mat);
   }
 }
 
@@ -767,7 +766,7 @@ function buildBuildingMeshes(scene) {
   const M = makeBuildingMaterials();
   BLD.mats = M;
   const atlas = WORLD.renderer && WORLD.renderer.capabilities.isWebGL2;
-  const CH = atlas ? 625 : WS.CHUNK;
+  const CH = atlas ? 250 : WS.CHUNK; // feine Zellen: genauere Detailstufen und Verdeckungs-Culling
   const cm = new ChunkedMB(CH);
   const cmLod = atlas ? new ChunkedMB(CH) : null;
   for (const b of BLD.list) { emitBuilding(cm, b, false); if (cmLod) emitBuilding(cmLod, b, true); }
@@ -791,6 +790,10 @@ function buildBuildingMeshes(scene) {
     const far = finishAtlas(cmLod, M.atlas, scene, CH);
     for (const k in near) LOD.bld.push(Object.assign({ near: near[k].mesh, far: far[k] ? far[k].mesh : null }, near[k].c));
     for (const k in far) if (!near[k]) LOD.bld.push(Object.assign({ near: null, far: far[k].mesh }, far[k].c));
+    for (const c of LOD.bld) {
+      const bb = (c.near || c.far).geometry.boundingBox;
+      c.occ = occRegister({ x: (bb.min.x + bb.max.x) / 2, z: (bb.min.z + bb.max.z) / 2, hx: (bb.max.x - bb.min.x) / 2, hz: (bb.max.z - bb.min.z) / 2, minY: bb.min.y, maxY: bb.max.y });
+    }
     meshes = cm.finish({ ground: M.ground }, scene, {});
   } else {
     const mats = Object.assign({}, M);
@@ -980,7 +983,8 @@ function finishAtlas(cm, mat, parent, CH) {
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
     g.setAttribute('aLayer', new THREE.BufferAttribute(lay, 1));
     g.setIndex(new THREE.BufferAttribute(idx, 1));
-    g.computeBoundingSphere();
+    g.computeBoundingSphere(); g.computeBoundingBox();
+    compactGeometry(g, true);
     const m = new THREE.Mesh(g, mat);
     m.name = 'chunk:atlas'; m.castShadow = true; m.receiveShadow = true; m.matrixAutoUpdate = false;
     parent.add(m);

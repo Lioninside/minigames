@@ -85,7 +85,7 @@ class PedCrowd {
       const at = (n) => new THREE.InstancedBufferAttribute(new Float32Array(max * n), n);
       g.setAttribute('iPhase', at(1)); g.setAttribute('iShirt', at(3)); g.setAttribute('iPants', at(3)); g.setAttribute('iSkin', at(3));
       const im = new THREE.InstancedMesh(g, src.mat, max);
-      im.customDepthMaterial = asset.depth;
+      im.customDepthMaterial = asset.depth; im.userData.dynamic = true;
       im.frustumCulled = false; im.castShadow = true; im.receiveShadow = true; im.count = 0;
       parent.add(im);
       return im;

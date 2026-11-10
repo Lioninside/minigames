@@ -246,11 +246,49 @@ function varyCol(c, amt) {
    Sammelt Dreiecke mit Normale, UV und Vertexfarbe; am Ende eine BufferGeometry. */
 const _WHITE = new THREE.Color(1, 1, 1);
 class MB {
-  constructor() { this.p = []; this.n = []; this.uv = []; this.c = []; this.idx = []; this.vc = 0; }
+  /* Feste Zahlen-Arrays, die bei Bedarf verdoppelt werden (statt wachsender JS-Listen):
+     schneller und ohne viel Müll für die Speicherbereinigung. */
+  constructor(cap) {
+    cap = cap || 256;
+    this.cap = cap; this.vc = 0; this.ic = 0;
+    this._p = new Float32Array(cap * 3); this._n = new Float32Array(cap * 3); this._uv = new Float32Array(cap * 2); this._c = new Float32Array(cap * 3);
+    this._i = new Uint32Array(cap * 2);
+  }
+  get p() { return this._p.subarray(0, this.vc * 3); }
+  get n() { return this._n.subarray(0, this.vc * 3); }
+  get uv() { return this._uv.subarray(0, this.vc * 2); }
+  get c() { return this._c.subarray(0, this.vc * 3); }
+  get idx() { return this._i.subarray(0, this.ic); }
+  _growV(need) {
+    let cap = this.cap; while (cap < need) cap *= 2;
+    const g = (a, k) => { const b = new Float32Array(cap * k); b.set(a.subarray(0, this.vc * k)); return b; };
+    this._p = g(this._p, 3); this._n = g(this._n, 3); this._uv = g(this._uv, 2); this._c = g(this._c, 3);
+    this.cap = cap;
+  }
+  tri(a, b, c) {
+    if (this.ic + 3 > this._i.length) { const b2 = new Uint32Array(Math.max(this._i.length * 2, this.ic + 3)); b2.set(this._i.subarray(0, this.ic)); this._i = b2; }
+    const I = this._i; I[this.ic++] = a; I[this.ic++] = b; I[this.ic++] = c;
+  }
   vert(x, y, z, nx, ny, nz, u, v, col) {
-    this.p.push(x, y, z); this.n.push(nx, ny, nz); this.uv.push(u, v);
-    const c = col || _WHITE; this.c.push(c.r, c.g, c.b);
+    const k = this.vc;
+    if (k >= this.cap) this._growV(k + 1);
+    const c = col || _WHITE;
+    const P = this._p, N = this._n, C = this._c, k3 = k * 3, k2 = k * 2;
+    P[k3] = x; P[k3 + 1] = y; P[k3 + 2] = z; N[k3] = nx; N[k3 + 1] = ny; N[k3 + 2] = nz;
+    C[k3] = c.r; C[k3 + 1] = c.g; C[k3 + 2] = c.b; this._uv[k2] = u; this._uv[k2 + 1] = v;
     return this.vc++;
+  }
+  /* Einen anderen Baukasten anhängen */
+  append(mb) {
+    if (!mb || mb.vc === 0) return;
+    const base = this.vc;
+    if (this.vc + mb.vc > this.cap) this._growV(this.vc + mb.vc);
+    this._p.set(mb.p, base * 3); this._n.set(mb.n, base * 3); this._uv.set(mb.uv, base * 2); this._c.set(mb.c, base * 3);
+    this.vc += mb.vc;
+    const src = mb.idx;
+    if (this.ic + src.length > this._i.length) { const b2 = new Uint32Array(Math.max(this._i.length * 2, this.ic + src.length)); b2.set(this._i.subarray(0, this.ic)); this._i = b2; }
+    for (let i = 0; i < src.length; i++) this._i[this.ic + i] = src[i] + base;
+    this.ic += src.length;
   }
   /* Viereck a-b-c-d gegen den Uhrzeigersinn von vorne gesehen. uv: [u0,v0,u1,v1] für a..c */
   quad(a, b, c, d, uv, col, nrm) {
@@ -266,7 +304,7 @@ class MB {
     const i1 = this.vert(b[0], b[1], b[2], n[0], n[1], n[2], u1, v0, col);
     const i2 = this.vert(c[0], c[1], c[2], n[0], n[1], n[2], u1, v1, col);
     const i3 = this.vert(d[0], d[1], d[2], n[0], n[1], n[2], u0, v1, col);
-    this.idx.push(i0, i1, i2, i0, i2, i3);
+    this.tri(i0, i1, i2); this.tri(i0, i2, i3);
   }
   /* Viereck mit eigenen UVs je Ecke */
   quadUV(a, b, c, d, ua, ub, uc, ud, col, nrm) {
@@ -281,7 +319,7 @@ class MB {
     const i1 = this.vert(b[0], b[1], b[2], n[0], n[1], n[2], ub[0], ub[1], col);
     const i2 = this.vert(c[0], c[1], c[2], n[0], n[1], n[2], uc[0], uc[1], col);
     const i3 = this.vert(d[0], d[1], d[2], n[0], n[1], n[2], ud[0], ud[1], col);
-    this.idx.push(i0, i1, i2, i0, i2, i3);
+    this.tri(i0, i1, i2); this.tri(i0, i2, i3);
   }
   /* Horizontales Viereck mit Welt-UV (für Boden-Ebenen, damit Überlappungen nicht flimmern) */
   flat(a, b, c, d, y, scale, col) {
@@ -311,7 +349,7 @@ class MB {
       const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
       this.vert(x, y, z, 0, 1, 0, x * s, -z * s, col);
     }
-    for (let i = 0; i < seg; i++) this.idx.push(c0, first + i + 1, first + i);
+    for (let i = 0; i < seg; i++) this.tri(c0, first + i + 1, first + i);
   }
   ring(cx, cz, y, r0, r1, seg, scale, col) {
     const s = 1 / scale;
@@ -353,13 +391,13 @@ class MB {
     }
     for (let i = 0; i < seg; i++) {
       const a = base + i * 2;
-      this.idx.push(a, a + 1, a + 3, a, a + 3, a + 2);
+      this.tri(a, a + 1, a + 3); this.tri(a, a + 3, a + 2);
     }
     if (caps !== false && r1 > 0.001) {
       const c0 = this.vert(cx, cy + h, cz, 0, 1, 0, 0.5, 0.5, col);
       const f = this.vc;
       for (let i = 0; i <= seg; i++) { const a = i / seg * Math.PI * 2; this.vert(cx + Math.cos(a) * r1, cy + h, cz + Math.sin(a) * r1, 0, 1, 0, 0.5, 0.5, col); }
-      for (let i = 0; i < seg; i++) this.idx.push(c0, f + i + 1, f + i);
+      for (let i = 0; i < seg; i++) this.tri(c0, f + i + 1, f + i);
     }
   }
   /* Fremde Geometrie mit Matrix übernehmen */
@@ -376,21 +414,80 @@ class MB {
       if (colAttr && !col) { _tmpCol.setRGB(colAttr.getX(i), colAttr.getY(i), colAttr.getZ(i)); cc = _tmpCol; }
       this.vert(v.x, v.y, v.z, n.x, n.y, n.z, uv ? uv.getX(i) : 0, uv ? uv.getY(i) : 0, cc);
     }
-    if (g.index) { const ix = g.index.array; for (let i = 0; i < ix.length; i++) this.idx.push(base + ix[i]); }
-    else for (let i = 0; i < pos.count; i++) this.idx.push(base + i);
+    if (g.index) { const ix = g.index.array; for (let i = 0; i + 2 < ix.length; i += 3) this.tri(base + ix[i], base + ix[i + 1], base + ix[i + 2]); }
+    else for (let i = 0; i + 2 < pos.count; i += 3) this.tri(base + i, base + i + 1, base + i + 2);
   }
   empty() { return this.vc === 0; }
   build() {
     const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(this.n, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(this.c, 3));
-    g.setIndex(this.idx);
+    g.setAttribute('position', new THREE.BufferAttribute(this.p.slice(), 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(this.n.slice(), 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(this.uv.slice(), 2));
+    g.setAttribute('color', new THREE.BufferAttribute(this.c.slice(), 3));
+    const ix = this.idx;
+    g.setIndex(new THREE.BufferAttribute(this.vc > 65535 ? ix.slice() : Uint16Array.from(ix), 1));
     g.computeBoundingSphere();
     g.computeBoundingBox();
     return g;
   }
+}
+
+/* ---------- Speicher sparen ----------
+   compactGeometry: Normalen als 8-Bit-Ganzzahlen (statt 3 x 32 Bit), Vertexfarben als 8 Bit
+   oder ganz weg, wenn das Material sie nicht nutzt. Positionen und UVs bleiben 32 Bit
+   (Weltkoordinaten bzw. fortlaufende Fassaden-UVs brauchen die Genauigkeit). */
+function compactGeometry(g, keepColor) {
+  const col = g.attributes.color;
+  if (col && !keepColor) g.deleteAttribute('color');
+  else if (col && col.array instanceof Float32Array) {
+    const a = col.array, u = new Uint8Array(a.length);
+    for (let i = 0; i < a.length; i++) { const v = a[i] * 255 + 0.5; u[i] = v < 0 ? 0 : v > 255 ? 255 : v; }
+    g.setAttribute('color', new THREE.BufferAttribute(u, col.itemSize, true));
+  }
+  const nor = g.attributes.normal;
+  if (nor && nor.array instanceof Float32Array && !nor.isInstancedBufferAttribute) {
+    const a = nor.array, q = new Int8Array(a.length);
+    for (let i = 0; i < a.length; i++) { const v = Math.round(a[i] * 127); q[i] = v < -127 ? -127 : v > 127 ? 127 : v; }
+    g.setAttribute('normal', new THREE.BufferAttribute(q, 3, true));
+  }
+  return g;
+}
+/* Nach dem Hochladen zur Grafikkarte die CPU-Kopie verwerfen (nur für unveränderliche Geometrie). */
+function _dropArray() { this.__bpe = this.array.BYTES_PER_ELEMENT; this.array = null; }
+function freeAfterUpload(g) {
+  if (!g || g.userData.keepCpu) return;
+  // Begrenzungen jetzt berechnen: später fehlen die Daten dafür
+  if (!g.boundingSphere && g.attributes.position && g.attributes.position.array) g.computeBoundingSphere();
+  if (!g.boundingBox && g.attributes.position && g.attributes.position.array) g.computeBoundingBox();
+  for (const k in g.attributes) { const a = g.attributes[k]; if (!a.isInstancedBufferAttribute && !a.onUploadCallbackSet) { a.onUpload(_dropArray); a.onUploadCallbackSet = true; } }
+  if (g.index && !g.index.onUploadCallbackSet) { g.index.onUpload(_dropArray); g.index.onUploadCallbackSet = true; }
+}
+/* Alle statischen Geometrien einer Szene markieren. Dynamisches (Instanz-Attribute,
+   Instanz-Matrizen von Autos/Fussgängern) bleibt erhalten. */
+function releaseStaticGeometry(root) {
+  let n = 0;
+  root.traverse(o => {
+    if (!o.geometry || o.userData.dynamic) return;
+    freeAfterUpload(o.geometry); n++;
+    if (o.isInstancedMesh && o.userData.staticInstances) { o.instanceMatrix.onUpload(_dropArray); if (o.instanceColor) o.instanceColor.onUpload(_dropArray); }
+  });
+  return n;
+}
+
+/* Alle Geometrien einmal zur Grafikkarte schicken (unsichtbar, 1x1 Pixel), damit die
+   CPU-Kopien sofort freigegeben werden und nicht erst, wenn ein Objekt ins Bild kommt. */
+function uploadAllGeometry(renderer, scene, camera) {
+  const changed = [];
+  scene.traverse(o => {
+    if (o.visible === false) { changed.push([o, 'visible', false]); o.visible = true; }
+    if (o.frustumCulled) { changed.push([o, 'frustumCulled', true]); o.frustumCulled = false; }
+  });
+  const rt = new THREE.WebGLRenderTarget(1, 1);
+  const sm = renderer.shadowMap.enabled; renderer.shadowMap.enabled = false;
+  renderer.setRenderTarget(rt); renderer.render(scene, camera); renderer.setRenderTarget(null);
+  renderer.shadowMap.enabled = sm;
+  rt.dispose();
+  for (const [o, k, v] of changed) o[k] = v;
 }
 
 /* Baukasten pro Kachel (für Sichtbarkeits-Culling grosser Mengen statischer Geometrie). */
@@ -409,7 +506,7 @@ class ChunkedMB {
       if (mb.empty()) continue;
       const mat = materials[mb.key];
       if (!mat) continue;
-      const m = new THREE.Mesh(mb.build(), mat);
+      const m = new THREE.Mesh(compactGeometry(mb.build(), !!mat.vertexColors), mat);
       m.name = 'chunk:' + mb.key;
       m.castShadow = !!(opts && opts.cast && opts.cast[mb.key]);
       m.receiveShadow = !(opts && opts.noReceive);
@@ -465,6 +562,69 @@ function noiseCanvas(w, h, base, amp, scale, seed) {
   ctx.putImageData(img, 0, 0);
   return cv;
 }
+/* ---------- Textur-Atlas für Schilder ----------
+   Viele kleine Schilder (Haltestellen, Stationen, Hotels) teilen sich wenige 1024er-Seiten.
+   Gleiche Inhalte (gleicher Schlüssel) werden nur einmal gezeichnet. */
+class TexAtlas {
+  constructor(size) { this.size = size || 1024; this.pages = []; this.cache = new Map(); }
+  _page() {
+    const cv = makeCanvas(this.size, this.size), ctx = cv.getContext('2d');
+    const tex = canvasTex(cv, { clamp: true });
+    const pg = { cv, ctx, tex, x: 0, y: 0, rowH: 0, mats: {} };
+    this.pages.push(pg); return pg;
+  }
+  /* Platz reservieren und mit draw(ctx, w, h) bemalen; liefert eine Region */
+  add(key, w, h, draw) {
+    if (key && this.cache.has(key)) return this.cache.get(key);
+    const S = this.size, pad = 6;
+    let pg = this.pages[this.pages.length - 1] || this._page();
+    if (pg.x + w + pad > S) { pg.x = 0; pg.y += pg.rowH + pad; pg.rowH = 0; }
+    if (pg.y + h + pad > S) { pg = this._page(); }
+    const x = pg.x + pad / 2, y = pg.y + pad / 2;
+    const ctx = pg.ctx;
+    ctx.save(); ctx.translate(x, y); ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
+    draw(ctx, w, h);
+    ctx.restore();
+    pg.x += w + pad; pg.rowH = Math.max(pg.rowH, h);
+    pg.tex.needsUpdate = true;
+    const r = { page: pg, u0: x / S, u1: (x + w) / S, v0: 1 - (y + h) / S, v1: 1 - y / S };
+    if (key) this.cache.set(key, r);
+    return r;
+  }
+  /* Rechteck-Geometrie (Breite x Höhe in Metern) mit den UVs der Region */
+  plane(r, w, h) {
+    const g = new THREE.PlaneGeometry(w, h);
+    const uv = g.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, lerp(r.u0, r.u1, uv.getX(i)), lerp(r.v0, r.v1, uv.getY(i)));
+    return g;
+  }
+  /* Ein Material pro Seite und Art */
+  material(r, kind, make) {
+    const pg = r.page;
+    if (!pg.mats[kind]) pg.mats[kind] = make(pg.tex);
+    return pg.mats[kind];
+  }
+}
+const SIGNS = new TexAtlas(1024);
+function signMaterial(r, kind) {
+  return SIGNS.material(r, kind, (tex) => kind === 'glow'
+    ? new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.4, roughness: 0.5, alphaTest: 0.5, side: THREE.DoubleSide })
+    : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6, alphaTest: 0.5, side: THREE.DoubleSide }));
+}
+function signMesh(r, kind, w, h) { return new THREE.Mesh(SIGNS.plane(r, w, h), signMaterial(r, kind)); }
+
+/* Text in einen Zeichenbereich schreiben (Hintergrund, Rahmen, automatische Schriftgrösse) */
+function drawText(ctx, w, h, text, opts) {
+  if (opts.bg) { ctx.fillStyle = opts.bg; ctx.fillRect(0, 0, w, h); }
+  if (opts.border) { ctx.strokeStyle = opts.border; ctx.lineWidth = opts.borderW || 6; ctx.strokeRect(3, 3, w - 6, h - 6); }
+  ctx.fillStyle = opts.fg || '#fff';
+  ctx.font = opts.font || ('bold ' + Math.floor(h * 0.55) + 'px Arial');
+  ctx.textAlign = opts.align || 'center'; ctx.textBaseline = 'middle';
+  let size = parseInt(ctx.font.match(/(\d+)px/)[1], 10);
+  while (ctx.measureText(text).width > w * 0.92 && size > 8) { size -= 2; ctx.font = ctx.font.replace(/\d+px/, size + 'px'); }
+  ctx.fillText(text, opts.align === 'left' ? w * 0.05 : w / 2, h / 2 + (opts.dy || 0));
+}
+
 function textCanvas(text, w, h, opts) {
   const cv = makeCanvas(w, h), ctx = cv.getContext('2d');
   ctx.fillStyle = opts.bg || '#000'; ctx.fillRect(0, 0, w, h);

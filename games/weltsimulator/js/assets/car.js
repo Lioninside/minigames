@@ -66,7 +66,7 @@ class InstancedLOD {
     const mk = (p) => {
       const im = new THREE.InstancedMesh(p.geo, p.mat, max);
       im.frustumCulled = false; im.castShadow = !!p.cast; im.receiveShadow = true;
-      im.userData.tint = !!p.tint;
+      im.userData.tint = !!p.tint; im.userData.dynamic = true;
       if (p.tint) im.setColorAt(0, new THREE.Color(1, 1, 1));
       im.count = 0;
       parent.add(im);

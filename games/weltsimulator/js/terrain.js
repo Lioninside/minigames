@@ -145,10 +145,12 @@ function buildWaterMask() {
       ctx.beginPath(); ctx.moveTo((a[0] + 2500) * k, (a[1] + 2500) * k); ctx.lineTo((b[0] + 2500) * k, (b[1] + 2500) * k); ctx.stroke();
     }
   }
-  const t = new THREE.CanvasTexture(cv);
-  t.flipY = false; t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter;
+  // nur ein Kanal nötig: 2048 x 2048 x 1 Byte statt x 4
+  const px = ctx.getImageData(0, 0, S, S).data, one = new Uint8Array(S * S);
+  for (let i = 0; i < S * S; i++) one[i] = px[i * 4];
+  const t = new THREE.DataTexture(one, S, S, THREE.LuminanceFormat, THREE.UnsignedByteType);
+  t.flipY = false; t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter; t.needsUpdate = true;
   WATER.maskTex = t;
-  WATER.maskCanvas = cv;
   return t;
 }
 
@@ -186,6 +188,8 @@ function buildTerrain(scene) {
     cols[i * 3] = c.r; cols[i * 3 + 1] = c.g; cols[i * 3 + 2] = c.b;
   }
   g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+  g.computeBoundingSphere();
+  compactGeometry(g, true);
 
   const det = noiseCanvas(256, 256, 0.62, 0.55, 3.0, 7);
   const tex = canvasTex(det, { linear: false });

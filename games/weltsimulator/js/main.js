@@ -136,6 +136,10 @@ let SPAWN = { x: 0, z: 0 };
       const t0 = performance.now(); fn(); WORLD.timing.push(['(später) ' + label, Math.round(performance.now() - t0)]);
     }
     for (const v of VEH.list) v.onDoorsClose = (veh) => { const p = veh.cars[0].g.position; if (Math.hypot(p.x - P.x, p.z - P.z) < 35 && GAME.mode === 'world') sfxChime(); };
+    occRegisterChunkMeshes(WORLD.surface);
+    WORLD.released = releaseStaticGeometry(WORLD.scene);
+    await new Promise(r => setTimeout(r, 30));
+    { const t0 = performance.now(); uploadAllGeometry(WORLD.renderer, WORLD.scene, WORLD.camera); WORLD.timing.push(['(später) Grafikdaten hochladen', Math.round(performance.now() - t0)]); }
     WORLD.allMs = Math.round(performance.now());
     txt.textContent = 'Fertig: ' + BLD.list.length + ' Gebäude, ' + TRANSIT.busLines.length + ' Buslinien, ' + TRANSIT.metro.length + ' U-Bahn-Linien, 1 Tramlinie.';
   }
@@ -186,6 +190,7 @@ let SPAWN = { x: 0, z: 0 };
     if (e.code === 'KeyT') GAME.timeScale = GAME.timeScale > 1 ? 1 : 40;
     if (e.code === 'KeyF') { QUALITY.showStats = !QUALITY.showStats; updateQualityUI(); saveQualitySettings(); }
     if (e.code === 'KeyQ') cycleQuality(WORLD.renderer, WORLD.camera);
+    if (e.code === 'KeyO') { OCC.enabled = !OCC.enabled; OCC.t = 0; }
   });
   window.addEventListener('keyup', (e) => { KEYS[e.code] = false; });
   window.addEventListener('blur', () => { for (const k in KEYS) KEYS[k] = false; });
@@ -274,7 +279,7 @@ let SPAWN = { x: 0, z: 0 };
         // tief unten: Oberfläche nicht zeichnen
         let deep = false;
         if (ug) { deep = true; stationsNear(P.x, P.z, (st, lx, lz) => { if (Math.abs(lx) < 4 && lz > st.aTop - 22 && P.y > st.surfY - 12) deep = false; }); }
-        WORLD.surface.visible = !deep;
+        WORLD.surface.visible = !deep; WORLD.surfaceHidden = deep;
         if (nearSt) for (const st of TRANSIT.stations) st.group.visible = Math.abs(st.x - cam.position.x) < 420 && Math.abs(st.z - cam.position.z) < 420;
       }
       SKY.mesh.position.copy(cam.position);
@@ -284,6 +289,7 @@ let SPAWN = { x: 0, z: 0 };
       if (MATS.pools) MATS.pools.opacity = n;
       setAssetNight(n);
       for (const m of BLD.signs) m.emissiveIntensity = 0.3 + n * 1.4;
+      occUpdate(cam, dt, GAME.started && !ug && !WORLD.surfaceHidden);
       updateLOD(cam.position, dt);
       if (usePost) renderPost(renderer, scene, cam, { ao: Q.ao, bloom: Q.bloom, fxaa: Q.fxaa, exposure: renderer.toneMappingExposure, bloomStrength: ug ? 0.22 : 0.18 + n * 0.7, bloomThreshold: ug ? 1.5 : lerp(0.92, 0.45, n) });
       else renderer.render(scene, cam);

@@ -216,7 +216,18 @@ function buildInterior(b, f) {
     INT.cab = makeCabin(false);
     INT.scene.add(INT.cab.g);
   }
-  if (INT.group) { INT.scene.remove(INT.group); INT.group.traverse(o => { if (o.isMesh && o.geometry !== INT_BOX && o.geometry !== INT_CYL && o.geometry !== INT_SPH && o.geometry !== INT_PLANE && o.geometry !== INT_CYL6) o.geometry.dispose(); }); }
+  if (INT.group) {
+    // Alles, was nur für dieses Stockwerk erzeugt wurde, freigeben (sonst wächst der Speicher mit jeder Liftfahrt)
+    const shared = new Set(Object.values(INT.mats).flat().concat([INT.viewMat]));
+    const sharedTex = new Set([...shared].map(m => m && m.map).filter(Boolean));
+    INT.scene.remove(INT.group);
+    INT.group.traverse(o => {
+      if (!o.isMesh) return;
+      if (o.geometry !== INT_BOX && o.geometry !== INT_CYL && o.geometry !== INT_SPH && o.geometry !== INT_PLANE && o.geometry !== INT_CYL6) o.geometry.dispose();
+      const m = o.material;
+      if (m && !shared.has(m)) { for (const k of ['map', 'emissiveMap']) if (m[k] && !sharedTex.has(m[k])) m[k].dispose(); m.dispose(); }
+    });
+  }
   for (const l of INT.lights) INT.scene.remove(l);
   INT.lights = [];
   INT.group = new THREE.Group(); INT.scene.add(INT.group);

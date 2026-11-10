@@ -21,6 +21,7 @@ bei jedem Besuch gleich aus.
 | T | Zeitraffer an/aus |
 | Q | Grafikstufe wechseln (Niedrig, Mittel, Hoch) |
 | F | Bildraten-Anzeige ein/aus |
+| O | Verdeckungs-Culling ein/aus (zum Vergleich) |
 
 ## Die Stadt
 
@@ -83,10 +84,20 @@ Die Stufe wird im Startmenü gewählt (oder im Spiel mit **Q**) und im Browser g
 - **Laden:** Das Gelände wird einmal in ein Höhenraster gerechnet. Shader werden während des
   Ladebalkens übersetzt. U-Bahn-Stationen, Fahrzeuge und Menschen entstehen erst nach dem
   Start-Knopf im Hintergrund.
+- **Speicher:** Geometrie wird kompakt gespeichert (Normalen und Farben als 8 Bit, ungenutzte
+  Vertexfarben entfallen). Statische Geometrie wird nach dem Laden einmal zur Grafikkarte
+  geschickt, danach verwirft das Spiel die Kopie im Arbeitsspeicher. Schilder liegen in einem
+  Textur-Atlas, die Wassermaske ist einkanalig. Innenräume geben ihre Daten beim Stockwerkwechsel frei.
+- **Verdeckungs-Culling** (`js/occlusion.js`, Taste O schaltet es zum Vergleich ab): Aus den
+  Häusern im Umkreis von 220 m entsteht ein 360°-Horizont. Gebäudezellen (250 m), Baum- und
+  Strassenkacheln, die vollständig dahinter liegen, werden nicht gezeichnet. Die Bildraten-Anzeige
+  zeigt, wie viele Bereiche gerade verdeckt sind.
+- **Verkehr:** Autos über 300 m Entfernung werden nur jedes dritte Bild neu berechnet, Fussgänger
+  ausserhalb der Sichtweite nur grob weitergezählt.
 - **Detailstufen:** Gebäude haben eine vereinfachte Fernversion (ohne Brüstung, Tür, Lifthaus).
   Bäume werden in der Ferne als vorgerenderte Bilder (Impostors) gezeichnet.
 - **Fassaden-Atlas:** Alle Gebäudetexturen liegen in einem 2D-Textur-Array (WebGL2). Damit braucht
-  jede 625-m-Kachel nur einen Draw-Call für alle Gebäude.
+  jede 250-m-Zelle nur einen Draw-Call für alle Gebäude.
 - **Nachbearbeitung** (`js/post.js`): eigene SSAO direkt aus dem logarithmischen Tiefenpuffer
   (ohne zweiten Szenen-Durchgang), Bloom, ACES-Tonemapping, leichte Farbkorrektur und Vignette, FXAA.
   Bloom und FXAA stammen unverändert aus `shared/three-r128-postfx.js` (three.js r128, MIT).
@@ -146,4 +157,5 @@ Zielanzeigen kommen pro Fahrzeug dazu (1–2 Draw-Calls).
 | `js/hud.js` | Anzeige, Minikarte, Netzplan, Lift-Tabelle, Töne |
 | `js/quality.js` | Grafikstufen, Bildraten-Anzeige, automatische Auflösung, Detailstufen |
 | `js/post.js` | Nachbearbeitung: SSAO, Bloom, Tonemapping, FXAA |
+| `js/occlusion.js` | Verdeckungs-Culling (Occlusion Horizon) |
 | `js/main.js` | Renderer, Laden, Eingabe, Kamera, Spielschleife |

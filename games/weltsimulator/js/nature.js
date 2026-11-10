@@ -221,6 +221,7 @@ function buildTreeMeshes(scene) {
       const lodEntry = { x: cx, z: cz, r: rad, full: [], imp: null };
       const parts = grp.impGeo ? grp.parts.concat([[grp.impGeo, grp.impMat, !!grp.cols, true]]) : grp.parts;
       for (const [geo, mat, colored, isImp] of parts) {
+        if (!geo.userData.compact) { compactGeometry(geo, false); geo.userData.compact = true; }
         const g = geo.clone();
         g.boundingSphere = new THREE.Sphere(new THREE.Vector3(cx, (ymin + ymax) / 2 + 5, cz), rad + 15 + (ymax - ymin) / 2);
         const im = new THREE.InstancedMesh(g, mat, arr.length);
@@ -232,10 +233,11 @@ function buildTreeMeshes(scene) {
         });
         im.instanceMatrix.needsUpdate = true;
         if (im.instanceColor) im.instanceColor.needsUpdate = true;
-        im.castShadow = !isImp; im.receiveShadow = true;
+        im.castShadow = !isImp; im.receiveShadow = true; im.userData.staticInstances = true;
         scene.add(im);
         if (isImp) { lodEntry.imp = im; im.visible = false; } else lodEntry.full.push(im);
       }
+      lodEntry.occ = occRegister({ x: cx, z: cz, hx: rad + 4, hz: rad + 4, minY: ymin - 1, maxY: ymax + 14 });
       LOD.trees.push(lodEntry);
     }
   }
@@ -387,21 +389,20 @@ function buildParksAndProps(scene) {
     deck: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), pool: poolMat
   };
   cm.finish(matsP, scene, { cast: { stone: true, props: true, beach: true } });
-  // Schilder an den Haltestellen
+  // Schilder an den Haltestellen (Textur-Atlas, gleiche Namen/Linien nur einmal)
   for (const p of NAT.poles) {
-    const lines = [...p.st.lines].sort((a, b) => a - b).join(' · ');
-    const cv = makeCanvas(256, 128), ctx = cv.getContext('2d');
-    ctx.fillStyle = '#0b8f3a'; ctx.beginPath(); ctx.arc(128, 64, 62, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(128, 64, 52, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#0b8f3a'; ctx.font = 'bold 40px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('H', 128, 50);
-    ctx.font = 'bold 18px Arial'; ctx.fillText(lines || 'Bus', 128, 88);
-    const tex = canvasTex(cv, { clamp: true });
-    const disc = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.45), new THREE.MeshStandardMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
+    const lines = [...p.st.lines].sort((a, b) => a - b).join(' · ') || 'Bus';
+    const rd = SIGNS.add('stopdisc|' + lines, 160, 80, (ctx, w, h) => {
+      ctx.fillStyle = '#0b8f3a'; ctx.beginPath(); ctx.arc(w / 2, h / 2, h / 2 - 1, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(w / 2, h / 2, h / 2 - 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#0b8f3a'; ctx.font = 'bold 26px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('H', w / 2, h * 0.38);
+      let fs = 12; ctx.font = 'bold ' + fs + 'px Arial'; ctx.fillText(lines, w / 2, h * 0.7);
+    });
+    const disc = signMesh(rd, 'plain', 0.9, 0.45);
     disc.position.set(p.x, p.y + 3.15, p.z); disc.rotation.y = p.rot + Math.PI / 2;
     scene.add(disc); nearVis(disc, 260);
-    const nm = textCanvas(p.st.name, 512, 96, { bg: '#ffffff', fg: '#0b2a4a', font: 'bold 52px Arial' });
-    const nmt = canvasTex(nm, { clamp: true });
-    const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.3), new THREE.MeshStandardMaterial({ map: nmt, side: THREE.DoubleSide }));
+    const rn = SIGNS.add('stopname|' + p.st.name, 320, 60, (ctx, w, h) => drawText(ctx, w, h, p.st.name, { bg: '#ffffff', fg: '#0b2a4a', font: 'bold 33px Arial' }));
+    const plate = signMesh(rn, 'plain', 1.6, 0.3);
     plate.position.set(p.x, p.y + 2.7, p.z); plate.rotation.y = p.rot + Math.PI / 2;
     scene.add(plate); nearVis(plate, 260);
   }

@@ -76,25 +76,26 @@ function qualityFrame(dt, renderer, camera) {
     const el = document.getElementById('stats');
     if (el) el.textContent = Math.round(QUALITY.fps) + ' FPS · ' + QUALITY.ms.toFixed(1) + ' ms · ' + QUALITY.lastCalls + ' Draw-Calls · ' +
       (QUALITY.lastTris / 1e6).toFixed(2) + ' Mio. Dreiecke · Auflösung ' + Math.round(renderer.getPixelRatio() * 100) + ' % · ' + QUALITY.cur.label +
-      (QUALITY.auto ? ' (auto)' : '');
+      (QUALITY.auto ? ' (auto)' : '') + (typeof OCC !== 'undefined' && OCC.tested ? ' · verdeckt ' + OCC.culled + '/' + OCC.tested : '');
   }
 }
 
 /* ---------- Detailstufen ---------- */
-const LOD = { bld: [], trees: [], t: 0 };
+const LOD = { bld: [], trees: [], generic: [], t: 0 };
 function updateLOD(camPos, dt) {
   LOD.t -= dt; if (LOD.t > 0) return; LOD.t = 0.25;
   const q = QUALITY.cur;
   for (const c of LOD.bld) {
     const d = Math.max(0, Math.hypot(camPos.x - c.x, camPos.z - c.z) - c.r);
-    const near = d < q.bldLod;
-    if (c.near) c.near.visible = near;
-    if (c.far) c.far.visible = !near;
+    const near = d < q.bldLod, vis = !(c.occ && c.occ.occluded);
+    if (c.near) c.near.visible = vis && near;
+    if (c.far) c.far.visible = vis && !near;
   }
   for (const c of LOD.trees) {
     const d = Math.max(0, Math.hypot(camPos.x - c.x, camPos.z - c.z) - c.r);
-    const near = d < q.treeLod;
-    for (const m of c.full) m.visible = near;
-    if (c.imp) c.imp.visible = !near;
+    const near = d < q.treeLod, vis = !(c.occ && c.occ.occluded);
+    for (const m of c.full) m.visible = vis && near;
+    if (c.imp) c.imp.visible = vis && !near;
   }
+  for (const it of LOD.generic) it.mesh.visible = !it.occluded;
 }
