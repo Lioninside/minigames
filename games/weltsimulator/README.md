@@ -91,6 +91,33 @@ Die Stufe wird im Startmenü gewählt (oder im Spiel mit **Q**) und im Browser g
   (ohne zweiten Szenen-Durchgang), Bloom, ACES-Tonemapping, leichte Farbkorrektur und Vignette, FXAA.
   Bloom und FXAA stammen unverändert aus `shared/three-r128-postfx.js` (three.js r128, MIT).
 
+## Assets (Fahrzeuge und Figuren)
+
+Die Modelle liegen getrennt von der Spiellogik in `js/assets/` und lassen sich einzeln prüfen
+und optimieren: **[Asset-Testseite](assets.html)** (Detailstufe, Anzahl 1 oder 25, Türanimation,
+Dreiecke und Draw-Calls live).
+
+| Asset | Datei | nah | mittel | fern | vorher |
+|---|---|---|---|---|---|
+| Stadtbus | `assets/bus.js` | 9 Draw-Calls, 4 556 Dreiecke | 5 / 3 312 | 1 / 42 | 26 Draw-Calls |
+| Zürcher Tram | `assets/tram.js` | 9 / 4 660 | 5 / 3 912 | 1 / 42 | 32 |
+| U-Bahn-Wagen | `assets/tube.js` | 13 / 5 864 | 7 / 4 432 | 1 / 42 | 38 |
+| Auto (alle zusammen) | `assets/car.js` | 4 / 632 pro Auto | – | 1 / 32 | 5 |
+| Fussgänger (alle zusammen) | `assets/pedestrian.js` | 1 / 482 pro Person | – | 1 / 36 | 6 |
+
+Zielanzeigen kommen pro Fahrzeug dazu (1–2 Draw-Calls).
+
+- **Gemeinsame Schnittstelle** (`assets/assets-core.js`): Spieldaten (Länge, Breite, Bodenhöhe,
+  Türen), drei Detailstufen, Türflügel. Die Fahrlogik in `vehicles.js` und `traffic.js` kennt
+  nur diese Schnittstelle. Ein Asset kann also ausgetauscht werden (später z. B. durch ein
+  glTF-Modell), ohne die Fahrlogik anzufassen.
+- **Zusammengefasste Meshes:** Gleich aussehende Teile teilen sich über Vertexfarben ein Material.
+  Alle Türflügel, die sich in dieselbe Richtung bewegen, sind ein Mesh.
+- **Detailstufen:** nah mit Innenraum (unter 60 m), mittel ohne Innenraum (bis 200 m), fern ein
+  Kasten. Die Grenzen skalieren mit der Grafikstufe. In einem Zug wählt jeder Wagen seine Stufe selbst.
+- **Fussgänger:** ein instanziertes Mesh; Arme und Beine bewegt der Vertex-Shader über eine
+  Teil-Nummer pro Vertex. Das ergibt eine Matrix pro Person statt sechs.
+
 ## Technik
 
 - Three.js r128 und die Nachbearbeitungs-Module aus `shared/`, ohne Build-Schritt.
@@ -107,12 +134,14 @@ Die Stufe wird im Startmenü gewählt (oder im Spiel mit **Q**) und im Browser g
 | `js/terrain.js` | Höhenfunktion, Fluss, Kanäle, Strand, Gelände, Quaimauern, Wasser |
 | `js/roads.js` | Strassennetz, Brücken, Bushaltebuchten, Markierungen, Laternen |
 | `js/transit.js` | Bus-, Tram- und U-Bahn-Netz, Stationen, Tunnel, Gleise |
-| `js/vehicles.js` | Bus, Tram, U-Bahn-Wagen, Fahrlogik mit 10-s-Halt und Türen |
+| `js/vehicles.js` | Fahrlogik der Linienfahrzeuge mit 10-s-Halt, Türen, Detailstufen-Wahl |
+| `js/assets/*.js` | Modelle: Bus, Tram, U-Bahn-Wagen, Auto, Fussgänger (siehe oben) |
+| `js/assets-viewer.js` | Asset-Testseite (`assets.html`) |
 | `js/buildings.js` | Fassaden, Stadthäuser, Hotels, Klein-Venedig, ETH |
 | `js/nature.js` | Bäume, Parks, Brunnen, Strand, Boote, Wartehäuschen |
 | `js/interior.js` | Innenräume pro Kategorie und Stockwerk, Liftkabine |
 | `js/sky.js` | Himmel, Tageszeit, Licht, Reflexionen |
-| `js/traffic.js` | Autos und Fussgänger |
+| `js/traffic.js` | Fahr- und Gehlogik für Autos und Fussgänger |
 | `js/player.js` | Bewegung, Kollision, Mitfahren, Türen, Lift-Ablauf |
 | `js/hud.js` | Anzeige, Minikarte, Netzplan, Lift-Tabelle, Töne |
 | `js/quality.js` | Grafikstufen, Bildraten-Anzeige, automatische Auflösung, Detailstufen |

@@ -282,9 +282,8 @@ let SPAWN = { x: 0, z: 0 };
       const n = NIGHT_U.value;
       MATS.lamphead.emissiveIntensity = 0.05 + n * 2.5;
       if (MATS.pools) MATS.pools.opacity = n;
-      if (TRAFFIC.headMat) { TRAFFIC.headMat.emissiveIntensity = 0.2 + n * 2.0; TRAFFIC.tailMat.emissiveIntensity = 0.3 + n * 1.2; }
+      setAssetNight(n);
       for (const m of BLD.signs) m.emissiveIntensity = 0.3 + n * 1.4;
-      if (VEH.mats) { VEH.mats.head.emissiveIntensity = 0.4 + n * 2; VEH.mats.ilight.emissiveIntensity = 0.9 + n * 0.8; }
       updateLOD(cam.position, dt);
       if (usePost) renderPost(renderer, scene, cam, { ao: Q.ao, bloom: Q.bloom, fxaa: Q.fxaa, exposure: renderer.toneMappingExposure, bloomStrength: ug ? 0.22 : 0.18 + n * 0.7, bloomThreshold: ug ? 1.5 : lerp(0.92, 0.45, n) });
       else renderer.render(scene, cam);

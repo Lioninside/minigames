@@ -4,9 +4,9 @@
 
 const QUALITY = {
   presets: {
-    low:  { label: 'Niedrig', ratio: 0.85, shadow: 1024, shadowRange: 90,  far: 1900, treeLod: 230, bldLod: 450,  post: false, ao: false, bloom: false, fxaa: false },
-    mid:  { label: 'Mittel',  ratio: 1.0,  shadow: 2048, shadowRange: 140, far: 2700, treeLod: 380, bldLod: 750,  post: true,  ao: false, bloom: true,  fxaa: true },
-    high: { label: 'Hoch',    ratio: 1.5,  shadow: 4096, shadowRange: 180, far: 3400, treeLod: 600, bldLod: 1150, post: true,  ao: true,  bloom: true,  fxaa: true }
+    low:  { label: 'Niedrig', ratio: 0.85, shadow: 1024, shadowRange: 90,  far: 1900, treeLod: 230, bldLod: 450,  vehScale: 0.7, post: false, ao: false, bloom: false, fxaa: false },
+    mid:  { label: 'Mittel',  ratio: 1.0,  shadow: 2048, shadowRange: 140, far: 2700, treeLod: 380, bldLod: 750,  vehScale: 1.0, post: true,  ao: false, bloom: true,  fxaa: true },
+    high: { label: 'Hoch',    ratio: 1.5,  shadow: 4096, shadowRange: 180, far: 3400, treeLod: 600, bldLod: 1150, vehScale: 1.4, post: true,  ao: true,  bloom: true,  fxaa: true }
   },
   order: ['low', 'mid', 'high'],
   key: 'mid', cur: null, auto: true, dyn: 1, showStats: true,
