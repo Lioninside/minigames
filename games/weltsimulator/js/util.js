@@ -606,6 +606,9 @@ class TexAtlas {
   }
 }
 const SIGNS = new TexAtlas(1024);
+
+/* Gemeinsame Animationszeit für Shader (Wind in Bäumen, Fahnen, Vögel); main.js setzt sie pro Bild */
+const AMB_T = { value: 0 };
 function signMaterial(r, kind) {
   return SIGNS.material(r, kind, (tex) => kind === 'glow'
     ? new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.4, roughness: 0.5, alphaTest: 0.5, side: THREE.DoubleSide })

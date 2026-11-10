@@ -28,13 +28,18 @@ function spawnTraffic(scene) {
     if (r.seq.length < 2) continue;
     const p = buildRoadPath(r.seq, 'ped');
     const path = new TPath(p.pts, [], { ds: 2, noSpeed: true });
-    TRAFFIC.peds.push({ path, s: rnd() * path.L, v: rr(1.1, 1.6), ph: rnd() * 6, lat: rr(-0.5, 0.5), h: rr(0.92, 1.08) });
+    const ped = { path, s: rnd() * path.L, v: rr(1.1, 1.6), ph: rnd() * 6, lat: rr(-0.5, 0.5), h: rr(0.92, 1.08) };
+    // einige joggen (Hash statt Zufall: die übrige Welt bleibt gleich)
+    if (hash2i(i, 991) < 0.06) { ped.run = true; ped.v = 2.6 + hash2i(i, 992) * 0.7; }
+    ped.look = crowdLook(i * 7 + 3);
+    TRAFFIC.peds.push(ped);
   }
   const shirts = [0x2b4c7e, 0xb03a2e, 0xe8e2d0, 0x2f6f4f, 0x333333, 0xd9a441, 0x6b3fa0, 0x1e90a0, 0xf0f0f0, 0x8a5a3a].map(c => lin(c));
   const pants = [0x1d2633, 0x3a3a3a, 0x4a5a7a, 0x6b5a45, 0x1a1a1a, 0x7a7a72].map(c => lin(c));
   const skin = [0xf1c9a5, 0xe0ac87, 0xc68863, 0x8d5a3b, 0x5c3a24, 0xf5d7bf].map(c => lin(c));
   for (const p of TRAFFIC.peds) { p.shirt = pick(shirts); p.pants = pick(pants); p.skin = pick(skin); }
-  TRAFFIC.crowd = new PedCrowd(scene, buildPedestrianAsset(), TRAFFIC.peds.length);
+  // Platz für die Fussgänger plus ruhende Leute (Haltestellen, Bänke …) in der Ferne
+  TRAFFIC.crowd = new PedCrowd(scene, buildPedestrianAsset(), TRAFFIC.peds.length + 400);
 }
 
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _s = new THREE.Vector3(1, 1, 1), _off = new THREE.Vector3();
@@ -75,6 +80,10 @@ function updateTraffic(dt, camPos) {
   L.end();
   const C = TRAFFIC.crowd;
   C.begin();
+  // Nahe Fussgänger als animierte Figuren (falls die Daten schon geladen sind)
+  const SK = (typeof LIFE !== 'undefined' && LIFE.sk && LIFE.on) ? LIFE.sk : null;
+  const skNear2 = (42 * f) ** 2, skWalkMax = Math.round(70 * Math.min(1.3, f));
+  if (SK) SK.begin();
   for (let i = 0; i < TRAFFIC.peds.length; i++) {
     const p = TRAFFIC.peds[i];
     p.s = (p.s + p.v * dt) % p.path.L;
@@ -88,8 +97,17 @@ function updateTraffic(dt, camPos) {
     const yaw = Math.atan2(_pt.dx, _pt.dz);
     _q.setFromAxisAngle(_v.set(0, 1, 0), yaw);
     _m4.compose(_off.set(_pt.x + _pt.dz * p.lat, _pt.y - 0.03, _pt.z - _pt.dx * p.lat), _q, _s.set(p.h, p.h, p.h));
-    C.add(_m4, p.ph, p.shirt, p.pants, p.skin, dx * dx + dz * dz < pedNear2);
+    const d2p = dx * dx + dz * dz;
+    if (SK && d2p < skNear2 && SK.n < skWalkMax) {
+      const S = 1.68 * p.h;
+      _m4.compose(_off.set(_pt.x + _pt.dz * p.lat, _pt.y - 0.03, _pt.z - _pt.dx * p.lat), _q, _s.set(S, S, S));
+      const cl = p.run ? SK.asset.clips.run : SK.asset.clips.walk;
+      if (SK.add(_m4, cl, p.ph / 6.2832 * (p.run ? 0.72 : 1), p.look)) continue;
+    }
+    C.add(_m4, p.ph, p.shirt, p.pants, p.skin, d2p < pedNear2);
   }
+  if (typeof updateLife === 'function') updateLife(dt, camPos, C, SK);
+  if (SK) SK.end();
   C.end();
 }
 

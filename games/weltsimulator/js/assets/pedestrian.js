@@ -96,6 +96,7 @@ class PedCrowd {
   begin() { this.nn = 0; this.nf = 0; }
   add(m4, phase, shirt, pants, skin, isNear) {
     const im = isNear ? this.near : this.far;
+    if ((isNear ? this.nn : this.nf) >= this.max) return;
     const i = isNear ? this.nn++ : this.nf++;
     im.setMatrixAt(i, m4);
     const g = im.geometry;

@@ -76,7 +76,8 @@ function qualityFrame(dt, renderer, camera) {
     const el = document.getElementById('stats');
     if (el) el.textContent = Math.round(QUALITY.fps) + ' FPS · ' + QUALITY.ms.toFixed(1) + ' ms · ' + QUALITY.lastCalls + ' Draw-Calls · ' +
       (QUALITY.lastTris / 1e6).toFixed(2) + ' Mio. Dreiecke · Auflösung ' + Math.round(renderer.getPixelRatio() * 100) + ' % · ' + QUALITY.cur.label +
-      (QUALITY.auto ? ' (auto)' : '') + (typeof OCC !== 'undefined' && OCC.tested ? ' · verdeckt ' + OCC.culled + '/' + OCC.tested : '');
+      (QUALITY.auto ? ' (auto)' : '') + (typeof OCC !== 'undefined' && OCC.tested ? ' · verdeckt ' + OCC.culled + '/' + OCC.tested : '') +
+      (typeof LIFE !== 'undefined' && LIFE.sk ? ' · Leute ' + LIFE.sk.n + ' animiert' : '');
   }
 }
 

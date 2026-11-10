@@ -12,7 +12,7 @@ Webspace hochladen.
 | ⚓ **Hohe See** | [`games/ubootgame/`](games/ubootgame/) | Endlosfahrt über das Meer, Minen und U-Boote ausweichen, 12 Schiffe freischalten |
 | **TrackEditor** | [`games/trackeditor/`](games/trackeditor/) | SVG-Schienennetz-Editor mit Weichen, Validierung, Testfahrt und Level-Export |
 | **Stellwerksim** | [`games/stellwerksim/`](games/stellwerksim/) | SVG-Stellwerk mit freiem Betrieb oder Personenverkehr, fuenf Zuegen, Weichen und Kollisionsgefahr |
-| 🏙️ **Welt-Simulator** | [`games/weltsimulator/`](games/weltsimulator/) | 5×5-km-Stadt am Meer in Ego-Perspektive: Bus, Tram, U-Bahn, begehbare Gebäude mit Lift, Tag-Nacht-Wechsel, Spielfigur Mensch oder fliegender Drache |
+| 🏙️ **Welt-Simulator** | [`games/weltsimulator/`](games/weltsimulator/) | 5×5-km-Stadt am Meer in Ego-Perspektive: Bus, Tram, U-Bahn, begehbare Gebäude mit Lift, Tag-Nacht-Wechsel, Spielfigur Mensch oder fliegender Drache, belebte Strassen mit animierten Leuten, Vögeln und Booten |
 | ✅ **Family Habit Tracker** | [`games/familyhabittracker/`](games/familyhabittracker/) | Habit-Tracker fuer den Touchscreen zuhause: M, N, L und C tragen per PIN ein, was sie heute erledigt haben |
 
 Details zu Steuerung und Spielregeln stehen jeweils in der README des Spiels.

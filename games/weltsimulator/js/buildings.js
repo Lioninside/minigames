@@ -159,7 +159,12 @@ function facadeShaderPatch(sh) {
         float lit = step(hsh, 0.30);
         float dim = 0.55 + 0.45 * fract(hsh * 13.7);
         vec3 lc = mix(vec3(1.0, 0.68, 0.38), vec3(0.78, 0.86, 1.0), step(0.75, fract(hsh * 7.31)));
-        totalEmissiveRadiance += winMask * lit * uNight * lc * 1.05 * dim;
+        // manchmal steht jemand am Fenster: Silhouette aus Kopf und Schultern
+        vec2 fc = fract(vUv + vec2(0.003));
+        float px = 0.34 + 0.32 * fract(hsh * 37.1);
+        vec2 hd = vec2(fc.x - px, (fc.y - 0.47) * 1.15);
+        float sil = step(fract(hsh * 91.7), 0.45) * max(step(abs(fc.x - px), 0.06 + 0.02 * step(fc.y, 0.38)) * step(fc.y, 0.42), step(dot(hd, hd), 0.0021));
+        totalEmissiveRadiance += winMask * lit * uNight * lc * 1.05 * dim * (1.0 - 0.85 * sil);
       }
       #endif`);
 }
@@ -951,7 +956,12 @@ function makeAtlasMaterial(tex) {
             float lit = step(hsh, 0.30);
             float dim = 0.55 + 0.45 * fract(hsh * 13.7);
             vec3 lc = mix(vec3(1.0, 0.68, 0.38), vec3(0.78, 0.86, 1.0), step(0.75, fract(hsh * 7.31)));
-            totalEmissiveRadiance += winMask * lit * uNight * lc * 1.05 * dim;
+            // manchmal steht jemand am Fenster: Silhouette aus Kopf und Schultern
+            vec2 fc = fract(vUv + vec2(0.003));
+            float px = 0.34 + 0.32 * fract(hsh * 37.1);
+            vec2 hd = vec2(fc.x - px, (fc.y - 0.47) * 1.15);
+            float sil = step(fract(hsh * 91.7), 0.45) * max(step(abs(fc.x - px), 0.06 + 0.02 * step(fc.y, 0.38)) * step(fc.y, 0.42), step(dot(hd, hd), 0.0021));
+            totalEmissiveRadiance += winMask * lit * uNight * lc * 1.05 * dim * (1.0 - 0.85 * sil);
           }`);
   };
   return m;

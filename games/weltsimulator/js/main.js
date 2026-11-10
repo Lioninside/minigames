@@ -88,6 +88,7 @@ let SPAWN = { x: 0, z: 0 };
       ['U-Bahn-Stationen', () => buildMetro(scene, surf, MATS)],
       ['Busse, Trams und U-Bahnen', () => spawnTransitVehicles(surf)],
       ['Autos und Fussgänger', () => spawnTraffic(surf)],
+      ['Leben in der Stadt', () => initLife(surf, scene)],
       ['Shader der Fahrzeuge', () => precompile()]
     ];
     for (let i = 0; i < steps.length; i++) {
@@ -183,6 +184,7 @@ let SPAWN = { x: 0, z: 0 };
     if (e.code === 'KeyF') { QUALITY.showStats = !QUALITY.showStats; updateQualityUI(); saveQualitySettings(); }
     if (e.code === 'KeyQ') cycleQuality(WORLD.renderer, WORLD.camera);
     if (e.code === 'KeyO') { OCC.enabled = !OCC.enabled; OCC.t = 0; }
+    if (e.code === 'KeyG') ambToggle();
   });
   window.addEventListener('keyup', (e) => { KEYS[e.code] = false; });
   window.addEventListener('blur', () => { for (const k in KEYS) KEYS[k] = false; });
@@ -255,6 +257,8 @@ let SPAWN = { x: 0, z: 0 };
       if (GAME.mode === 'world') updatePlayerWorld(dt); else updatePlayerInterior(dt);
       updateElevator(dt);
       updateNature(WORLD.t, dt);
+      updateAmbientLife(WORLD.t, dt);
+      updateAmbience(dt);
       updateRoofCab();
       updateNearVis(P.x, P.z, dt);
       saveT += dt;
@@ -263,8 +267,10 @@ let SPAWN = { x: 0, z: 0 };
       updateTransit(dt, cam.position, false);
       updateTraffic(dt, cam.position);
       updateNature(WORLD.t, dt);
+      updateAmbientLife(WORLD.t, dt);
       updateNearVis(cam.position.x, cam.position.z, dt);
     }
+    AMB_T.value = WORLD.t;
     updateCamera(dt);
     if (GAME.mode === 'world') {
       focus.set(GAME.started ? P.x : WS.CENTER.x, GAME.started ? P.y : 0, GAME.started ? P.z : WS.CENTER.z);

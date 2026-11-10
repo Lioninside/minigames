@@ -11,7 +11,26 @@ function updateNearVis(cx, cz, dt, force) {
   for (const o of NEARVIS.list) { const p = o.obj.position; o.obj.visible = Math.abs(p.x - cx) < o.r && Math.abs(p.z - cz) < o.r; }
 }
 
-const NAT = { treeHash: null, fountains: [], jets: [], gondolas: [], boats: [], poles: [] };
+const NAT = { treeHash: null, fountains: [], jets: [], gondolas: [], boats: [], poles: [], benches: [], umbrellas: [] };
+
+/* Wind: Kronen und Blätter wiegen sich (Vertex-Shader, Phase aus der Instanz-Position) */
+function windPatch(amp) {
+  return (sh) => {
+    sh.uniforms.uAmbT = AMB_T;
+    sh.vertexShader = 'uniform float uAmbT;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      {
+        vec3 ip = vec3(0.0);
+        #ifdef USE_INSTANCING
+          ip = instanceMatrix[3].xyz;
+        #endif
+        float ph = ip.x * 0.043 + ip.z * 0.061;
+        float k = max(transformed.y - 1.5, 0.0) * ${amp.toFixed(4)};
+        float g = 0.6 + 0.4 * sin(uAmbT * 0.37 + ph * 0.3);
+        transformed.x += k * g * (sin(uAmbT * 1.7 + ph) + 0.35 * sin(uAmbT * 3.9 + ph * 1.7));
+        transformed.z += k * g * 0.6 * cos(uAmbT * 1.3 + ph * 1.3);
+      }`);
+  };
+}
 
 function initNature() { NAT.treeHash = new SHash(20); }
 
@@ -187,6 +206,7 @@ function buildTreeMeshes(scene) {
     palmTrunk: new THREE.MeshStandardMaterial({ color: 0x8a7458, roughness: 0.95 }),
     palmLeaf: new THREE.MeshStandardMaterial({ color: 0x4f7d2e, roughness: 0.8, side: THREE.DoubleSide })
   };
+  // Impostor zuerst ohne Wind rendern, danach den Wind einschalten (siehe unten)
   const leafCols = [0x4e7a2c, 0x5b8a33, 0x6a9338, 0x3f6b28, 0x76923a, 0x587f2f, 0x8a9a3c].map(c => lin(c));
   const needleCols = [0x2f5428, 0x2a4a24, 0x36602c, 0x3d5f30].map(c => lin(c));
   const groups = [
@@ -206,7 +226,12 @@ function buildTreeMeshes(scene) {
     const nn = gi.attributes.normal; for (let i = 0; i < nn.count; i++) nn.setXYZ(i, 0, 1, 0);
     grp.impGeo = gi;
     grp.impMat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide });
+    grp.impMat.onBeforeCompile = windPatch(0.012); grp.impMat.customProgramCacheKey = () => 'wind-imp';
   }
+  mats.leaf.onBeforeCompile = windPatch(0.022); mats.leaf.customProgramCacheKey = () => 'wind-leaf';
+  mats.needle.onBeforeCompile = windPatch(0.012); mats.needle.customProgramCacheKey = () => 'wind-needle';
+  mats.palmLeaf.onBeforeCompile = windPatch(0.05); mats.palmLeaf.customProgramCacheKey = () => 'wind-palm';
+  for (const k of ['leaf', 'needle', 'palmLeaf']) mats[k].needsUpdate = true;
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const CH = 625;
   for (const grp of groups) {
@@ -291,6 +316,7 @@ function buildParksAndProps(scene) {
   const bench = (x, z, y, rot) => {
     const mb = cm.get('props', x, z);
     const s = Math.sin(rot), c = Math.cos(rot);
+    NAT.benches.push({ x, y, z, rot, seatY: y + 0.485 });
     mb.box(x, y + 0.45, z, 1.8, 0.07, 0.5, rot, wood);
     mb.box(x - s * 0.24, y + 0.75, z - c * 0.24, 1.8, 0.45, 0.06, rot, wood);
     for (const k of [-0.75, 0.75]) mb.box(x + c * k, y + 0.22, z - s * k, 0.06, 0.44, 0.45, rot, iron);
@@ -354,6 +380,7 @@ function buildParksAndProps(scene) {
       if (y < WS.WATER_Y + 0.3) continue;
       const mb = cm.get('beach', x, zz);
       const col = pick(umbCols);
+      NAT.umbrellas.push({ x, y, z: zz });
       mb.cyl(x, y, zz, 0.03, 0.03, 2.3, 6, lin(0xdddddd), false);
       mb.cyl(x, y + 2.0, zz, 1.6, 0.05, 0.5, 12, col, false);
       for (const k of [-0.9, 0.9]) {

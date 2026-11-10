@@ -22,6 +22,7 @@ bei jedem Besuch gleich aus.
 | T | Zeitraffer an/aus |
 | Q | Grafikstufe wechseln (Niedrig, Mittel, Hoch) |
 | F | Bildraten-Anzeige ein/aus |
+| G | Umgebungsgeräusche an/aus |
 | O | Verdeckungs-Culling ein/aus (zum Vergleich) |
 
 ## Spielfiguren
@@ -63,6 +64,47 @@ Im Startmenü (Zeile „Figur“) oder mit **C** wählbar; die Wahl wird gespeic
 - **Mitfahren:** bei offenen Türen hineinlaufen, und die Kamera fährt mit. Zum Aussteigen an einer
   Haltestelle durch die offene Tür hinausgehen.
 - Dazu kommen Autos und Fussgänger. Fahrzeuge bremsen vor Hindernissen und vor dem Spieler.
+
+## Leben in der Stadt
+
+Ohne spürbare Kosten bei Bildrate und Ladezeit: Die Daten der animierten Figuren (416 KB) werden
+erst nach dem Start im Hintergrund nachgeladen. Pro Bild kostet alles zusammen unter 0,3 ms
+Rechenzeit; alle animierten Leute sind ein einziger Draw-Call.
+
+- **Animierte Menschenmenge:** Figur „Animated Woman“ von Quaternius (CC0) mit den Animationen
+  Gehen, Rennen, Stehen und Sitzen. Bis rund 60 m sind Fussgänger und ruhende Leute voll animiert
+  (bis 170 gleichzeitig), weiter weg übernehmen die einfachen Figuren. Haut, Haare, Oberteil und
+  Hose wechseln pro Person, die Grösse auch. Einige joggen.
+- **Leute, die etwas tun:**
+  - warten an Bus- und Tramhaltestellen (sitzend im Häuschen oder stehend) und auf U-Bahn-Perrons
+  - sitzen auf Parkbänken und in Cafés auf der Piazza (Tische, Stühle, Schirme)
+  - stehen unter den Sonnenschirmen am Strand oder spazieren dort und auf der Piazza
+  - plaudern in Gruppen auf Plätzen, vor Luxushotels und vor der ETH
+- **Ein- und Aussteigen:** Hält ein Bus, ein Tram oder eine U-Bahn, gehen Wartende zur nächsten
+  Tür und steigen ein. Andere steigen aus und gehen weg, aus der U-Bahn die Treppe hinauf.
+- **Uhrzeit:** zu Stosszeiten volle Haltestellen, mittags volle Bänke und Strände, abends volle
+  Cafés, nachts fast leer. Ein- und ausgeblendet wird nur, wer gerade nicht im Blickfeld ist.
+- **Vögel:** Möwen über Strand und Hafen, Schwärme über der Stadt. Die ganze Flugbahn rechnet der
+  Shader, ein Draw-Call. Tauben auf der Piazza und dem Hauptplatz fliegen auf, wenn man ihnen zu nahe
+  kommt (dem Drachen schon früher).
+- **Wasser:** Motorboote auf dem Fluss, ein Ausflugsschiff vor der Küste, Gondeln in Klein-Venedig.
+- **Wind:** Baumkronen, Palmwedel und ferne Bäume wiegen sich; Fahnen vor Hotels und ETH wehen.
+- **Fenster:** Nachts steht in manchen erleuchteten Fenstern jemand (Silhouette im Fassaden-Shader,
+  ohne zusätzliche Geometrie).
+- **Geräusche** (Taste G): Brandung und Möwen am Meer, Verkehrsrauschen je nach Autos in der Nähe,
+  Stimmengemurmel bei vielen Leuten, Vogelgezwitscher im Grünen, nachts Grillen, im Untergrund
+  ein Brummen. Alles synthetisch erzeugt, ohne Audiodateien.
+
+Die Figur wird mit `tools/bake_crowd.py` aus der GLB-Datei umgerechnet (nur Python-Standardbibliothek):
+
+```bash
+python3 tools/bake_crowd.py "Animated Woman.glb" js/data/crowd-woman.js
+```
+
+Das Werkzeug wählt vier Animationen aus und rechnet sie in Knochenmatrizen um (half float).
+Es normiert die Figur auf 1 m mit Füssen auf 0 und entfernt die Wurzelbewegung.
+Die Geometrie wird quantisiert. So werden aus 1,3 MB GLB 312 KB Daten, und es braucht keinen
+GLTFLoader.
 
 ## Gebäude
 
@@ -129,6 +171,7 @@ Dreiecke und Draw-Calls live).
 | U-Bahn-Wagen | `assets/tube.js` | 13 / 5 864 | 7 / 4 432 | 1 / 42 | 38 |
 | Auto (alle zusammen) | `assets/car.js` | 4 / 632 pro Auto | – | 1 / 32 | 5 |
 | Fussgänger (alle zusammen) | `assets/pedestrian.js` | 1 / 482 pro Person | – | 1 / 36 | 6 |
+| Animierte Leute (alle zusammen) | `assets/crowd.js` | 1 / 1 908 pro Person, Skinning im Shader | – | – | neu |
 
 Zielanzeigen kommen pro Fahrzeug dazu (1–2 Draw-Calls).
 
@@ -167,6 +210,9 @@ Zielanzeigen kommen pro Fahrzeug dazu (1–2 Draw-Calls).
 | `js/interior.js` | Innenräume pro Kategorie und Stockwerk, Liftkabine |
 | `js/sky.js` | Himmel, Tageszeit, Licht, Reflexionen |
 | `js/traffic.js` | Fahr- und Gehlogik für Autos und Fussgänger |
+| `js/life.js` | Leute an Haltestellen, Bänken, Cafés, Strand; Ein- und Aussteigen; Vögel, Tauben, Boote, Fahnen |
+| `js/ambience.js` | Umgebungsgeräusche |
+| `js/data/crowd-woman.js` | umgerechnete Figur (erzeugt von `tools/bake_crowd.py`) |
 | `js/player.js` | Bewegung, Kollision, Mitfahren, Türen, Lift-Ablauf |
 | `js/hud.js` | Anzeige, Minikarte, Netzplan, Lift-Tabelle, Töne |
 | `js/quality.js` | Grafikstufen, Bildraten-Anzeige, automatische Auflösung, Detailstufen |
