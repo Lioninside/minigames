@@ -127,6 +127,7 @@ function updateHUD() {
     place = WS.CITY_NAME + ' · ' + q + (s ? ' · ' + s : '');
     const rb = liftNear(P.x, P.z, P.y, 30); if (rb && P.y > rb.lift.y - 1) place = buildingLabel(rb) + ' · Dach';
   }
+  if (P.char === 'dragon' && GAME.mode === 'world') place += P.flying ? ' · Drache, Flughöhe ' + Math.max(0, Math.round(P.y - terrainH(P.x, P.z))) + ' m' : ' · Drache';
   HUD.el.place.textContent = place;
   // Fahrzeug-Info
   let info = '';
@@ -211,6 +212,7 @@ function tone(freq, t0, dur, vol, type) {
 function sfxDing() { tone(1318, 0, 0.6, 0.12); tone(1046, 0.18, 0.9, 0.1); }
 function sfxDoor() { tone(180, 0, 0.18, 0.08, 'triangle'); tone(120, 0.08, 0.25, 0.06, 'triangle'); }
 function sfxStep() { tone(220, 0, 0.08, 0.05, 'triangle'); }
+function sfxMorph() { tone(392, 0, 0.15, 0.08, 'triangle'); tone(587, 0.08, 0.2, 0.08, 'triangle'); tone(880, 0.16, 0.35, 0.07, 'sine'); }
 function sfxChime() { tone(784, 0, 0.35, 0.08); tone(659, 0.3, 0.35, 0.08); tone(523, 0.6, 0.6, 0.08); }
 function sfxHum(on) {
   const c = audioCtx(); if (!c) return;

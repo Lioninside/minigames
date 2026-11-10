@@ -4,7 +4,8 @@
    Mitfahren in Bus/Tram/U-Bahn, Gebäude betreten (E) und Lift (L). */
 
 const STEP = 0.65, PR = 0.33, EYE = 1.68, GRAV = 22, JUMP = 7.4;
-const P = { x: 0, y: 3, z: 0, vy: 0, yaw: 0, pitch: 0, onGround: true, ride: null, swim: false, underground: false, bob: 0, third: false, moving: false };
+const P = { x: 0, y: 3, z: 0, vy: 0, yaw: 0, pitch: 0, onGround: true, ride: null, swim: false, underground: false, bob: 0, third: false, moving: false, char: 'human', flying: false, flapping: false };
+const DRAGON = { climb: 6.5, flapAcc: 20, glideSink: 3.2, airSpeed: 10, airRun: 19, ceiling: 420 };
 const GAME = { mode: 'world', hour: 9.5, timeScale: 1, paused: true, started: false };
 const KEYS = {};
 const ELEV = { state: 'none', t: 0, ctx: null, b: null, floor: 0, target: 0, from: null, to: null, dur: 0, startYaw: 0 };
@@ -180,11 +181,13 @@ function readInput() {
 }
 
 function updatePlayerWorld(dt) {
-  if (ELEV.state !== 'none') { P.vy = 0; P.moving = false; return; } // der Lift steuert die Position
+  if (ELEV.state !== 'none') { P.vy = 0; P.moving = false; P.flying = P.flapping = false; return; } // der Lift steuert die Position
   const input = readInput();
-  if (P.ride) { updateRide(dt, input); return; }
+  if (P.ride) { P.flying = P.flapping = false; updateRide(dt, input); return; }
   P.yaw += input.turn * 2.2 * dt;
+  const dragon = P.char === 'dragon';
   let spd = P.swim ? 2.2 : (input.run ? 8.5 : 4.4);
+  if (dragon && P.flying) spd = input.run ? DRAGON.airRun : DRAGON.airSpeed;
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
   let nx = P.x + fx * input.move * spd * dt, nz = P.z + fz * input.move * spd * dt;
   P.moving = input.move !== 0;
@@ -197,6 +200,8 @@ function updatePlayerWorld(dt) {
   P.x = nx; P.z = nz;
   // Schwimmen
   const deepWater = g < WS.WATER_Y - 1.1;
+  P.flapping = false;
+  if (dragon && deepWater && P.swim && input.jump) { P.swim = false; P.y = WS.WATER_Y + 0.3; P.vy = 3; } // aus dem Wasser auffliegen
   if (deepWater && P.y < WS.WATER_Y - 1.0 && !P.underground) {
     P.swim = true;
     P.y = Math.max(P.y + P.vy * dt, WS.WATER_Y - 1.3);
@@ -210,12 +215,20 @@ function updatePlayerWorld(dt) {
     }
   } else {
     P.swim = false;
-    P.vy -= GRAV * dt;
+    if (dragon && !P.onGround) {
+      // Drache in der Luft: Leertaste gehalten = flattern und steigen, sonst gleiten
+      if (input.jump) { P.vy = Math.min(DRAGON.climb, P.vy + DRAGON.flapAcc * dt); P.flapping = true; }
+      else P.vy = Math.max(-DRAGON.glideSink, P.vy - GRAV * 0.35 * dt);
+    } else P.vy -= GRAV * dt;
     P.y += P.vy * dt;
+    // Decke: unter der Erde nicht durch die Stationsdecke, oben eine Höchstgrenze
+    const ceil = P.underground ? g + 3.2 : DRAGON.ceiling;
+    if (P.y > ceil) { P.y = ceil; P.vy = Math.min(P.vy, 0); }
     if (P.y <= g) { P.y = g; P.vy = 0; P.onGround = true; } else P.onGround = P.y - g < 0.06;
     if (input.jump && P.onGround) { P.vy = JUMP; P.onGround = false; }
     if (P.y < g - 0.01) P.y = g;
   }
+  P.flying = dragon && !P.onGround && !P.swim && P.y - g > 0.6;
   // Untergrund?
   let ug = false;
   stationsNear(P.x, P.z, (st, lx, lz) => {

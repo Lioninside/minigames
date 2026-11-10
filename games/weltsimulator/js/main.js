@@ -36,30 +36,6 @@ let SPAWN = { x: 0, z: 0 };
     };
   }
 
-  function buildAvatar() {
-    const g = new THREE.Group();
-    const skin = new THREE.MeshStandardMaterial({ color: 0xe9bf9a, roughness: 0.7 });
-    const shirt = new THREE.MeshStandardMaterial({ color: 0x2f5fa8, roughness: 0.8 });
-    const pants = new THREE.MeshStandardMaterial({ color: 0x23262b, roughness: 0.8 });
-    const shoe = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6 });
-    const hair = new THREE.MeshStandardMaterial({ color: 0x3a2618, roughness: 0.9 });
-    const add = (geo, mat, x, y, z, parent) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; (parent || g).add(m); return m; };
-    const torso = add(new THREE.CylinderGeometry(0.2, 0.17, 0.62, 12), shirt, 0, 1.22, 0);
-    add(new THREE.SphereGeometry(0.2, 12, 8), shirt, 0, 1.5, 0).scale.set(1.1, 0.5, 0.75);
-    add(new THREE.CylinderGeometry(0.06, 0.06, 0.1, 8), skin, 0, 1.6, 0);
-    const head = add(new THREE.SphereGeometry(0.13, 16, 12), skin, 0, 1.73, 0); head.scale.set(1, 1.15, 1.05);
-    add(new THREE.SphereGeometry(0.135, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), hair, 0, 1.76, 0.0);
-    add(new THREE.SphereGeometry(0.025, 8, 6), new THREE.MeshStandardMaterial({ color: 0x111111 }), 0.045, 1.75, -0.12);
-    add(new THREE.SphereGeometry(0.025, 8, 6), new THREE.MeshStandardMaterial({ color: 0x111111 }), -0.045, 1.75, -0.12);
-    const limb = (x, y, len, r, mat) => { const p = new THREE.Group(); p.position.set(x, y, 0); g.add(p); const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.85, len, 10), mat); m.position.y = -len / 2; m.castShadow = true; p.add(m); return p; };
-    const legL = limb(0.1, 0.92, 0.86, 0.075, pants), legR = limb(-0.1, 0.92, 0.86, 0.075, pants);
-    add(new THREE.BoxGeometry(0.11, 0.08, 0.26), shoe, 0, -0.88, -0.05, legL); add(new THREE.BoxGeometry(0.11, 0.08, 0.26), shoe, 0, -0.88, -0.05, legR);
-    const armL = limb(0.26, 1.48, 0.62, 0.05, shirt), armR = limb(-0.26, 1.48, 0.62, 0.05, shirt);
-    add(new THREE.SphereGeometry(0.05, 8, 6), skin, 0, -0.65, 0, armL); add(new THREE.SphereGeometry(0.05, 8, 6), skin, 0, -0.65, 0, armR);
-    g.userData = { legL, legR, armL, armR };
-    return g;
-  }
-
   function init() {
     loadQualitySettings();
     const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
@@ -123,7 +99,9 @@ let SPAWN = { x: 0, z: 0 };
       WORLD.timing.push([steps[i][0], Math.round(performance.now() - t0)]);
     }
     bar.style.width = '100%';
-    WORLD.avatar = buildAvatar(); scene.add(WORLD.avatar); WORLD.avatar.visible = false;
+    WORLD.chars = { human: buildHumanModel(), dragon: buildDragonModel() };
+    for (const k in WORLD.chars) { scene.add(WORLD.chars[k]); WORLD.chars[k].visible = false; }
+    updateCharUI();
     const btn = document.getElementById('btnStart');
     btn.disabled = false; btn.textContent = 'Welt betreten';
     btn.onclick = start;
@@ -165,7 +143,20 @@ let SPAWN = { x: 0, z: 0 };
     try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { saved = null; }
     P.x = x; P.z = z; P.y = groundAt(x, z, 50); P.yaw = Math.PI / 2;
     if (saved && typeof saved.hour === 'number') GAME.hour = saved.hour;
+    if (saved && saved.char === 'dragon') { P.char = 'dragon'; P.third = true; }
   }
+
+  /* Spielfigur wechseln (Taste C oder Startmenü) */
+  function setCharacter(c, fromKey) {
+    if (c === P.char) return;
+    P.char = c; P.popT = 0;
+    if (c === 'dragon') P.third = true;
+    if (fromKey) sfxMorph();
+    updateCharUI(); saveNow();
+  }
+  function updateCharUI() { document.querySelectorAll('.cbtn').forEach(b => b.classList.toggle('on', b.dataset.c === P.char)); }
+  function saveNow() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ hour: GAME.hour, char: P.char })); } catch (e) { } }
+  document.querySelectorAll('.cbtn').forEach(b => { b.onclick = () => setCharacter(b.dataset.c, false); });
 
   function start() {
     document.getElementById('menu').classList.add('hidden');
@@ -187,6 +178,7 @@ let SPAWN = { x: 0, z: 0 };
     if (e.code === 'KeyL') actionL();
     if (e.code === 'KeyM') toggleMap();
     if (e.code === 'KeyV') P.third = !P.third;
+    if (e.code === 'KeyC' && ELEV.state === 'none') setCharacter(P.char === 'dragon' ? 'human' : 'dragon', true);
     if (e.code === 'KeyT') GAME.timeScale = GAME.timeScale > 1 ? 1 : 40;
     if (e.code === 'KeyF') { QUALITY.showStats = !QUALITY.showStats; updateQualityUI(); saveQualitySettings(); }
     if (e.code === 'KeyQ') cycleQuality(WORLD.renderer, WORLD.camera);
@@ -219,22 +211,28 @@ let SPAWN = { x: 0, z: 0 };
       cam.lookAt(WS.CENTER.x, 30, WS.CENTER.z);
       return;
     }
+    const ch = WORLD.chars ? WORLD.chars[P.char] : null, other = WORLD.chars ? WORLD.chars[P.char === 'dragon' ? 'human' : 'dragon'] : null;
+    const eye = ch ? ch.userData.eye : EYE;
     if (P.moving && P.onGround && ELEV.state === 'none') P.bob += dt * (KEYS.ShiftLeft || KEYS.ShiftRight ? 13 : 9); else P.bob *= 0.9;
-    const bob = Math.sin(P.bob) * 0.035;
-    const eyeY = P.y + EYE + bob + (P.camShake || 0);
+    const bob = P.third ? 0 : Math.sin(P.bob) * 0.035;
+    const eyeY = P.y + eye + bob + (P.camShake || 0);
     cam.rotation.set(P.pitch, P.yaw, 0, 'YXZ');
-    const av = WORLD.avatar;
-    if (P.third && GAME.mode === 'world') {
+    if (other) other.visible = false;
+    if (P.third && GAME.mode === 'world' && ch) {
       const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
-      cam.position.set(P.x - fx * 4.0, eyeY + 0.6, P.z - fz * 4.0);
+      const dist = ch.userData.camDist + (P.flying ? 2.5 : 0);
+      cam.position.set(P.x - fx * dist, eyeY + 0.6 + (P.flying ? 1.2 : 0), P.z - fz * dist);
       cam.lookAt(P.x + fx * 2, eyeY - 0.3 + P.pitch * 3, P.z + fz * 2);
-      av.visible = true;
-      av.position.set(P.x, P.y, P.z); av.rotation.y = P.yaw;
-      const sw = P.moving ? Math.sin(P.bob) * 0.6 : 0;
-      av.userData.legL.rotation.x = sw; av.userData.legR.rotation.x = -sw; av.userData.armL.rotation.x = -sw * 0.8; av.userData.armR.rotation.x = sw * 0.8;
+      ch.visible = true;
+      ch.position.set(P.x, P.y, P.z); ch.rotation.y = P.yaw;
+      // kurzer „Plopp“ beim Verwandeln
+      P.popT = Math.min(1, (P.popT === undefined ? 1 : P.popT) + dt / 0.35);
+      const s = P.popT < 1 ? 0.3 + 0.7 * (1 - Math.pow(1 - P.popT, 3)) + Math.sin(P.popT * Math.PI) * 0.12 : 1;
+      ch.scale.setScalar(s);
+      animateCharacter(ch, dt, { moving: P.moving, run: !!(KEYS.ShiftLeft || KEYS.ShiftRight), flying: !!P.flying, flapping: !!P.flapping });
     } else {
       cam.position.set(P.x, eyeY, P.z);
-      if (av) av.visible = false;
+      if (ch) ch.visible = false;
     }
   }
 
@@ -260,7 +258,7 @@ let SPAWN = { x: 0, z: 0 };
       updateRoofCab();
       updateNearVis(P.x, P.z, dt);
       saveT += dt;
-      if (saveT > 10) { saveT = 0; try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ hour: GAME.hour })); } catch (e) { } }
+      if (saveT > 10) { saveT = 0; saveNow(); }
     } else if (GAME.ready) {
       updateTransit(dt, cam.position, false);
       updateTraffic(dt, cam.position);

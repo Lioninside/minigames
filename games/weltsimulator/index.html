@@ -29,10 +29,16 @@
       <tr><td>M</td><td>Netzplan</td></tr>
       <tr><td>V</td><td>Ego- / Verfolgeransicht</td></tr>
       <tr><td>T</td><td>Zeitraffer an/aus</td></tr>
+      <tr><td>C</td><td>Figur wechseln: Mensch ↔ Drache</td></tr>
+      <tr><td>Leertaste halten</td><td>als Drache: fliegen (loslassen = gleiten)</td></tr>
       <tr><td>Q / F</td><td>Grafikstufe wechseln / Bildraten-Anzeige</td></tr>
     </table>
     <p class="sub small">Bus, Tram und U-Bahn halten 10 Sekunden mit offenen Türen: einfach hineinlaufen.
       Zum Aussteigen bei offenen Türen hinausgehen.</p>
+    <div class="qrow">
+      <span>Figur:</span>
+      <button class="cbtn" data-c="human">🧍 Mensch</button><button class="cbtn" data-c="dragon">🐉 Drache</button>
+    </div>
     <div class="qrow">
       <span>Grafik:</span>
       <button class="qbtn" data-q="low">Niedrig</button><button class="qbtn" data-q="mid">Mittel</button><button class="qbtn" data-q="high">Hoch</button>
@@ -52,7 +58,7 @@
   <div id="crosshair"></div>
   <canvas id="minimap" width="210" height="210"></canvas>
   <div id="stats"></div>
-  <div id="hintBar">↑↓ gehen · ←→ drehen · Klick: Maus schauen · Leertaste springen · Shift rennen · E Tür · L Lift · M Netzplan · V Ansicht · T Zeitraffer · Q Grafik · F FPS</div>
+  <div id="hintBar">↑↓ gehen · ←→ drehen · Klick: Maus schauen · Leertaste springen · Shift rennen · E Tür · L Lift · M Netzplan · V Ansicht · T Zeitraffer · C Drache/Mensch · Q Grafik · F FPS</div>
 </div>
 
 <div id="mapOverlay" class="overlay hidden">
@@ -107,6 +113,7 @@
 <script src="js/assets/tube.js"></script>
 <script src="js/assets/car.js"></script>
 <script src="js/assets/pedestrian.js"></script>
+<script src="js/assets/characters.js"></script>
 <script src="js/vehicles.js"></script>
 <script src="js/buildings.js"></script>
 <script src="js/nature.js"></script>

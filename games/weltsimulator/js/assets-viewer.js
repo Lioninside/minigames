@@ -45,10 +45,12 @@
     { key: 'tube_front', label: 'U-Bahn Führerwagen', build: () => buildTubeAsset('front'), before: 38, side: 1 },
     { key: 'tube_none', label: 'U-Bahn Mittelwagen', build: () => buildTubeAsset('none'), before: 38, side: 1 },
     { key: 'car', label: 'Auto', build: buildCarAsset, before: 5, inst: true },
-    { key: 'pedestrian', label: 'Fussgänger', build: buildPedestrianAsset, before: 6, inst: true, ped: true }
+    { key: 'pedestrian', label: 'Fussgänger', build: buildPedestrianAsset, before: 6, inst: true, ped: true },
+    { key: 'human', label: 'Spielfigur Mensch', char: buildHumanModel, before: 15 },
+    { key: 'dragon', label: 'Spielfigur Drache', char: buildDragonModel, before: null }
   ];
-  for (const d of DEFS) { const b = d.build; let cache = null; d.build = () => cache || (cache = b()); }
-  const state = { def: DEFS[0], lod: 'auto', count: 1, doors: 'cycle', open: 0, t: 0 };
+  for (const d of DEFS) { if (!d.build) continue; const b = d.build; let cache = null; d.build = () => cache || (cache = b()); }
+  const state = { def: DEFS[0], lod: 'auto', count: 1, doors: 'cycle', open: 0, t: 0, motion: 'walk' };
   let holder = null, items = [], instLOD = null, crowd = null;
 
   /* Orbit-Kamera */
@@ -63,7 +65,14 @@
     if (holder) scene.remove(holder);
     holder = new THREE.Group(); scene.add(holder);
     items = []; instLOD = null; crowd = null;
-    const d = state.def, a = d.build();
+    const d = state.def;
+    if (d.char) {
+      const n = state.count, cols = Math.ceil(Math.sqrt(n));
+      for (let i = 0; i < n; i++) { const m = d.char(); m.position.set((i % cols - (cols - 1) / 2) * 3, 0, (Math.floor(i / cols) - (cols - 1) / 2) * 3); holder.add(m); items.push(m); }
+      orbit.target.set(0, 1.1, 0); orbit.dist = n === 1 ? 6 : 30; orbit.yaw = 2.6; orbit.pitch = 0.15;
+      renderStats(); return;
+    }
+    const a = d.build();
     const n = state.count, cols = Math.ceil(Math.sqrt(n));
     const spacingX = d.inst ? (d.ped ? 2.5 : 4) : 6, spacingZ = d.inst ? (d.ped ? 2.5 : 7) : (a.len + 4);
     const pos = [];
@@ -90,15 +99,28 @@
   }
   function ui() {
     btns('assetBtns', DEFS.map(d => [d.key, d.label]), state.def.key, (k) => { state.def = DEFS.find(d => d.key === k); if (state.def.inst && state.lod === 'mid') state.lod = 'auto'; buildScene(); ui(); });
-    const lods = state.def.inst ? [['near', 'Nah'], ['far', 'Fern'], ['auto', 'Automatisch']] : [['near', 'Nah'], ['mid', 'Mittel'], ['far', 'Fern'], ['auto', 'Automatisch']];
+    const lods = state.def.char ? [] : state.def.inst ? [['near', 'Nah'], ['far', 'Fern'], ['auto', 'Automatisch']] : [['near', 'Nah'], ['mid', 'Mittel'], ['far', 'Fern'], ['auto', 'Automatisch']];
     btns('lodBtns', lods, state.lod, (v) => { state.lod = v; ui(); renderStats(); });
+    document.getElementById('lodBtns').previousElementSibling.style.display = state.def.char ? 'none' : '';
     btns('countBtns', [[1, '1 Exemplar'], [25, '25 Exemplare']], state.count, (v) => { state.count = v; buildScene(); ui(); });
     const hasDoors = !state.def.inst;
     document.getElementById('doorLbl').style.display = hasDoors ? '' : 'none';
     document.getElementById('doorBtns').style.display = hasDoors ? '' : 'none';
-    btns('doorBtns', [['closed', 'Zu'], ['open', 'Offen'], ['cycle', 'Auf und zu']], state.doors, (v) => { state.doors = v; ui(); });
+    if (state.def.char) {
+      document.getElementById('doorLbl').textContent = 'Bewegung';
+      const mv = state.def.key === 'dragon' ? [['idle', 'Stehen'], ['walk', 'Gehen'], ['flap', 'Flattern'], ['glide', 'Gleiten']] : [['idle', 'Stehen'], ['walk', 'Gehen']];
+      btns('doorBtns', mv, state.motion, (v) => { state.motion = v; ui(); });
+    } else {
+      document.getElementById('doorLbl').textContent = 'Türen';
+      btns('doorBtns', [['closed', 'Zu'], ['open', 'Offen'], ['cycle', 'Auf und zu']], state.doors, (v) => { state.doors = v; ui(); });
+    }
   }
   function renderStats() {
+    if (state.def.char) {
+      const s = characterStats(items[0] || state.def.char());
+      document.getElementById('statTable').innerHTML = `<tr><th>Modell</th><th>Dreiecke</th><th>Draw-Calls</th><th>Vorher</th></tr><tr class="cur"><td>${state.def.label}</td><td>${s.tris.toLocaleString('de-CH')}</td><td>${s.calls}</td><td>${state.def.before || 'neu'}</td></tr>`;
+      return;
+    }
     const a = state.def.build(), s = a.stats;
     const rows = state.def.inst ? ['near', 'far'] : ['near', 'mid', 'far'];
     const names = { near: 'Nah', mid: 'Mittel', far: 'Fern' };
@@ -127,7 +149,10 @@
     const open = state.doors === 'open' ? 1 : state.doors === 'closed' ? 0 : clamp(Math.sin(state.t * 0.9) * 1.5 + 0.5, 0, 1);
     const d = state.def;
     let lvShown = '';
-    if (!d.inst) {
+    if (d.char) {
+      const st = { moving: state.motion === 'walk', flying: state.motion === 'flap' || state.motion === 'glide', flapping: state.motion === 'flap' };
+      for (const m of items) { animateCharacter(m, dt, st); m.position.y = st.flying ? 1.2 + Math.sin(state.t * 2) * 0.1 : 0; }
+    } else if (!d.inst) {
       for (const it of items) {
         const lv = levelFor(camera.position.distanceTo(it.g.position));
         it.setLOD(lv); it.setDoors(open, d.side); lvShown = lv;

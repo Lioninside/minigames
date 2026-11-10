@@ -12,16 +12,30 @@ bei jedem Besuch gleich aus.
 | ↑ / ↓ (oder W / S) | vorwärts / rückwärts gehen |
 | ← / → (oder A / D) | drehen |
 | Maus | umschauen (einmal ins Bild klicken) |
-| Leertaste | springen; im Wasser ans Ufer klettern |
+| Leertaste | springen; im Wasser ans Ufer klettern; als Drache halten = mit den Flügeln schlagen und steigen |
 | Shift | rennen |
 | E | Gebäude an der Haupttür betreten / am Ausgang verlassen |
 | L | Lift rufen, einsteigen, aussteigen |
 | M | Netzplan mit U-Bahn, Tram und Buslinien |
 | V | Ego- oder Verfolgerkamera (zeigt die Figur) |
+| C | Spielfigur wechseln: Mensch oder Drache |
 | T | Zeitraffer an/aus |
 | Q | Grafikstufe wechseln (Niedrig, Mittel, Hoch) |
 | F | Bildraten-Anzeige ein/aus |
 | O | Verdeckungs-Culling ein/aus (zum Vergleich) |
+
+## Spielfiguren
+
+Im Startmenü (Zeile „Figur“) oder mit **C** wählbar; die Wahl wird gespeichert.
+
+- **Mensch:** geht, rennt und springt, Ego- oder Verfolgerkamera.
+- **Drache:** roter Comic-Drache mit cremefarbenem Plattenbauch, weissen Hörnern, grossen Augen,
+  grauen Fledermausflügeln und orangen Tupfen. Er wird immer von hinten gezeigt. Leertaste halten
+  lässt ihn flattern und steigen (bis 420 m über Grund, im Untergrund bis knapp unter die Decke).
+  Loslassen lässt ihn gleiten und langsam sinken; mit ↑ und Shift fliegt er schneller. Am Boden
+  geht er mit eingeklappten Flügeln. Busse, Trams, U-Bahn, Gebäude und Lift funktionieren wie
+  beim Menschen.
+- Beide Figuren sind auf der Asset-Testseite (`assets.html`) mit Bewegungsarten zu sehen.
 
 ## Die Stadt
 
