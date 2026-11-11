@@ -6,6 +6,8 @@
 const STEP = 0.65, PR = 0.33, EYE = 1.68, GRAV = 22, JUMP = 7.4;
 const P = { x: 0, y: 3, z: 0, vy: 0, yaw: 0, pitch: 0, onGround: true, ride: null, swim: false, underground: false, bob: 0, third: false, moving: false, char: 'human', flying: false, flapping: false };
 const DRAGON = { climb: 6.5, flapAcc: 20, glideSink: 3.2, airSpeed: 10, airRun: 19, ceiling: 420 };
+/* Raketenmodus des Drachen (Taste R): Reiseflug, Turbo, Bremsen in m/s */
+const ROCKET = { cruise: 70, turbo: 170, slow: 22, acc: 42, turn: 1.45, climb: 32, ceiling: 900, launch: 22, bound: 2700 };
 const GAME = { mode: 'world', hour: 9.5, timeScale: 1, paused: true, started: false };
 const KEYS = {};
 const ELEV = { state: 'none', t: 0, ctx: null, b: null, floor: 0, target: 0, from: null, to: null, dur: 0, startYaw: 0 };
@@ -183,7 +185,8 @@ function readInput() {
 function updatePlayerWorld(dt) {
   if (ELEV.state !== 'none') { P.vy = 0; P.moving = false; P.flying = P.flapping = false; return; } // der Lift steuert die Position
   const input = readInput();
-  if (P.ride) { P.flying = P.flapping = false; updateRide(dt, input); return; }
+  if (P.ride) { P.flying = P.flapping = false; P.rocket = false; updateRide(dt, input); return; }
+  if (P.rocket) { updateRocket(dt, input); return; }
   P.yaw += input.turn * 2.2 * dt;
   const dragon = P.char === 'dragon';
   let spd = P.swim ? 2.2 : (input.run ? 8.5 : 4.4);
@@ -238,7 +241,52 @@ function updatePlayerWorld(dt) {
   if (P.y < -60) respawn();
 }
 
+/* ---------- Raketenmodus ---------- */
+function toggleRocket() {
+  if (P.char !== 'dragon' || P.ride || GAME.mode !== 'world' || ELEV.state !== 'none') return false;
+  if (!P.rocket && P.underground) return false; // im Tunnel nicht zünden
+  P.rocket = !P.rocket;
+  if (P.rocket) {
+    P.rspd = Math.max(18, P.rspd || 0); P.vy = ROCKET.launch; P.onGround = false; P.swim = false; P.third = true; P.bank = 0;
+    P.launchT = P.y - Math.max(groundAt(P.x, P.z, P.y + 1), WS.WATER_Y) < 20 ? 1.6 : 0; // vom Boden: erst steil hoch
+    if (typeof sfxRocket === 'function') sfxRocket();
+  } else { P.vy = Math.min(P.vy, 4); P.rspd = 0; P.bank = 0; }
+  return true;
+}
+function updateRocket(dt, input) {
+  if (P.char !== 'dragon') { P.rocket = false; return; }
+  // Lenken mit Schräglage
+  P.yaw += input.turn * ROCKET.turn * dt;
+  P.bank = (P.bank || 0) + (input.turn * 0.6 - (P.bank || 0)) * Math.min(1, dt * 4);
+  // Tempo: ↑ Turbo, ↓ bremsen, sonst Reiseflug
+  const target = input.move > 0 ? ROCKET.turbo : input.move < 0 ? ROCKET.slow : ROCKET.cruise;
+  const dv = target - P.rspd;
+  P.rspd += clamp(dv, -ROCKET.acc * 1.6 * dt, ROCKET.acc * dt);
+  // Steigen/Sinken: Leertaste hoch, Shift Sturzflug, Maus-Neigung zusätzlich
+  let vyT = (input.jump ? ROCKET.climb : 0) - (input.run ? ROCKET.climb * 1.3 : 0) + Math.sin(P.pitch) * P.rspd * 0.7;
+  if (P.launchT > 0) { P.launchT -= dt; vyT = Math.max(vyT, ROCKET.launch); }
+  P.vy += (vyT - P.vy) * Math.min(1, dt * 2.5);
+  const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
+  // in Schritten von höchstens 2 m, damit nichts durchtunnelt wird
+  const dist = P.rspd * dt, n = Math.max(1, Math.ceil(dist / 2));
+  for (let i = 0; i < n; i++) {
+    let nx = P.x + fx * dist / n, nz = P.z + fz * dist / n, ny = P.y + P.vy * dt / n;
+    const wx = nx, wz = nz;
+    [nx, nz] = collideWorld(nx, nz, ny, P.x, P.z);
+    // gegen eine Wand geprallt: kräftig abbremsen statt mit vollem Tempo entlangzuschrammen
+    if ((nx - wx) ** 2 + (nz - wz) ** 2 > (dist / n) ** 2 * 0.25) { P.rspd = Math.max(ROCKET.slow, P.rspd * 0.55); }
+    nx = clamp(nx, -ROCKET.bound, ROCKET.bound); nz = clamp(nz, -ROCKET.bound, ROCKET.bound);
+    const g = groundAt(nx, nz, ny + 1.5);
+    const floor = Math.max(g, terrainH(nx, nz), WS.WATER_Y) + 1.4;
+    if (ny < floor) { ny = floor; if (P.vy < 0) P.vy *= 0.3; }
+    P.x = nx; P.z = nz; P.y = Math.min(ny, ROCKET.ceiling);
+  }
+  if (P.y >= ROCKET.ceiling) P.vy = Math.min(P.vy, 0);
+  P.onGround = false; P.swim = false; P.flying = true; P.flapping = false; P.moving = true; P.underground = false;
+}
+
 function respawn() {
+  P.rocket = false;
   P.x = SPAWN.x; P.z = SPAWN.z; P.y = groundAt(P.x, P.z, 500) + 0.1; P.vy = 0; P.ride = null;
 }
 

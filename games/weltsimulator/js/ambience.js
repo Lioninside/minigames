@@ -30,6 +30,7 @@ function ambInit() {
   AMB.ch.city = chan('lowpass', 170, 0.9, 0.7);
   AMB.ch.voices = chan('bandpass', 850, 1.6, 1.15);
   AMB.ch.ug = chan('lowpass', 95, 1.2, 0.6);
+  AMB.ch.rocket = chan('lowpass', 400, 1.5, 0.8);
   AMB.ready = true;
   return true;
 }
@@ -77,6 +78,12 @@ function ambCall(kind, vol) {
 function updateAmbience(dt) {
   if (!GAME.started || !AMB.ready && !ambInit()) return;
   AMB.t -= dt;
+  // Triebwerk im Raketenmodus: Dröhnen, heller mit mehr Tempo (Taste G schaltet es mit aus)
+  if (AMB.ch.rocket) {
+    const r = P.rocket ? clamp(P.rspd / ROCKET.turbo, 0, 1) : 0;
+    ambSet(AMB.ch.rocket, P.rocket ? 0.25 + 0.45 * r : 0);
+    if (P.rocket) AMB.ch.rocket.flt.frequency.setTargetAtTime(260 + r * 1400, AMB.ctx.currentTime, 0.2);
+  }
   if (!AMB.on) return;
   const night = SKY.night, day = 1 - night;
   const inside = GAME.mode !== 'world', ug = !!P.underground;

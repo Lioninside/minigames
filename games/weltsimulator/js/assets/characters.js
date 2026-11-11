@@ -178,7 +178,19 @@ function buildDragonModel() {
     return pv;
   };
   const wingL = mkWing(1), wingR = mkWing(-1);
-  root.userData = { kind: 'dragon', body, legL, legR, armL, armR, wingL, wingR, tail, belly, ph: 0, flap: 0, eye: 1.95, camDist: 5.5,
+  // Raketenmodus: Feuerstrahl an der Schwanzspitze (zwei Kegel, additiv, nur im Raketenmodus sichtbar)
+  const flame = new THREE.Group();
+  flame.position.set(0.12, -0.08, 1.22);
+  const fcone = (r, l, col, op) => {
+    // breit an der Düse (Ursprung), Spitze nach hinten (+z der Schwanzspitze)
+    const g = new THREE.ConeGeometry(r, l, 14, 1, true); g.rotateX(Math.PI); g.translate(0, l / 2, 0); g.rotateX(Math.PI / 2);
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+    m.renderOrder = 5; flame.add(m); return m;
+  };
+  fcone(0.17, 1.5, new THREE.Color(1.3, 0.45, 0.08), 0.55);
+  fcone(0.09, 0.9, new THREE.Color(1.5, 1.1, 0.55), 0.75);
+  flame.visible = false; tail.add(flame);
+  root.userData = { kind: 'dragon', body, legL, legR, armL, armR, wingL, wingR, tail, belly, flame, ph: 0, flap: 0, eye: 1.95, camDist: 5.5,
     pose: { armZ: 1.05, armX: 0, legX: 0, wingY: -1.0, wingZ: 0.3, pitch: 0 } };
   animateCharacter(root, 0, { moving: false });
   return root;
@@ -197,24 +209,85 @@ function animateCharacter(model, dt, st) {
   }
   // Drache: Zielhaltung je nach Zustand, weich überblendet
   const p = u.pose, k = Math.min(1, dt * 6);
-  const T = st.flying
+  const T = st.rocket
+    ? { armZ: 1.35, armX: 0.7, legX: 0.25, wingY: -0.8, wingZ: 0.05, pitch: -1.3 }
+    : st.flying
     ? { armZ: 0.55, armX: -0.5, legX: 0.75, wingY: -0.18, wingZ: st.flapping ? 0.15 : 0.32, pitch: st.moving ? -0.3 : -0.08 }
     : { armZ: 1.05, armX: 0, legX: 0, wingY: -1.0, wingZ: 0.3, pitch: 0 };
   for (const key in T) p[key] += (T[key] - p[key]) * k;
   u.flap += dt * (st.flapping ? 11 : st.flying ? 1.5 : 1.2);
-  const flapA = st.flying ? (st.flapping ? Math.sin(u.flap) * 0.75 : Math.sin(u.flap) * 0.06) : Math.sin(u.flap) * 0.03;
+  const flapA = st.rocket ? Math.sin(u.flap * 9) * 0.03 : st.flying ? (st.flapping ? Math.sin(u.flap) * 0.75 : Math.sin(u.flap) * 0.06) : Math.sin(u.flap) * 0.03;
   u.wingL.rotation.set(0, p.wingY, p.wingZ + flapA);
   u.wingR.rotation.set(0, -p.wingY, -(p.wingZ + flapA));
   u.armL.rotation.set(p.armX + (st.flying ? 0 : -sw * 0.4), 0, -p.armZ);
   u.armR.rotation.set(p.armX + (st.flying ? 0 : sw * 0.4), 0, p.armZ);
   u.legL.rotation.x = p.legX + sw * 0.75; u.legR.rotation.x = p.legX - sw * 0.75;
-  u.tail.rotation.y = Math.sin(u.flap * 0.35 + u.ph * 0.25) * (st.moving ? 0.3 : 0.15);
-  u.tail.rotation.x = st.flying ? -0.25 : 0;
+  u.tail.rotation.y = Math.sin(u.flap * (st.rocket ? 2.5 : 0.35) + u.ph * 0.25) * (st.rocket ? 0.06 : st.moving ? 0.3 : 0.15);
+  // Raketenmodus: Schwanz gestreckt entlang der Körperachse nach hinten (Düse zeigt gegen die Flugrichtung)
+  u.tail.rotation.x = st.rocket ? 1.45 : st.flying ? -0.25 : 0;
+  // Neigen um die Körpermitte (1 m über den Füssen), nicht um die Füsse
   u.body.rotation.x = p.pitch;
-  const bob = st.moving && !st.flying ? Math.abs(Math.sin(u.ph)) * 0.05 : (st.flying ? Math.sin(u.flap) * 0.05 : 0);
-  u.body.position.y = bob;
+  const bob = st.moving && !st.flying ? Math.abs(Math.sin(u.ph)) * 0.05 : (st.flying && !st.rocket ? Math.sin(u.flap) * 0.05 : 0);
+  u.body.position.set(0, 1 - Math.cos(p.pitch) + bob, -Math.sin(p.pitch));
+  if (u.flame) {
+    u.flame.visible = !!st.rocket;
+    if (st.rocket) {
+      const thr = clamp(st.thrust || 0.5, 0.2, 1.4), fl = 0.85 + Math.random() * 0.3;
+      u.flame.scale.set(0.8 + thr * 0.4, 0.8 + thr * 0.4, (0.6 + thr * 1.4) * fl);
+    }
+  }
   const br = 1 + Math.sin(u.flap * 0.8) * 0.012;
   u.belly.scale.set(0.8 * br, 1.18, 0.62 * br);
+}
+
+/* Funkenspur hinter dem Raketen-Drachen: Partikel im Ringpuffer, ein Draw-Call */
+const TRAIL = { pts: null, n: 220, i: 0, life: null, vel: null, last: null };
+function trailSprite() {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const c = cv.getContext('2d'), g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(cv);
+}
+function updateRocketTrail(scene, src, dt, active, thrust) {
+  if (!TRAIL.pts) {
+    if (!active) return;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL.n * 3), 3).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(TRAIL.n * 3), 3).setUsage(THREE.DynamicDrawUsage));
+    const m = new THREE.PointsMaterial({ size: 0.75, map: trailSprite(), vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true, toneMapped: false });
+    TRAIL.pts = new THREE.Points(g, m); TRAIL.pts.frustumCulled = false; TRAIL.pts.renderOrder = 6; TRAIL.pts.userData.dynamic = true;
+    TRAIL.life = new Float32Array(TRAIL.n); TRAIL.vel = new Float32Array(TRAIL.n * 3);
+    scene.add(TRAIL.pts);
+  }
+  const pos = TRAIL.pts.geometry.attributes.position, col = TRAIL.pts.geometry.attributes.color;
+  const P3 = pos.array, C3 = col.array;
+  // neue Funken entlang der Strecke seit dem letzten Bild (keine Lücken bei hohem Tempo)
+  if (active && src) {
+    const last = TRAIL.last || src.clone();
+    const k = Math.min(10, 2 + Math.round(thrust * 6));
+    for (let j = 0; j < k; j++) {
+      const i = TRAIL.i = (TRAIL.i + 1) % TRAIL.n, f = (j + Math.random()) / k;
+      P3[i * 3] = lerp(last.x, src.x, f); P3[i * 3 + 1] = lerp(last.y, src.y, f); P3[i * 3 + 2] = lerp(last.z, src.z, f);
+      TRAIL.vel[i * 3] = (Math.random() - 0.5) * 2.5; TRAIL.vel[i * 3 + 1] = (Math.random() - 0.3) * 2.0; TRAIL.vel[i * 3 + 2] = (Math.random() - 0.5) * 2.5;
+      TRAIL.life[i] = 0.55 + Math.random() * 0.45;
+    }
+    TRAIL.last = (TRAIL.last || new THREE.Vector3()).copy(src);
+  } else TRAIL.last = null;
+  let any = false;
+  for (let i = 0; i < TRAIL.n; i++) {
+    const L = TRAIL.life[i];
+    if (L <= 0) { C3[i * 3] = C3[i * 3 + 1] = C3[i * 3 + 2] = 0; continue; }
+    any = true;
+    const nl = TRAIL.life[i] = L - dt;
+    P3[i * 3] += TRAIL.vel[i * 3] * dt; P3[i * 3 + 1] += TRAIL.vel[i * 3 + 1] * dt; P3[i * 3 + 2] += TRAIL.vel[i * 3 + 2] * dt;
+    const a = Math.max(0, nl);
+    // weissgelb → orange → dunkelrot, verglühend
+    C3[i * 3] = 0.9 * a + 0.05; C3[i * 3 + 1] = 0.55 * a * a + 0.03 * a; C3[i * 3 + 2] = 0.2 * a * a * a;
+    if (nl <= 0) C3[i * 3] = C3[i * 3 + 1] = C3[i * 3 + 2] = 0;
+  }
+  TRAIL.pts.visible = any || active;
+  pos.needsUpdate = true; col.needsUpdate = true;
 }
 
 /* Statistik für die Asset-Testseite */

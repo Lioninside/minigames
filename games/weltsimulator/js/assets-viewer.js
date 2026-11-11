@@ -108,7 +108,7 @@
     document.getElementById('doorBtns').style.display = hasDoors ? '' : 'none';
     if (state.def.char) {
       document.getElementById('doorLbl').textContent = 'Bewegung';
-      const mv = state.def.key === 'dragon' ? [['idle', 'Stehen'], ['walk', 'Gehen'], ['flap', 'Flattern'], ['glide', 'Gleiten']] : [['idle', 'Stehen'], ['walk', 'Gehen']];
+      const mv = state.def.key === 'dragon' ? [['idle', 'Stehen'], ['walk', 'Gehen'], ['flap', 'Flattern'], ['glide', 'Gleiten'], ['rocket', 'Rakete']] : [['idle', 'Stehen'], ['walk', 'Gehen']];
       btns('doorBtns', mv, state.motion, (v) => { state.motion = v; ui(); });
     } else {
       document.getElementById('doorLbl').textContent = 'Türen';
@@ -150,7 +150,7 @@
     const d = state.def;
     let lvShown = '';
     if (d.char) {
-      const st = { moving: state.motion === 'walk', flying: state.motion === 'flap' || state.motion === 'glide', flapping: state.motion === 'flap' };
+      const st = { moving: state.motion === 'walk' || state.motion === 'rocket', flying: state.motion === 'flap' || state.motion === 'glide' || state.motion === 'rocket', flapping: state.motion === 'flap', rocket: state.motion === 'rocket', thrust: 1 };
       for (const m of items) { animateCharacter(m, dt, st); m.position.y = st.flying ? 1.2 + Math.sin(state.t * 2) * 0.1 : 0; }
     } else if (!d.inst) {
       for (const it of items) {

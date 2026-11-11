@@ -150,7 +150,7 @@ let SPAWN = { x: 0, z: 0 };
   /* Spielfigur wechseln (Taste C oder Startmenü) */
   function setCharacter(c, fromKey) {
     if (c === P.char) return;
-    P.char = c; P.popT = 0;
+    P.char = c; P.popT = 0; P.rocket = false;
     if (c === 'dragon') P.third = true;
     if (fromKey) sfxMorph();
     updateCharUI(); saveNow();
@@ -180,6 +180,7 @@ let SPAWN = { x: 0, z: 0 };
     if (e.code === 'KeyM') toggleMap();
     if (e.code === 'KeyV') P.third = !P.third;
     if (e.code === 'KeyC' && ELEV.state === 'none') setCharacter(P.char === 'dragon' ? 'human' : 'dragon', true);
+    if (e.code === 'KeyR') toggleRocket();
     if (e.code === 'KeyT') GAME.timeScale = GAME.timeScale > 1 ? 1 : 40;
     if (e.code === 'KeyF') { QUALITY.showStats = !QUALITY.showStats; updateQualityUI(); saveQualitySettings(); }
     if (e.code === 'KeyQ') cycleQuality(WORLD.renderer, WORLD.camera);
@@ -203,7 +204,7 @@ let SPAWN = { x: 0, z: 0 };
   document.getElementById('liftCancel').onclick = () => cancelLift();
 
   /* ---------- Kamera ---------- */
-  const focus = new THREE.Vector3();
+  const focus = new THREE.Vector3(), _trailSrc = new THREE.Vector3();
   function updateCamera(dt) {
     const cam = WORLD.camera;
     if (!GAME.started) {
@@ -222,19 +223,31 @@ let SPAWN = { x: 0, z: 0 };
     if (other) other.visible = false;
     if (P.third && GAME.mode === 'world' && ch) {
       const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
-      const dist = ch.userData.camDist + (P.flying ? 2.5 : 0);
-      cam.position.set(P.x - fx * dist, eyeY + 0.6 + (P.flying ? 1.2 : 0), P.z - fz * dist);
+      const rk = P.rocket ? clamp(P.rspd / ROCKET.turbo, 0, 1) : 0;
+      const dist = ch.userData.camDist + (P.flying ? 2.5 : 0) + rk * 3.5;
+      const shake = rk > 0.6 ? (Math.random() - 0.5) * 0.08 * rk : 0;
+      cam.position.set(P.x - fx * dist + shake, eyeY + 0.6 + (P.flying ? 1.2 : 0) + rk * 1.2 + shake, P.z - fz * dist);
       cam.lookAt(P.x + fx * 2, eyeY - 0.3 + P.pitch * 3, P.z + fz * 2);
       ch.visible = true;
-      ch.position.set(P.x, P.y, P.z); ch.rotation.y = P.yaw;
+      ch.position.set(P.x, P.y, P.z);
+      // Raketenmodus: Nase in Flugrichtung (Steigen/Sinken) und Schräglage in Kurven
+      ch.rotation.order = 'YXZ';
+      ch.rotation.set(P.rocket ? Math.atan2(P.vy, Math.max(5, P.rspd)) : 0, P.yaw, P.rocket ? (P.bank || 0) : 0);
       // kurzer „Plopp“ beim Verwandeln
       P.popT = Math.min(1, (P.popT === undefined ? 1 : P.popT) + dt / 0.35);
       const s = P.popT < 1 ? 0.3 + 0.7 * (1 - Math.pow(1 - P.popT, 3)) + Math.sin(P.popT * Math.PI) * 0.12 : 1;
       ch.scale.setScalar(s);
-      animateCharacter(ch, dt, { moving: P.moving, run: !!(KEYS.ShiftLeft || KEYS.ShiftRight), flying: !!P.flying, flapping: !!P.flapping });
+      animateCharacter(ch, dt, { moving: P.moving, run: !!(KEYS.ShiftLeft || KEYS.ShiftRight), flying: !!P.flying, flapping: !!P.flapping, rocket: !!P.rocket, thrust: P.rocket ? P.rspd / ROCKET.cruise : 0 });
+      if (ch.userData.flame) { ch.updateMatrixWorld(true); ch.userData.flame.getWorldPosition(_trailSrc); }
+      updateRocketTrail(WORLD.scene, _trailSrc, dt, !!P.rocket && GAME.mode === 'world', P.rocket ? P.rspd / ROCKET.cruise : 0);
+      // Blickwinkel weitet sich mit dem Tempo
+      const fov = 72 + rk * 26;
+      if (Math.abs(cam.fov - fov) > 0.05) { cam.fov += (fov - cam.fov) * Math.min(1, dt * 3); cam.updateProjectionMatrix(); }
     } else {
       cam.position.set(P.x, eyeY, P.z);
       if (ch) ch.visible = false;
+      updateRocketTrail(WORLD.scene, null, dt, false, 0);
+      if (cam.fov !== 72) { cam.fov = 72; cam.updateProjectionMatrix(); }
     }
   }
 

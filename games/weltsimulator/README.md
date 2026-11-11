@@ -19,6 +19,7 @@ bei jedem Besuch gleich aus.
 | M | Netzplan mit U-Bahn, Tram und Buslinien |
 | V | Ego- oder Verfolgerkamera (zeigt die Figur) |
 | C | Spielfigur wechseln: Mensch oder Drache |
+| R | als Drache: Raketenmodus an/aus |
 | T | Zeitraffer an/aus |
 | Q | Grafikstufe wechseln (Niedrig, Mittel, Hoch) |
 | F | Bildraten-Anzeige ein/aus |
@@ -36,6 +37,13 @@ Im Startmenü (Zeile „Figur“) oder mit **C** wählbar; die Wahl wird gespeic
   Loslassen lässt ihn gleiten und langsam sinken; mit ↑ und Shift fliegt er schneller. Am Boden
   geht er mit eingeklappten Flügeln. Busse, Trams, U-Bahn, Gebäude und Lift funktionieren wie
   beim Menschen.
+- **Raketenmodus (R, nur Drache):** Der Drache zündet ein Triebwerk an der Schwanzspitze und
+  startet steil. Danach fliegt er von selbst vorwärts, gestreckt wie ein Superheld.
+  - **Tempo:** Reiseflug 250 km/h, ↑ Turbo bis 610 km/h, ↓ bremst auf 80 km/h.
+  - **Lenken:** ←/→ lenkt mit Schräglage, Leertaste steigt, Shift geht in den Sturzflug, die Maus neigt zusätzlich.
+  - **Darstellung:** Feuerstrahl und Funkenspur. Mit dem Tempo weitet sich der Blickwinkel und die Kamera rückt etwas ab; dazu ein Triebwerksdröhnen.
+  - **Kollision:** Die Bewegung ist in Schritte von höchstens 2 m geteilt, so rast er nicht durch Häuser. Prallt er gegen eine Wand, bremst er stark ab. Er bleibt über Boden und Wasser und innerhalb der Stadtgrenze.
+  - **Ende:** R schaltet zurück in den normalen Flug, er gleitet dann weiter.
 - Beide Figuren sind auf der Asset-Testseite (`assets.html`) mit Bewegungsarten zu sehen.
 
 ## Die Stadt
