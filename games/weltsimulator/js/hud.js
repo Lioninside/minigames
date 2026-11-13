@@ -41,6 +41,10 @@ function buildMapImage() {
     ctx.lineWidth = Math.max(1, (e.w + (pass ? 0 : 3)) * k);
     ctx.beginPath(); ctx.moveTo(X(A.x), Z(A.z)); ctx.lineTo(X(B.x), Z(B.z)); ctx.stroke();
   }
+  // Bahnviadukte in der Grundkarte
+  ctx.strokeStyle = '#7d7a73'; ctx.lineWidth = Math.max(2, 11 * k); ctx.lineCap = 'round';
+  for (const line of RAIL.lines) { ctx.beginPath(); line.C.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Z(p[1])) : ctx.moveTo(X(p[0]), Z(p[1]))); if (line.ring) ctx.closePath(); ctx.stroke(); }
+  if (typeof ISLE !== 'undefined' && ISLE.walk) { ctx.strokeStyle = '#f1ece2'; ctx.lineWidth = 4 * k + 1; ctx.beginPath(); ctx.moveTo(X(ISLE.walk.x0), Z(ISLE.walk.z)); ctx.lineTo(X(ISLE.walk.x1), Z(ISLE.walk.z)); ctx.stroke(); }
   HUD.base = cv; HUD.mapScale = k;
   // Netzplan-Ebene
   const net = makeCanvas(S, S), n = net.getContext('2d');
@@ -52,25 +56,48 @@ function buildMapImage() {
   }
   n.setLineDash([]); n.globalAlpha = 1;
   if (TRANSIT.tram) { n.strokeStyle = '#1b5db5'; n.lineWidth = 5; n.beginPath(); TRANSIT.tram.C.forEach((p, i) => i ? n.lineTo(X(p[0]), Z(p[1])) : n.moveTo(X(p[0]), Z(p[1]))); n.stroke(); }
+  if (TRANSIT.tram18) { n.strokeStyle = T18_DEF.color; n.lineWidth = 5; n.beginPath(); TRANSIT.tram18.C.forEach((p, i) => i ? n.lineTo(X(p[0]), Z(p[1])) : n.moveTo(X(p[0]), Z(p[1]))); n.stroke(); }
+  // S-Bahn (doppelte dünne Linie) und IR (dicke Linie)
+  for (const line of RAIL.lines) {
+    const ir = line.kind === 'ir';
+    n.lineCap = 'round';
+    for (const [w, c] of ir ? [[11, '#ffffff'], [7, line.color]] : [[7, '#ffffff'], [4, line.color]]) {
+      n.strokeStyle = c; n.lineWidth = w; n.beginPath(); line.C.forEach((p, i) => i ? n.lineTo(X(p[0]), Z(p[1])) : n.moveTo(X(p[0]), Z(p[1]))); if (line.ring) n.closePath(); n.stroke();
+    }
+  }
   for (const line of TRANSIT.metro) {
     n.strokeStyle = line.color; n.lineWidth = 8;
     n.beginPath(); line.C.forEach((p, i) => i ? n.lineTo(X(p[0]), Z(p[1])) : n.moveTo(X(p[0]), Z(p[1]))); n.stroke();
   }
   n.font = 'bold 13px Arial'; n.textBaseline = 'middle';
-  for (const st of TRANSIT.stations) {
-    n.fillStyle = '#fff'; n.strokeStyle = '#111'; n.lineWidth = 2.5; n.beginPath(); n.arc(X(st.x), Z(st.z), 7, 0, 7); n.fill(); n.stroke();
-    n.fillStyle = '#111'; n.strokeStyle = 'rgba(255,255,255,0.9)'; n.lineWidth = 4; const t = st.line.name + ' ' + st.name;
-    n.strokeText(t, X(st.x) + 10, Z(st.z)); n.fillText(t, X(st.x) + 10, Z(st.z));
+  const named = new Map();
+  for (const st of TRANSIT.stations) { const k = st.name; if (!named.has(k)) named.set(k, { x: st.x, z: st.z, lines: [] }); named.get(k).lines.push(st.line.name); }
+  for (const st of RAIL.stations) { const k = st.name; if (!named.has(k)) named.set(k, { x: st.x, z: st.z, lines: [] }); const o = named.get(k); if (!o.lines.includes(st.line.id)) o.lines.push(st.line.id); }
+  for (const st of TRANSIT.stations) { n.fillStyle = '#fff'; n.strokeStyle = '#111'; n.lineWidth = 2.5; n.beginPath(); n.arc(X(st.x), Z(st.z), 6, 0, 7); n.fill(); n.stroke(); }
+  for (const st of RAIL.stations) { n.fillStyle = '#fff'; n.strokeStyle = st.line.color; n.lineWidth = 3; n.fillRect(X(st.x) - 6, Z(st.z) - 6, 12, 12); n.strokeRect(X(st.x) - 6, Z(st.z) - 6, 12, 12); }
+  for (const [name, o] of named) {
+    if (name.startsWith('Hönggerberg/')) continue;
+    n.fillStyle = '#111'; n.strokeStyle = 'rgba(255,255,255,0.9)'; n.lineWidth = 4; const t = o.lines.join('/') + ' ' + name;
+    n.strokeText(t, X(o.x) + 10, Z(o.z)); n.fillText(t, X(o.x) + 10, Z(o.z));
   }
-  if (TRANSIT.tram) for (const pl of TRANSIT.tram.platforms) { n.fillStyle = '#1b5db5'; n.fillRect(X(pl.x) - 3, Z(pl.z) - 3, 6, 6); }
+  // Knoten Hönggerberg: Abteile mit Buchstaben
+  for (const k of ['S', 'Z', 'F', 'U', 'G', 'B', 'T', 'V', 'H']) {
+    const h = HUB[k]; const x = X(k === 'B' && TRANSIT.busHub ? TRANSIT.busHub.x : h.x), z = Z(k === 'B' && TRANSIT.busHub ? TRANSIT.busHub.z : h.z);
+    n.fillStyle = '#ffd400'; n.strokeStyle = '#123a7a'; n.lineWidth = 3; n.beginPath(); n.arc(x, z, 11, 0, 7); n.fill(); n.stroke();
+    n.fillStyle = '#123a7a'; n.font = 'bold 14px Arial'; n.textAlign = 'center'; n.fillText(k, x, z + 1); n.textAlign = 'left'; n.font = 'bold 13px Arial';
+  }
+  n.font = 'bold 16px Arial'; n.fillStyle = '#123a7a'; n.strokeStyle = 'rgba(255,255,255,0.95)'; n.lineWidth = 5;
+  n.strokeText('Hönggerberg', X(WS.HILL.x - 160), Z(WS.HILL.z - 230)); n.fillText('Hönggerberg', X(WS.HILL.x - 160), Z(WS.HILL.z - 230)); n.font = 'bold 13px Arial';
+  for (const T of [TRANSIT.tram, TRANSIT.tram18]) if (T) for (const pl of T.platforms) { n.fillStyle = T === TRANSIT.tram ? '#1b5db5' : T18_DEF.color; n.fillRect(X(pl.x) - 3, Z(pl.z) - 3, 6, 6); }
   const seenT = new Set();
-  if (TRANSIT.tram) for (const st of TRANSIT.tram.stations) {
-    const pl = TRANSIT.tram.platforms.find(p => p.name === st.name); if (!pl || seenT.has(st.name)) continue; seenT.add(st.name);
-    n.font = 'italic 12px Arial'; n.fillStyle = '#0d3b8c'; n.strokeStyle = 'rgba(255,255,255,0.9)'; n.lineWidth = 3; n.strokeText('Tram ' + st.name, X(pl.x) + 6, Z(pl.z) - 9); n.fillText('Tram ' + st.name, X(pl.x) + 6, Z(pl.z) - 9);
+  for (const T of [TRANSIT.tram, TRANSIT.tram18]) if (T) for (const st of T.stations) {
+    const pl = T.platforms.find(p => p.name === st.name); if (!pl || seenT.has(st.name) || st.name.startsWith('Hönggerberg/')) continue; seenT.add(st.name);
+    const lab = (T === TRANSIT.tram ? 'T6 ' : 'T18 ') + st.name;
+    n.font = 'italic 12px Arial'; n.fillStyle = T === TRANSIT.tram ? '#0d3b8c' : '#1d6b6d'; n.strokeStyle = 'rgba(255,255,255,0.9)'; n.lineWidth = 3; n.strokeText(lab, X(pl.x) + 6, Z(pl.z) - 9); n.fillText(lab, X(pl.x) + 6, Z(pl.z) - 9);
   }
   // Orte
   n.font = 'bold 22px Georgia'; n.fillStyle = 'rgba(40,40,40,0.75)';
-  for (const [t, x, z] of [['Klein-Venedig', 1780, -1180], ['Riviera', 1820, 1100], ['ETH', WS.HILL.x - 20, WS.HILL.z - 90], ['Zentrum', WS.CENTER.x, WS.CENTER.z - 80], ['Meer', 2300, 0]]) { n.textAlign = 'center'; n.fillText(t, X(x), Z(z)); }
+  for (const [t, x, z] of [['Klein-Venedig', 1780, -1180], ['Riviera', 1820, 1100], ['ETH', WS.HILL.x - 20, WS.HILL.z - 90], ['Zentrum', WS.CENTER.x, WS.CENTER.z - 80], ['Meer', 2250, 300], ['Isla Venezia', ISLAND.x, ISLAND.z + 110]]) { n.textAlign = 'center'; n.fillText(t, X(x), Z(z)); }
   n.textAlign = 'left';
   HUD.net = net;
   HUD.el.bigmap.width = S; HUD.el.bigmap.height = S;
@@ -134,7 +161,7 @@ function updateHUD() {
   let info = '';
   if (P.ride) {
     const v = P.ride.veh; const st = v.currentStop();
-    const name = v.kind === 'bus' ? 'Bus ' + v.line.num : v.kind === 'tram' ? 'Tram 6' : 'U-Bahn ' + v.line.name;
+    const name = v.kind === 'metro' ? 'U-Bahn ' + v.line.name : (v.label || ('Bus ' + v.line.num));
     info = 'Du fährst mit: ' + name + (st ? ' · ' + (v.state === 'dwell' ? 'Halt: ' : 'nächster Halt: ') + st.stop.name : '');
     if (v.state === 'dwell') info += ' · Türen ' + (v.door > 0.5 ? 'offen' : 'schliessen') + ' (' + Math.max(0, Math.ceil(v.dwell)) + ' s)';
   } else if (GAME.mode === 'world') {
@@ -146,7 +173,7 @@ function updateHUD() {
     }
     if (best) {
       const st = best.currentStop();
-      const name = best.kind === 'bus' ? 'Bus ' + best.line.num : best.kind === 'tram' ? 'Tram 6' : 'U-Bahn ' + best.line.name;
+      const name = best.kind === 'metro' ? 'U-Bahn ' + best.line.name : (best.label || ('Bus ' + best.line.num));
       info = name + ' hält' + (st ? ' an „' + st.stop.name + '“' : '') + ' · Türen ' + (best.door > 0.5 ? 'offen – einsteigen!' : '…') + ' (' + Math.max(0, Math.ceil(best.dwell)) + ' s)';
     }
   }

@@ -73,14 +73,14 @@ let SPAWN = { x: 0, z: 0 };
       ['Landschaft und Gewässer', () => { seedRng(WS.SEED); initWater(); buildHeightGrid(); initReserves(); initBuildings(); initNature(); makeMats(); }],
       ['Strassennetz', () => genRoads(planMetroStations)],
       ['Buslinien, Tram und U-Bahn planen', () => { planBusLines(); planTram(); planTram18(); planMetroLines(); }],
-      ['S-Bahn und InterRegio planen', () => { planRail(); planHub(); }],
+      ['S-Bahn und InterRegio planen', () => { planRail(); planHub(); planIsland(); }],
       ['Strassen, Brücken und Laternen', () => { buildRoadMeshes(surf, MATS); buildQuays(surf, MATS); MATS.pools = buildLightPools(surf); }],
       ['ETH-Hügel, Hotels und Klein-Venedig', () => { genHill(); genHotels(); genVenice(scene); }],
       ['Stadthäuser', () => genCityBuildings()],
       ['Fassaden', () => buildBuildingMeshes(surf)],
       ['Parks, Bäume und Strand', () => { genTrees(); buildParksAndProps(surf); buildTreeMeshes(surf); buildBoats(surf); }],
       ['Tramgleise', () => { buildTramTracks(surf); }],
-      ['Viadukte, S-Bahnhöfe und Lifte', () => { buildRail(surf); buildHub(surf, scene); buildLifts(surf, scene); }],
+      ['Viadukte, S-Bahnhöfe und Lifte', () => { buildRail(surf); buildHub(surf, scene); buildIsland(surf); buildLifts(surf, scene); }],
       ['Gelände', () => { buildWaterMask(); buildTerrain(surf); buildWater(surf); }],
       ['Karte', () => { buildMapImage(); placeSpawn(); }],
       ['Shader vorbereiten', () => precompile()]
@@ -122,7 +122,7 @@ let SPAWN = { x: 0, z: 0 };
     await new Promise(r => setTimeout(r, 30));
     { const t0 = performance.now(); uploadAllGeometry(WORLD.renderer, WORLD.scene, WORLD.camera); WORLD.timing.push(['(später) Grafikdaten hochladen', Math.round(performance.now() - t0)]); }
     WORLD.allMs = Math.round(performance.now());
-    txt.textContent = 'Fertig: ' + BLD.list.length + ' Gebäude, ' + TRANSIT.busLines.length + ' Buslinien, ' + TRANSIT.metro.length + ' U-Bahn-Linien, 1 Tramlinie.';
+    txt.textContent = 'Fertig: ' + BLD.list.length + ' Gebäude, ' + TRANSIT.busLines.length + ' Buslinien, ' + TRANSIT.metro.length + ' U-Bahn-Linien, 2 Tramlinien, ' + RAIL.lines.length + ' S-Bahn-/IR-Linien, ' + LIFE.people.length + ' Leute unterwegs.';
   }
 
   /* Alle Shader schon beim Laden übersetzen (sonst ruckelt das erste Hinschauen) */
@@ -243,7 +243,8 @@ let SPAWN = { x: 0, z: 0 };
       if (ch.userData.flame) { ch.updateMatrixWorld(true); ch.userData.flame.getWorldPosition(_trailSrc); }
       updateRocketTrail(WORLD.scene, _trailSrc, dt, !!P.rocket && GAME.mode === 'world', P.rocket ? P.rspd / ROCKET.cruise : 0);
       // Blickwinkel weitet sich mit dem Tempo
-      const fov = 72 + rk * 26;
+      const rh = P.rocket ? clamp((P.rspd - ROCKET.turbo) / (ROCKET.hyper - ROCKET.turbo), 0, 1) : 0; // Hyperturbo
+      const fov = 72 + rk * 26 + rh * 12;
       if (Math.abs(cam.fov - fov) > 0.05) { cam.fov += (fov - cam.fov) * Math.min(1, dt * 3); cam.updateProjectionMatrix(); }
     } else {
       cam.position.set(P.x, eyeY, P.z);

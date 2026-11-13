@@ -104,7 +104,7 @@ function planRail() {
       if (!nd.st) continue;
       const i = nearest(nd.x, nd.z);
       const st = { name: nd.st, line: null, i, s: cum[i], x: C[i][0], z: C[i][1], dir: nd._d, term: !!nd.term, hub: nd.hub || null,
-        wide: nd.wide || 0, yFix: nd.y, PL, first: i < N / 2 && nd.term };
+        wide: nd.wide || 0, yFix: nd.y, PL, first: i < N / 2 && nd.term, liftMid: !!nd.liftMid };
       stations.push(st);
     }
     // Höhenprofil
@@ -424,10 +424,10 @@ function buildRailStation(st, cm, surf) {
   const inner = Math.abs(st.x - WS.CENTER.x) < 1500 && Math.abs(st.z - WS.CENTER.z) < 1500;
   st.access = (!st.hub && inner && py - ground0 < 16) ? 'stairs' : 'lift';
   for (const pl of st.platforms) {
-    for (const e of (st.access === 'stairs' ? [1] : [1, -1])) {
+    for (const e of (st.access === 'stairs' ? [1] : st.liftMid ? [0] : [1, -1])) {
       if (st.access === 'stairs') buildRailStair(st, F, pl, e, cm);
       else {
-        const a = e * (half - 3.5), q = pl.s * (pl.lat + RL.PLW / 2 + 1.5);
+        const a = st.liftMid ? 12 : e * (half - 3.5), q = pl.s * (pl.lat + RL.PLW / 2 + 1.5);
         const lp = F.W(a, q);
         const gy = groundBelow(lp[0], lp[1], py);
         const levels = [{ y: gy, name: 'Strasse', ground: true }, { y: py, name: 'Perron ' + st.name + (st.term ? '' : (pl.s > 0 ? ' (Gleis 1)' : ' (Gleis 2)')) }];
@@ -476,10 +476,10 @@ function buildRailStair(st, F, pl, e, cm) {
   // Treppe als schräges Deck (begehbar)
   const st0 = F.W(a0, q);
   const dir = [F.d[0] * e, F.d[1] * e];
-  addDeck({ kind: 'stair', ox: st0[0], oz: st0[1], dx: dir[0], dz: dir[1], a0: -1.6, a1: run + 0.5, hw: 1.35, h: (a) => clamp(py - rise * a / run, gy, py), rails: null });
+  addDeck({ kind: 'stair', ox: st0[0], oz: st0[1], dx: dir[0], dz: dir[1], a0: -5, a1: run + 0.5, hw: 1.35, h: (a) => clamp(py - rise * a / run, gy, py), rails: null });
   // Verbindung Perron → Treppe (kurzes Podest)
-  const lp = F.W(a0 - e * 1.5, (pl.s * (pl.lat + RL.PLW / 2 + 0.6)));
-  mb.box(lp[0], py - 0.1, lp[1], 2.4, 0.2, 3.2, rot);
+  const lp = F.W(a0 - e * 2.5, (pl.s * (pl.lat + RL.PLW / 2 + 0.9)));
+  mb.box(lp[0], py - 0.1, lp[1], 3.0, 0.2, 5.2, rot);
   const ld = F.W(a0 - e * 2.6, pl.s * pl.lat);
   addDeck({ kind: 'landing', ox: ld[0], oz: ld[1], dx: pl.s * F.l[0], dz: pl.s * F.l[1], a0: 0, a1: RL.PLW / 2 + 3.2, hw: 2.0, h: () => py, rails: null });
   reserveCircle(end[0], end[1], 4);

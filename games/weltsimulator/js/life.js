@@ -61,7 +61,7 @@ function initLife(surf, scene) {
     for (const [lx, lz] of [[-3.3, 0.5], [-2.3, 1.1], [1.7, 1.0], [3.5, 0.2], [0.1, 1.35]]) { const p = Pt(lx, lz); lifeAdd({ kind: 'stop', x: p[0], z: p[1], yaw: sh.rot + (lifeHash(lx * 10 | 0, lz * 10 | 0) - 0.5) * 0.8, yHint: st.y, key: st }); }
   }
   // Tram-Perrons
-  if (TRANSIT.tram) for (const pl of TRANSIT.tram.platforms) {
+  for (const T of [TRANSIT.tram, TRANSIT.tram18]) if (T) for (const pl of T.platforms) {
     const yaw = yawOf(-pl.rx, -pl.rz), y = pl.y + 0.32;
     for (const k of [-9, -6.5, -4, -2.2, 2.4, 4.5, 7, 9.5]) lifeAdd({ kind: 'stop', x: pl.x + pl.dx * k + pl.rx * 0.15, z: pl.z + pl.dz * k + pl.rz * 0.15, y, yaw: yaw + (lifeHash(k * 10 | 0, 3) - 0.5) * 0.7, key: pl.stop });
     for (const k of [-0.7, 0.6]) lifeAdd({ kind: 'stop', x: pl.x - pl.rx * 0.25 + pl.dx * k, z: pl.z - pl.rz * 0.25 + pl.dz * k, yaw, sit: true, seatY: pl.y + 0.80, key: pl.stop });
@@ -117,6 +117,42 @@ function initLife(surf, scene) {
   for (let k = 0; k < 6; k++) { const a = k * 1.05 + 0.3, r = 16 + (k % 3) * 7; group(PZ.x + 10 + Math.cos(a) * r, PZ.z + 20 + Math.sin(a) * r, 2 + (k % 3)); }
   // Spaziergänger auf der Piazza
   for (let k = 0; k < 4; k++) lifeAdd({ kind: 'stroll', x: PZ.x - 18 + k * 12, z: PZ.z, yaw: 0, stroll: { z0: PZ.z - 10, len: 55, v: 1.0, off: k * 37, lat: 0 } });
+  // S-Bahn- und IR-Perrons: Wartende entlang der Bahnsteige (Blick zum Gleis)
+  for (const st of RAIL.stations) {
+    if (!st.platforms) continue;
+    const F = railStationFrame(st), py = st.y + RL.PLH;
+    for (const pl of st.platforms) {
+      const step = st.hub ? 4.5 : 8;
+      for (let a = -st.PL / 2 + 6; a < st.PL / 2 - 6; a += step) {
+        const j = lifeHash((a * 10) | 0, (st.x | 0) + pl.s);
+        const q = pl.s * (pl.lat + (j - 0.5) * 1.6);
+        const p = F.W(a + (j - 0.5) * 2, q);
+        const fx = -pl.s * F.l[0], fz = -pl.s * F.l[1];
+        lifeAdd({ kind: 'stop', x: p[0], z: p[1], y: py, yaw: Math.atan2(fx, fz) + (j - 0.5) * 1.2, key: st });
+      }
+    }
+  }
+  // Knoten Hönggerberg: Busbahnhof, Gruppen bei den Liften, Passanten im Fussgängertunnel
+  if (TRANSIT.busHub && typeof hubBusTerminal === 'function') {
+    const bt = hubBusTerminal(), c = Math.cos(bt.rot), s = Math.sin(bt.rot);
+    for (let k = 0; k < 26; k++) { const a = -14 + k * 1.1, q = ((k * 7) % 5 - 2) * 0.8; lifeAdd({ kind: 'stop', x: bt.x + a * s + q * c, z: bt.z + a * c - q * s, yaw: bt.rot + Math.PI / 2 + (lifeHash(k, 3) - 0.5) }); }
+  }
+  for (const o of LIFTS.list) {
+    if (!o.hub) continue;
+    const gl = o.levels.find(l => l.ground); if (!gl) continue;
+    const a = lifeHash(o.id, 1) * 6.28; group(o.x + Math.cos(a) * 7, o.z + Math.sin(a) * 7, 2 + (o.id % 3));
+  }
+  for (const sg of HUBT.segs) {
+    const dx = sg.bx - sg.ax, dz = sg.bz - sg.az, len = Math.hypot(dx, dz);
+    if (len < 16) continue;
+    for (let a = 6; a < len - 6; a += 22) {
+      const L2 = Math.min(50, len - a - 3), lat = (lifeHash(a | 0, len | 0) - 0.5) * 2.6;
+      const x0 = sg.ax + dx / len * a + dz / len * lat, z0 = sg.az + dz / len * a - dx / len * lat;
+      lifeAdd({ kind: 'metro', x: x0, z: z0, y: HUB.TUN_Y, ug: true, yaw: 0, stroll: { x0, z0, dx: dx / len, dz: dz / len, len: L2, v: 1.2, off: lifeHash(a | 0, 7) * 80, lat: 0 } });
+    }
+  }
+  for (const n of HUBT.nodes) if (n.hall) for (let k = 0; k < 6; k++) { const a = k * 1.05; lifeAdd({ kind: 'metro', x: n.x + Math.cos(a) * 4.5, z: n.z + Math.sin(a) * 4.5, y: HUB.TUN_Y, ug: true, yaw: Math.atan2(-Math.cos(a), -Math.sin(a)) + (k % 2 ? 0.5 : -0.5) }); }
+  LIFE.hubCount = LIFE.people.filter(p => Math.hypot(p.x - WS.HILL.x, p.z - WS.HILL.z) < 800).length;
   // Vögel, Tauben, Boote, Fahnen
   buildBirds(scene);
   buildPigeons(surf);
@@ -187,8 +223,9 @@ function lifeInView(x, z) {
 function vehicleDoorPoints(v, x, z) {
   // nächste offene Tür: Punkt aussen vor der Tür und innen
   let best = null, bd = 1e9;
+  const dsd = v.doorSide();
   for (const c of v.cars) for (const d of c.doors) {
-    if (d.side !== v.doorSide()) continue;
+    if (dsd !== 0 && d.side !== dsd) continue;
     const o = v.toWorld(c, d.side * (c.hw + 0.45), 0, d.zc), dd = (o[0] - x) ** 2 + (o[2] - z) ** 2;
     if (dd < bd) { bd = dd; best = { out: o, inn: v.toWorld(c, d.side * (c.hw - 0.7), 0, d.zc), c, d }; }
   }
@@ -219,7 +256,7 @@ function lifeVehicles(ug) {
     const n = Math.min(3, Math.floor(dens * 3.2 + lifeHash(LIFE.temps.length, (LIFE.t | 0)) * 1.2));
     for (let k = 0; k < n && LIFE.temps.length < 16; k++) {
       const c = v.cars[Math.min(v.cars.length - 1, k % v.cars.length)];
-      const ds = c.doors.filter(d => d.side === v.doorSide()); if (!ds.length) continue;
+      const dsd = v.doorSide(), ds = c.doors.filter(d => dsd === 0 || d.side === dsd); if (!ds.length) continue;
       const d = ds[(k * 7 + (LIFE.t | 0)) % ds.length];
       const inn = v.toWorld(c, d.side * (c.hw - 0.7), 0, d.zc), out = v.toWorld(c, d.side * (c.hw + 1.2), 0, d.zc), far = v.toWorld(c, d.side * (c.hw + 3.5), 0, d.zc);
       const way = [[out[0], out[2]], [far[0], far[2]]];
@@ -233,7 +270,7 @@ function lifeVehicles(ug) {
         y = st.platY;
       } else {
         way.push([far[0] + fwdx * 30 * sg, far[2] + fwdz * 30 * sg]);
-        y = null;
+        y = (v.kind === 'sbahn' || v.kind === 'ir') ? inn[1] + RL.PLH : null; // Perron auf dem Viadukt
       }
       LIFE.temps.push({ x: inn[0], z: inn[2], y, way, wi: 0, wc: lifeHash(k, 77), yaw: 0, look: crowdLook(9000 + ((LIFE.t * 31) | 0) + k), ug, age: 0, delay: k * 0.7 });
     }
@@ -265,8 +302,9 @@ function updateLife(dt, camPos, C, SK) {
       if (!p.act && p.st === 'idle') continue;
       let clip = 'idle', cyc = 0, x = p.x, z = p.z, yaw = p.yaw;
       if (p.stroll) {
-        const S = p.stroll, u = ((LIFE.t * S.v + S.off) % (S.len * 2)), back = u > S.len;
-        p.z = z = S.z0 + (back ? S.len * 2 - u : u); yaw = back ? Math.PI : 0;
+        const S = p.stroll, u = ((LIFE.t * S.v + S.off) % (S.len * 2)), back = u > S.len, a = back ? S.len * 2 - u : u;
+        if (S.dx !== undefined) { p.x = x = S.x0 + S.dx * a; p.z = z = S.z0 + S.dz * a; yaw = back ? Math.atan2(-S.dx, -S.dz) : Math.atan2(S.dx, S.dz); }
+        else { p.z = z = S.z0 + a; yaw = back ? Math.PI : 0; }
         clip = 'walk'; cyc = (LIFE.t * S.v + S.off) / 1.52;
       } else if (p.st === 'board' || p.st === 'return') {
         if (p.st === 'board' && (p.veh.state !== 'dwell' || p.veh.door < 0.5)) { p.st = 'return'; p.way = [[p.hx, p.hz]]; p.wi = 0; }
@@ -525,10 +563,10 @@ function buildLifeBoats(surf) {
   }
   // Ausflugsschiff vor der Küste
   const loop = [];
-  for (let z = -250; z <= 2350; z += 50) loop.push([coastX(z) + 170, WS.WATER_Y, z]);
-  for (let a = 0; a <= Math.PI; a += Math.PI / 8) loop.push([coastX(2350) + 200 - Math.cos(a) * 30, WS.WATER_Y, 2350 + Math.sin(a) * 30]);
-  for (let z = 2350; z >= -250; z -= 50) loop.push([coastX(z) + 230, WS.WATER_Y, z]);
-  for (let a = 0; a <= Math.PI; a += Math.PI / 8) loop.push([coastX(-250) + 200 + Math.cos(a) * 30, WS.WATER_Y, -250 - Math.sin(a) * 30]);
+  for (let z = -250; z <= 2350; z += 50) loop.push([coastX(z) + 110, WS.WATER_Y, z]);
+  for (let a = 0; a <= Math.PI; a += Math.PI / 8) loop.push([coastX(2350) + 140 - Math.cos(a) * 30, WS.WATER_Y, 2350 + Math.sin(a) * 30]);
+  for (let z = 2350; z >= -250; z -= 50) loop.push([coastX(z) + 170, WS.WATER_Y, z]);
+  for (let a = 0; a <= Math.PI; a += Math.PI / 8) loop.push([coastX(-250) + 140 + Math.cos(a) * 30, WS.WATER_Y, -250 - Math.sin(a) * 30]);
   const fp = new TPath(loop, [], { noSpeed: true, ds: 3 });
   const ferry = boatMesh(30, 7, 0xf4f4f4, [
     [0, 1.9, -1.5, 6.2, 1.8, 18, 0xf8f8f8], [0, 1.9, -1.5, 6.25, 0.9, 17, 0x1f3550],

@@ -15,8 +15,8 @@ bei jedem Besuch gleich aus.
 | Leertaste | springen; im Wasser ans Ufer klettern; als Drache halten = mit den Flügeln schlagen und steigen |
 | Shift | rennen |
 | E | Gebäude an der Haupttür betreten / am Ausgang verlassen |
-| L | Lift rufen, einsteigen, aussteigen |
-| M | Netzplan mit U-Bahn, Tram und Buslinien |
+| L | Lift: in Gebäuden und an Bahnhöfen (in der Kabine: Etagenliste) |
+| M | Netzplan mit S-Bahn, IR, U-Bahn, Tram und Buslinien |
 | V | Ego- oder Verfolgerkamera (zeigt die Figur) |
 | C | Spielfigur wechseln: Mensch oder Drache |
 | R | als Drache: Raketenmodus an/aus |
@@ -39,7 +39,8 @@ Im Startmenü (Zeile „Figur“) oder mit **C** wählbar; die Wahl wird gespeic
   beim Menschen.
 - **Raketenmodus (R, nur Drache):** Der Drache zündet ein Triebwerk an der Schwanzspitze und
   startet steil. Danach fliegt er von selbst vorwärts, gestreckt wie ein Superheld.
-  - **Tempo:** Reiseflug 250 km/h, ↑ Turbo bis 610 km/h, ↓ bremst auf 80 km/h.
+  - **Tempo:** Reiseflug 250 km/h, ↑ Turbo bis 610 km/h; ↑ länger als 2 s halten: Hyperturbo bis zum
+    Zehnfachen (6100 km/h). ↓ bremst auf 80 km/h.
   - **Lenken:** ←/→ lenkt mit Schräglage, Leertaste steigt, Shift geht in den Sturzflug, die Maus neigt zusätzlich.
   - **Darstellung:** Feuerstrahl und Funkenspur. Mit dem Tempo weitet sich der Blickwinkel und die Kamera rückt etwas ab; dazu ein Triebwerksdröhnen.
   - **Kollision:** Die Bewegung ist in Schritte von höchstens 2 m geteilt, so rast er nicht durch Häuser. Prallt er gegen eine Wand, bremst er stark ab. Er bleibt über Boden und Wasser und innerhalb der Stadtgrenze.
@@ -60,18 +61,59 @@ Im Startmenü (Zeile „Figur“) oder mit **C** wählbar; die Wahl wird gespeic
 - **Hochschulhügel:** der höchste Stadthügel mit Wald, Firmensitzen und der ETH mit Kuppel und
   Säulenhalle.
 
-## Verkehr
+## Liniennetz
 
-- **Busse** (12 Linien): halten in Haltebuchten mit gelbem Zickzack für 10 Sekunden und öffnen
-  die Türen.
-- **Tram 6** (altes Zürcher Tram): fährt von Venezia Hafen durchs Zentrum zur ETH. Die Gleise
-  liegen mittig auf der Strasse, in stark gerundeten Kurven. Am Hügel fährt das Tram auf eigenem
-  Trassee, an den Enden in Wendeschleifen. Haltestellen haben kurze erhöhte Perrons mit Dach.
-- **U-Bahn** (U1–U4, Londoner Mehrwagenzüge): fährt in Tunneln unter der Stadt und hält 10 Sekunden
-  in beleuchteten Stationen mit langen Perrons. Pavillons mit Treppen führen an die Oberfläche.
-- **Mitfahren:** bei offenen Türen hineinlaufen, und die Kamera fährt mit. Zum Aussteigen an einer
-  Haltestelle durch die offene Tür hinausgehen.
-- Dazu kommen Autos und Fussgänger. Fahrzeuge bremsen vor Hindernissen und vor dem Spieler.
+Alle Fahrzeuge halten 10 Sekunden mit offenen Türen. Zum Mitfahren bei offenen Türen hineinlaufen,
+die Kamera fährt mit; zum Aussteigen durch die offene Tür hinausgehen. Der Netzplan (M) zeigt alles.
+
+| Linie | Fahrzeug | Strecke | Fahrzeuge |
+|---|---|---|---|
+| **S2** | Zürcher S-Bahn 2. Generation (Doppelstock-Triebzug) | Triemli – Riviera – Stadelhofen – Wipkingen – Hönggerberg/V – Hönggerberg/Z – Letten – Seebach | 8 |
+| **S5** | Zürcher S-Bahn 1. Generation (Re 450 + Doppelstockwagen) | Hönggerberg/S – Hönggerberg/Z – Hönggerberg/H – Tiefenbrunnen – Zollikerberg – Zollikon | 8 |
+| **IR7** | InterRegio (Re 460 + 5 Wagen) | Aussenring um die Stadt, über das Meer; Halte Hönggerberg/S, Hönggerberg/G, Isla Venezia | 6 (beide Richtungen) |
+| **U1–U4** | Londoner Mehrwagenzüge | neu geführt, alle über den Knoten Hönggerberg; U3 bis Isla Venezia | je 8 |
+| **T6** | altes Zürcher Tram | Venezia Hafen – Zentrum – Hönggerberg/T | 8 |
+| **T18** | rote Forchbahn | Hönggerberg/S – F – H – Zentrum – Esslingen | 20 |
+| **Bus** | Stadtbus | 20 Linien, davon 22, 23, 45, 18, 19, 78 ab dem Busbahnhof Hönggerberg/B | 2–3 je Linie |
+
+- **S-Bahn und IR** fahren auf Viadukten (mindestens 7,5 m über Gelände und Strassen, Steigung
+  höchstens 6 % bzw. 4,5 %). Strassen unterqueren die Gleise, Häuser und Bäume auf der Trasse
+  sind entfernt. Stationen haben zwei lange Seitenperrons und ein Dach über der Mitte; in der
+  Innenstadt führt eine Treppe hinauf, ausserhalb und in Hönggerberg ein Lift (Taste L in der
+  Kabine öffnet die Etagenliste). An den Endstationen laufen die Gleise zu einem Stumpfgleis
+  zusammen; dort wendet der Zug.
+- **Hönggerberg/Z** liegt auf einer breiten Hochbrücke auf Höhe des ETH-Dachs (99 m), vier Gleise
+  mit Mittelperron für S2 und S5. Von dort führt die S2 in einer grossen Kurve nördlich um den
+  Hügel nach Letten.
+- **U-Bahn:** Tunnel in vier Tiefen, beleuchtete Stationen mit Treppenpavillons; die Hallen in
+  Hönggerberg haben stattdessen einen Lift (Perron – Fussgängertunnel – Strasse).
+- **Tram:** Gleise mittig auf der Strasse mit stark gerundeten Kurven, am Hügel auf eigenem
+  Trassee, Wendeschleifen an den Enden.
+- Dazu kommen Autos und Fussgänger. Busse, Trams und Autos bremsen vor Hindernissen und vor dem Spieler.
+
+## Knoten Hönggerberg
+
+Neun Bahnhofsabteile rund um den ETH-Hügel, alle mit Zugang zur Oberfläche und über einen
+unterirdischen Fussgängertunnel verbunden (Lifte mit dem Halt „Fussgängertunnel“):
+
+| Abteil | Bedeutung | Linien |
+|---|---|---|
+| S | Serviceanlage (mit Abstellgleisen und Werkhalle) | IR7, T18 (End), S5 (End) |
+| Z | Zug (Hochbrücke) | S5, S2 |
+| F | Forchbahn | T18 |
+| U | U-Bahnhof | U2, U3, U4 |
+| G | Gemischtbahnhof | IR7, U1 (End) |
+| B | Busbahnhof | B22, B23, B45, B18, B19, B78 (alle End) |
+| T | Tram 6 | T6 (End) |
+| V | Vorbahnhof | S2, U1, U2, U3, U4 |
+| H | Hinterbahnhof | U4, S5, T18 |
+
+## Isla Venezia
+
+Kleine Insel im Meer östlich von Venedig: Palmen, Leuchtturm, ein weisser Fussgänger-Viadukt vom
+Quai in Venedig, U-Bahnhof (U3) und IR-Halt auf dem Ringviadukt. Über einen Steg erreicht man die
+riesige, begehbare Ölplattform: Hauptdeck (14 m), Oberdeck mit Bohrturm (24 m), Helideck (31 m),
+Treppen dazwischen, Kran und Fackelausleger.
 
 ## Leben in der Stadt
 
@@ -79,6 +121,8 @@ Ohne spürbare Kosten bei Bildrate und Ladezeit: Die Daten der animierten Figure
 erst nach dem Start im Hintergrund nachgeladen. Pro Bild kostet alles zusammen unter 0,3 ms
 Rechenzeit; alle animierten Leute sind ein einziger Draw-Call.
 
+- **Viermal so viele Fussgänger** wie früher (1680) und Wartende auf allen S-Bahn- und IR-Perrons,
+  im Knoten Hönggerberg rund 2000 Leute (Perrons, Busbahnhof, Passanten im Fussgängertunnel).
 - **Animierte Menschenmenge:** Figur „Animated Woman“ von Quaternius (CC0) mit den Animationen
   Gehen, Rennen, Stehen und Sitzen. Bis rund 60 m sind Fussgänger und ruhende Leute voll animiert
   (bis 170 gleichzeitig), weiter weg übernehmen die einfachen Figuren. Haut, Haare, Oberteil und

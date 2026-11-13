@@ -7,7 +7,7 @@ const STEP = 0.65, PR = 0.33, EYE = 1.68, GRAV = 22, JUMP = 7.4;
 const P = { x: 0, y: 3, z: 0, vy: 0, yaw: 0, pitch: 0, onGround: true, ride: null, swim: false, underground: false, bob: 0, third: false, moving: false, char: 'human', flying: false, flapping: false };
 const DRAGON = { climb: 6.5, flapAcc: 20, glideSink: 3.2, airSpeed: 10, airRun: 19, ceiling: 420 };
 /* Raketenmodus des Drachen (Taste R): Reiseflug, Turbo, Bremsen in m/s */
-const ROCKET = { cruise: 70, turbo: 170, slow: 22, acc: 42, turn: 1.45, climb: 32, ceiling: 900, launch: 22, bound: 2700 };
+const ROCKET = { cruise: 70, turbo: 170, hyper: 1700, slow: 22, acc: 42, hyperAcc: 380, turn: 1.45, climb: 32, ceiling: 900, launch: 22, bound: 2700 };
 const GAME = { mode: 'world', hour: 9.5, timeScale: 1, paused: true, started: false };
 const KEYS = {};
 const ELEV = { state: 'none', t: 0, ctx: null, b: null, floor: 0, target: 0, from: null, to: null, dur: 0, startYaw: 0 };
@@ -266,9 +266,12 @@ function updateRocket(dt, input) {
   P.yaw += input.turn * ROCKET.turn * dt;
   P.bank = (P.bank || 0) + (input.turn * 0.6 - (P.bank || 0)) * Math.min(1, dt * 4);
   // Tempo: ↑ Turbo, ↓ bremsen, sonst Reiseflug
-  const target = input.move > 0 ? ROCKET.turbo : input.move < 0 ? ROCKET.slow : ROCKET.cruise;
+  // ↑ länger als 2 s gehalten: Hyperturbo bis zum Zehnfachen des Turbos
+  P.turboT = input.move > 0 ? (P.turboT || 0) + dt : 0;
+  const target = input.move > 0 ? (P.turboT > 2 ? Math.min(ROCKET.hyper, ROCKET.turbo + (P.turboT - 2) * ROCKET.hyperAcc) : ROCKET.turbo) : input.move < 0 ? ROCKET.slow : ROCKET.cruise;
   const dv = target - P.rspd;
-  P.rspd += clamp(dv, -ROCKET.acc * 1.6 * dt, ROCKET.acc * dt);
+  const up = P.rspd >= ROCKET.turbo - 1 ? ROCKET.hyperAcc : ROCKET.acc;
+  P.rspd += clamp(dv, -Math.max(ROCKET.acc * 1.6, P.rspd * 0.9) * dt, up * dt);
   // Steigen/Sinken: Leertaste hoch, Shift Sturzflug, Maus-Neigung zusätzlich
   let vyT = (input.jump ? ROCKET.climb : 0) - (input.run ? ROCKET.climb * 1.3 : 0) + Math.sin(P.pitch) * P.rspd * 0.7;
   if (P.launchT > 0) { P.launchT -= dt; vyT = Math.max(vyT, ROCKET.launch); }

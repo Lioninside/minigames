@@ -46,6 +46,12 @@
     { key: 'tube_none', label: 'U-Bahn Mittelwagen', build: () => buildTubeAsset('none'), before: 38, side: 1 },
     { key: 'car', label: 'Auto', build: buildCarAsset, before: 5, inst: true },
     { key: 'pedestrian', label: 'Fussgänger', build: buildPedestrianAsset, before: 6, inst: true, ped: true },
+    { key: 'dd1', label: 'S-Bahn 1. Gen. (Wagen)', build: () => buildDoubleDeckAsset(1, 'rear'), before: 'neu', side: 0 },
+    { key: 'dd2', label: 'S-Bahn 2. Gen. (Triebwagen)', build: () => buildDoubleDeckAsset(2, 'front'), before: 'neu', side: 0 },
+    { key: 're450', label: 'Lok Re 450', build: () => buildLocoAsset('re450'), before: 'neu', side: 0 },
+    { key: 're460', label: 'Lok Re 460 (IR)', build: () => buildLocoAsset('re460'), before: 'neu', side: 0 },
+    { key: 'irc', label: 'IR-Wagen', build: buildIRCoachAsset, before: 'neu', side: 0 },
+    { key: 'forch', label: 'Forchbahn (T18)', build: buildForchbahnAsset, before: 'neu', side: -1 },
     { key: 'human', label: 'Spielfigur Mensch', char: buildHumanModel, before: 15 },
     { key: 'dragon', label: 'Spielfigur Drache', char: buildDragonModel, before: null }
   ];

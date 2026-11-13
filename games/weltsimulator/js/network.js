@@ -78,7 +78,7 @@ const RAIL_DEF = [
       { x: -1920, z: -1920 },
       { x: 1900, z: -1920 },
       { x: 2330, z: -1480 },
-      { st: 'Isla Venezia', x: 2330, z: -560, dir: [0, 1] },
+      { st: 'Isla Venezia', x: 2330, z: -600, dir: [0, 1], liftMid: true },
       { x: 2330, z: 1480 },
       { x: 1900, z: 1920 },
       { x: -1920, z: 1920 },

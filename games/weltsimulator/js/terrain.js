@@ -190,6 +190,7 @@ function buildTerrain(scene) {
     const v = veniceMask(x, z);
     if (dc < 125 && v < 0.5) c.lerp(y < WS.WATER_Y + 0.4 ? cWetSand : cSand, clamp((125 - dc) / 20, 0, 1));
     if (v > 0) c.lerp(cStone, v);
+    { const di = Math.hypot(x - ISLAND.x, z - ISLAND.z); if (di < ISLAND.r - 16) c.copy(cGrass2).lerp(cGrass1, 0.4 + n1 * 0.3).lerp(cSand, smooth(ISLAND.r - 34, ISLAND.r - 16, di)); }
     if (y < WS.WATER_Y - 0.3) c.copy(cWetSand).multiplyScalar(0.7);
     cols[i * 3] = c.r; cols[i * 3 + 1] = c.g; cols[i * 3 + 2] = c.b;
   }

@@ -21,7 +21,7 @@ function spawnTraffic(scene) {
   for (const c of TRAFFIC.cars) c.col = pick(cols);
 
   // Fussgänger
-  const NP = 420;
+  const NP = 1680; // viermal so viele wie früher
   for (let i = 0; i < NP; i++) {
     const start = pick(nodes);
     const r = randomRoute(start, 250, 800, true);
