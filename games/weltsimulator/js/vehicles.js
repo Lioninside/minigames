@@ -39,7 +39,7 @@ class Vehicle {
     for (let i = 0; i < this.stops.length; i++) { const d = ((this.stops[i].s - this.s) % L + L) % L; if (d < bd) { bd = d; best = i; } }
     this.nextStop = best;
   }
-  doorSide() { return this.kind === 'metro' ? 1 : -1; }
+  doorSide() { return this.kind === 'metro' ? 1 : (this.kind === 'sbahn' || this.kind === 'ir') ? 0 : -1; } // 0 = beide Seiten
   currentStop() { return this.stops.length ? this.stops[this.nextStop] : null; }
   update(dt, obstacleFn) {
     const L = this.path.L;
@@ -50,7 +50,15 @@ class Vehicle {
       this.door = clamp(this.door + (target ? dt : -dt) / 1.1, 0, 1);
       if (this.dwell <= 0 && this.door <= 0.001) {
         this.state = 'drive';
-        this.nextStop = (this.nextStop + 1) % this.stops.length;
+        const cur = this.stops[this.nextStop];
+        if (cur && cur.rev !== undefined) {
+          // Endstation: Zug wendet. Neue Lage = Spiegelung am Gleisende, Wagenfolge umgedreht.
+          this.s = ((2 * cur.rev - this.s) % L + L) % L;
+          for (const c of this.cars) { c.offset = -c.offset; c.flip = !c.flip; }
+          this.syncNextStop();
+          const d0 = ((this.stops[this.nextStop].s - this.s) % L + L) % L;
+          if (d0 < 1) this.nextStop = (this.nextStop + 1) % this.stops.length;
+        } else this.nextStop = (this.nextStop + 1) % this.stops.length;
       }
     } else {
       let vt = Math.min(this.vmax, this.path.speedAt(this.s + this.v * 1.5));
@@ -84,8 +92,8 @@ class Vehicle {
       P.at(sc + c.hl * 0.62, f); P.at(sc - c.hl * 0.62, r);
       const x = (f.x + r.x) / 2, y = (f.y + r.y) / 2, z = (f.z + r.z) / 2;
       c.g.position.set(x, y, z);
-      c.g.rotation.y = Math.atan2(f.x - r.x, f.z - r.z);
-      c.g.rotation.x = -Math.atan2(f.y - r.y, Math.hypot(f.x - r.x, f.z - r.z));
+      c.g.rotation.y = Math.atan2(f.x - r.x, f.z - r.z) + (c.flip ? Math.PI : 0);
+      c.g.rotation.x = -Math.atan2(f.y - r.y, Math.hypot(f.x - r.x, f.z - r.z)) * (c.flip ? -1 : 1);
       c.inst.setDoors(this.door, this.doorSide());
       c.g.updateMatrixWorld(true);
     }
@@ -104,7 +112,8 @@ class Vehicle {
   }
   doorAt(c, lz, sideSign) {
     if (this.door < 0.75) return null;
-    for (const d of c.doors) if (d.side === sideSign && d.side === this.doorSide() && Math.abs(lz - d.zc) < d.half - 0.15) return d;
+    const ds = this.doorSide();
+    for (const d of c.doors) if (d.side === sideSign && (ds === 0 || d.side === ds) && Math.abs(lz - d.zc) < d.half - 0.15) return d;
     return null;
   }
 }
@@ -127,18 +136,46 @@ function spawnTransitVehicles(scene) {
   if (TRANSIT.tram) {
     const T = TRANSIT.tram;
     const sign = destTex(6, 'ETH / Venezia', '#ffffff');
-    for (let k = 0; k < 3; k++) {
-      const v = new Vehicle('tram', { num: 6, color: '#1b5db5', name: 'Tram 6' }, T.path, T.stopList, { vmax: 11, acc: 0.9, dec: 1.1, s0: T.path.L * k / 3, assets: [tram], signMat: sign, label: 'Tram 6', visibleFar: 800 });
+    for (let k = 0; k < 8; k++) {
+      const v = new Vehicle('tram', { num: 6, color: '#1b5db5', name: 'Tram 6' }, T.path, T.stopList, { vmax: 11, acc: 0.9, dec: 1.1, s0: T.path.L * k / 8, assets: [tram], signMat: sign, label: 'Tram 6', visibleFar: 800 });
+      scene.add(v.group); VEH.list.push(v);
+    }
+  }
+  if (TRANSIT.tram18) {
+    const T = TRANSIT.tram18, fb = buildForchbahnAsset();
+    const sign = destTex(18, 'Esslingen / Hönggerberg', '#ff6b6b');
+    for (let k = 0; k < T18_DEF.trams; k++) {
+      const v = new Vehicle('tram', { num: 18, color: T18_DEF.color, name: 'Tram 18' }, T.path, T.stopList, { vmax: 12, acc: 1.0, dec: 1.2, s0: T.path.L * k / T18_DEF.trams, assets: [fb], signMat: sign, label: 'Tram 18 (Forchbahn)', visibleFar: 800 });
       scene.add(v.group); VEH.list.push(v);
     }
   }
   for (const line of TRANSIT.metro) {
-    const n = 3;
+    const n = 8;
     const sign = destTex(line.name, line.stations[line.stations.length - 1].name, line.color);
     for (let k = 0; k < n; k++) {
       const v = new Vehicle('metro', line, line.path, line.stopList, { vmax: 19, acc: 1.1, dec: 1.2, s0: line.path.L * k / n, assets: [tubeF, tubeM, tubeM, tubeR], gap: 0.7, signMat: sign, label: line.name, visibleFar: 450 });
       v.underground = true;
       TRANSIT.ugGroup.add(v.group); VEH.list.push(v);
+    }
+  }
+  // S-Bahn und InterRegio
+  for (const line of RAIL.lines) {
+    const isIR = line.kind === 'ir';
+    const consist = isIR ? [buildLocoAsset('re460'), buildIRCoachAsset(), buildIRCoachAsset(), buildIRCoachAsset(), buildIRCoachAsset(), buildIRCoachAsset()]
+      : line.gen === 1 ? [buildLocoAsset('re450'), buildDoubleDeckAsset(1, 'none'), buildDoubleDeckAsset(1, 'none'), buildDoubleDeckAsset(1, 'rear')]
+      : [buildDoubleDeckAsset(2, 'front'), buildDoubleDeckAsset(2, 'none'), buildDoubleDeckAsset(2, 'none'), buildDoubleDeckAsset(2, 'rear')];
+    const total = line.def.trains, perPath = Math.ceil(total / line.paths.length);
+    let made = 0;
+    for (const P of line.paths) {
+      const last = P.stops.length ? P.stops[P.stops.length - 1].stop.name : '';
+      for (let k = 0; k < perPath && made < total; k++, made++) {
+        const dest = isIR ? (P.dir ? 'Ring Gegenuhrzeigersinn' : 'Ring im Uhrzeigersinn') : (k % 2 ? line.stations[0].name : line.stations[line.stations.length - 1].name);
+        const sign = destTex(line.id, dest, line.color);
+        const v = new Vehicle(line.kind, { num: line.id, color: line.color, name: line.id }, P.path, P.stops,
+          { vmax: line.def.vmax, acc: isIR ? 0.7 : 0.9, dec: 1.0, s0: P.path.L * k / perPath, assets: consist, gap: 0.9, signMat: sign, label: (isIR ? 'InterRegio ' : 'S-Bahn ') + line.id, visibleFar: 1400 });
+        v.railLine = line;
+        scene.add(v.group); VEH.list.push(v);
+      }
     }
   }
 }
@@ -148,7 +185,7 @@ function rebuildObstacles(extra) {
   const H = VEH.obstacles;
   H.m.clear();
   for (const v of VEH.list) {
-    if (v.kind === 'metro') continue;
+    if (v.kind === 'metro' || v.kind === 'sbahn' || v.kind === 'ir') continue;
     const c = v.cars[0];
     const p = c.g.position;
     const o = { x: p.x, z: p.z, r: c.hl, veh: v, yaw: c.g.rotation.y };
@@ -185,7 +222,7 @@ function obstacleAhead(v, px, pz, dx, dz, hl, range, selfObj) {
 function updateTransit(dt, camPos, underground, playerObs) {
   for (const v of VEH.list) {
     const c = v.cars[0];
-    const fn = v.kind === 'metro' ? null : (veh) => {
+    const fn = (v.kind === 'metro' || v.kind === 'sbahn' || v.kind === 'ir') ? null : (veh) => {
       const p = c.g.position;
       const range = Math.max(5, veh.v * veh.v / (2 * 2.5) + 4);
       return obstacleAhead(veh, p.x, p.z, Math.sin(c.g.rotation.y), Math.cos(c.g.rotation.y), c.hl, range, null);

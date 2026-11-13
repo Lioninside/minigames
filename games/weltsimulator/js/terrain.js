@@ -123,6 +123,12 @@ function terrainHRaw(x, z) {
     hb = Math.max(hb, -9);
     h = dc < 0 ? hb : Math.min(h, lerp(hb, h, smooth(120, 170, dc)));
   }
+  // Isla Venezia: flache Insel mit kleinem Hügel, Strand rundum
+  const di = Math.hypot(x - ISLAND.x, z - ISLAND.z);
+  if (di < ISLAND.r + 70) {
+    const ih = lerp(-9, ISLAND.top, 1 - smooth(ISLAND.r - 18, ISLAND.r + 45, di)) + 2.2 * Math.exp(-di * di / 900);
+    h = Math.max(h, ih);
+  }
   return h;
 }
 

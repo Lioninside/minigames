@@ -670,3 +670,47 @@ function streetNameAt(x, z) {
   if (RC_EDGE && d < 15) return RC_EDGE.name;
   return '';
 }
+
+/* Allgemeine Tramroute (für T18): Dijkstra über gerichtete Kanten, Abbiegestrafe,
+   bereits belegte Tramstrecken (T6) werden gemieden. avoidEdge: nicht als erste Kante. */
+function tramDijkstra(start, goal, avoidEdge) {
+  const E = ROADS.edges;
+  const nState = E.length * 2;
+  const dist = new Float64Array(nState).fill(Infinity), prev = new Int32Array(nState).fill(-1), done = new Uint8Array(nState);
+  const sFrom = (s) => { const e = E[s >> 1]; return (s & 1) ? e.b : e.a; };
+  const sTo = (s) => { const e = E[s >> 1]; return (s & 1) ? e.a : e.b; };
+  const cost = (e) => {
+    const A = ROADS.nodes[e.a], B = ROADS.nodes[e.b];
+    const l = Math.hypot(A.x - B.x, A.z - B.z);
+    return l * (e.type === 'main' || e.type === 'tram' ? 1 : 2.2) * (e.tram ? 3.5 : 1) + (e.bridge ? 300 : 0) + (e.type === 'alley' ? 5000 : 0);
+  };
+  const dirOf = (s) => { const A = ROADS.nodes[sFrom(s)], B = ROADS.nodes[sTo(s)]; const l = Math.hypot(B.x - A.x, B.z - A.z); return [(B.x - A.x) / l, (B.z - A.z) / l]; };
+  const open = [];
+  for (const eid of start.adj) { if (avoidEdge && eid === avoidEdge.id) continue; const e = E[eid]; if (e.dead) continue; const s = eid * 2 + (e.a === start.id ? 0 : 1); dist[s] = cost(e); open.push(s); }
+  let found = -1;
+  while (open.length) {
+    let bi = 0; for (let i = 1; i < open.length; i++) if (dist[open[i]] < dist[open[bi]]) bi = i;
+    const s = open[bi]; open[bi] = open[open.length - 1]; open.pop();
+    if (done[s]) continue; done[s] = 1;
+    const node = ROADS.nodes[sTo(s)];
+    if (node.id === goal.id) { found = s; break; }
+    const d1 = dirOf(s);
+    for (const eid of node.adj) {
+      const e = E[eid]; if (e.dead) continue; const t = eid * 2 + (e.a === node.id ? 0 : 1);
+      if ((t >> 1) === (s >> 1) || done[t]) continue;
+      const d2 = dirOf(t);
+      const dot = d1[0] * d2[0] + d1[1] * d2[1];
+      if (dot < -0.3) continue; // keine Spitzkehren
+      const turn = dot < 0.85 ? 220 : 0;
+      const nd = dist[s] + cost(e) + turn;
+      if (nd < dist[t]) { dist[t] = nd; prev[t] = s; open.push(t); }
+    }
+  }
+  if (found < 0) return null;
+  const route = [];
+  let s = found; while (s >= 0) { route.push(s); s = prev[s]; }
+  route.reverse();
+  const nodes = [start], edges = [];
+  for (const st of route) { const e = E[st >> 1]; edges.push(e); nodes.push(ROADS.nodes[sTo(st)]); }
+  return { nodes, edges };
+}

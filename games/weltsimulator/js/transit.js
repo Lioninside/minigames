@@ -193,29 +193,35 @@ function randomRoute(start, minLen, maxLen, allowAlley) {
 }
 
 /* ---------- Buslinien ---------- */
-const BUS_NUMBERS = [31, 32, 33, 46, 61, 62, 72, 75, 80, 89, 91, 94];
-const BUS_COLORS = ['#e2001a', '#00923f', '#009ee0', '#f39200', '#7b2482', '#a5027d', '#5aa034', '#d0a700', '#00a3a6', '#c2185b', '#6d4c41', '#3949ab'];
+/* Liniennummern und Farben: js/network.js (BUS_DEF) */
 function planBusLines() {
   const nodes = ROADS.nodes.filter(n => !n.dead && n.adj.length >= 3);
   let stopName = 0;
-  for (let k = 0; k < BUS_NUMBERS.length; k++) {
+  const nums = BUS_DEF.hubLines.concat(BUS_DEF.cityLines);
+  // Busbahnhof Hönggerberg/B: alle sechs Hub-Linien beginnen am selben Knoten
+  const hubStart = nearestNode(HUB.B.x, HUB.B.z, n => n.adj.length >= 2 && Math.hypot(n.x - WS.HILL.x, n.z - WS.HILL.z) > 300);
+  TRANSIT.busHub = hubStart;
+  for (let k = 0; k < nums.length; k++) {
+    const isHub = k < BUS_DEF.hubLines.length;
     let best = null;
     for (let t = 0; t < 40; t++) {
-      const r = randomRoute(pick(nodes), 2600, 4200, false);
-      if (r.len > 2000 && (!best || r.len > best.len)) { best = r; if (r.len > 2600) break; }
+      const r = randomRoute(isHub ? hubStart : pick(nodes), isHub ? 2000 : 2600, isHub ? 3400 : 4200, false);
+      if (r.len > (isHub ? 1500 : 2000) && (!best || r.len > best.len)) { best = r; if (r.len > 2600) break; }
     }
     if (!best) continue;
-    const line = { num: BUS_NUMBERS[k], color: BUS_COLORS[k], seq: best.seq, stops: [] };
+    const line = { num: nums[k], color: BUS_DEF.colors[k % BUS_DEF.colors.length], seq: best.seq, stops: [], hub: isHub };
     // Haltestellen
     let acc = 220;
     for (let i = 1; i < best.seq.length; i++) {
       const e = edgeBetween(best.seq[i - 1], best.seq[i]);
       acc += e.len;
-      if (acc < 360 || e.len < 85 || e.bridge || e.type === 'alley' || e.sw < 3) continue;
-      if (i === 1 || i === best.seq.length - 1) continue;
+      const first = isHub && i === 1;
+      if (!first && (acc < 360 || e.len < 85 || e.bridge || e.type === 'alley' || e.sw < 3)) continue;
+      if (!first && (i === 1 || i === best.seq.length - 1)) continue;
       acc = 0;
+      if (first && e.stops.length && e.stops[0].name !== hubName('B')) for (const st of e.stops) st.name = hubName('B');
       if (!e.stops.length) {
-        const name = BUS_STOPS[stopName++ % BUS_STOPS.length];
+        const name = first ? hubName('B') : BUS_STOPS[stopName++ % BUS_STOPS.length];
         for (const side of [1, -1]) {
           const A = ROADS.nodes[e.a];
           const d = e.len / 2;
@@ -352,7 +358,7 @@ function planTram() {
   }
   const mid = hill[8];
   stations.push({ name: 'Waldhaus', x: mid[0], z: mid[1], hill: true });
-  stations.push({ name: 'ETH Zentrum', term: 'E' });
+  stations.push({ name: hubName('T'), term: 'E' });
   tram.stations = stations;
   // Endstationen in den Schleifen: am Scheitelpunkt
   const balStart = tl.nA, balEnd = tl.nA + tl.nBalE;
@@ -396,33 +402,133 @@ function planTram() {
   TRANSIT.tram = tram;
 }
 
+/* ---------- Tram 18 (Forchbahn): Hönggerberg/S – F – H – Zentrum – Esslingen ---------- */
+function planTram18() {
+  const D = T18_DEF;
+  const hubEnd = D.hub[D.hub.length - 1];
+  const start = nearestNode(hubEnd[0] + 80, hubEnd[1] + 260, n => n.adj.length >= 2 && Math.hypot(n.x - WS.HILL.x, n.z - WS.HILL.z) > 330);
+  const via = nearestNode(D.via[0], D.via[1], n => n.adj.length >= 3);
+  const end = nearestNode(D.end[0], D.end[1], n => n.adj.length >= 2);
+  const r1 = tramDijkstra(start, via, null);
+  const r2 = r1 ? tramDijkstra(via, end, r1.edges[r1.edges.length - 1]) : null;
+  if (!r1 || !r2) { console.warn('T18: keine Route'); return; }
+  const route = r1.nodes.concat(r2.nodes.slice(1)), edges = r1.edges.concat(r2.edges);
+  for (const e of edges) { setEdgeType(e, 'tram'); e.tram18 = true; }
+  // Endschlaufe hinter dem letzten Knoten (auf einem eigenen Platz)
+  const nE = route[route.length - 1], nP = route[route.length - 2];
+  let ex = nE.x - nP.x, ez = nE.z - nP.z; const le = Math.hypot(ex, ez); ex /= le; ez /= le;
+  const plazaEnd = [nE.x + ex * 40, nE.z + ez * 40];
+  // Mittellinie: Hügelstrecke (eigenes Trassee) + Strassenroute
+  const hubPts = D.hub.map(p => p.slice());
+  const hp = catmullSample(hubPts.concat([[route[0].x, route[0].z]]), 2);
+  const roadPts = route.map(n => [n.x, n.z]).concat([[nE.x + ex * 18, nE.z + ez * 18]]);
+  const gp = filletPolyline(roadPts, 26, 2);
+  const C0 = hp.concat(gp.slice(1));
+  const Cc = [C0[0]];
+  for (let i = 1; i < C0.length; i++) if (Math.hypot(C0[i][0] - Cc[Cc.length - 1][0], C0[i][1] - Cc[Cc.length - 1][1]) > 0.5) Cc.push(C0[i]);
+  const hubLen = polyLength(hp);
+  const stations = [{ name: hubName('S'), term: 'V' }, { name: hubName('F'), x: D.hub[2][0], z: D.hub[2][1], hill: true },
+    { name: hubName('H'), x: hubEnd[0], z: hubEnd[1], hill: true }];
+  let acc = 0, ni = 0;
+  for (const e of edges) {
+    acc += e.len;
+    if (acc > 340 && e.len > 100 && !e.tram) {
+      acc = 0;
+      const A = ROADS.nodes[e.a], d = e.len / 2;
+      stations.push({ name: D.names[ni++ % (D.names.length - 1)], x: A.x + e.dx * d, z: A.z + e.dz * d, edge: e, d });
+    }
+  }
+  stations.push({ name: D.names[D.names.length - 1], term: 'E' });
+  const tram = finishTramLine(Cc, hubLen + 8, polyLength(Cc) - 12, stations, plazaEnd, D.hub[0]);
+  tram.num = 18; tram.color = D.color;
+  reservePoly(hp, 8);
+  reserveCircle(plazaEnd[0], plazaEnd[1], 42);
+  reserveCircle(D.hub[0][0], D.hub[0][1], 40);
+  TRANSIT.tram18 = tram;
+}
+
+/* Gemeinsamer Teil einer Tramlinie: Doppelgleis mit Schleifen, Höhen, Halte, Perrons.
+   onRoad: Bereich der Mittellinie [r0, r1] (in m) liegt auf der Strasse. */
+function finishTramLine(Cc, r0, r1, stations, plazaV, plazaE) {
+  const tl = trackLoop(Cc, 1.6, 8, 15, 34);
+  const yAt = (x, z, onRoad) => {
+    if (onRoad) { const d = roadClear(x, z, 4); if (RC_EDGE && d < 0) { const e = RC_EDGE, A = ROADS.nodes[e.a]; const dd = clamp((x - A.x) * e.dx + (z - A.z) * e.dz, 0, e.len); return edgeY(e, dd) + 0.09; } }
+    return terrainH(x, z) + 0.3;
+  };
+  const cum = [0]; for (let i = 1; i < Cc.length; i++) cum.push(cum[i - 1] + Math.hypot(Cc[i][0] - Cc[i - 1][0], Cc[i][1] - Cc[i - 1][1]));
+  const onRoadC = Cc.map((p, i) => cum[i] > r0 && cum[i] < r1);
+  const nearC = (x, z) => { let bi = 0, bd = 1e18; for (let i = 0; i < Cc.length; i += 2) { const d = (Cc[i][0] - x) ** 2 + (Cc[i][1] - z) ** 2; if (d < bd) { bd = d; bi = i; } } return bi; };
+  const pts3 = [];
+  for (const p of tl.loop) { const ci = nearC(p[0], p[1]); const onR = onRoadC[ci] && Math.hypot(Cc[ci][0] - p[0], Cc[ci][1] - p[1]) < 6; pts3.push([p[0], yAt(p[0], p[1], onR), p[1]]); }
+  for (const p of pts3) {
+    if (Math.hypot(p[0] - plazaV[0], p[2] - plazaV[1]) < 46) p[1] = terrainH(plazaV[0], plazaV[1]) + 0.12;
+    if (Math.hypot(p[0] - plazaE[0], p[2] - plazaE[1]) < 42) p[1] = terrainH(plazaE[0], plazaE[1]) + 0.12;
+  }
+  const tram = { C: Cc, cum, onRoadC, loop: tl, graphLen: r1, plazaV, plazaE, yAt, pts3, stations };
+  tram.onRoad3 = tl.loop.map((p) => { const ci = nearC(p[0], p[1]); return onRoadC[ci]; });
+  const balStart = tl.nA, balEnd = tl.nA + tl.nBalE;
+  const tipE = Math.floor((balStart + balEnd) / 2);
+  const bs2 = tl.nA + tl.nBalE + tl.nB;
+  const tipV = Math.floor((bs2 + tl.loop.length) / 2);
+  const marks = [], stopInfo = [];
+  for (const st of stations) {
+    if (st.term === 'E') { marks.push(tipE); stopInfo.push({ st, track: 'E' }); continue; }
+    if (st.term === 'V') { marks.push(tipV); stopInfo.push({ st, track: 'V' }); continue; }
+    let ba = 0, bda = 1e18, bb = 0, bdb = 1e18;
+    for (let i = 0; i < tl.loop.length; i++) {
+      const d = (tl.loop[i][0] - st.x) ** 2 + (tl.loop[i][1] - st.z) ** 2;
+      if (i < tl.nA) { if (d < bda) { bda = d; ba = i; } }
+      else if (i >= balEnd && i < balEnd + tl.nB) { if (d < bdb) { bdb = d; bb = i; } }
+    }
+    marks.push(ba); stopInfo.push({ st, track: 'A', i: ba });
+    marks.push(bb); stopInfo.push({ st, track: 'B', i: bb });
+  }
+  tram.path = new TPath(pts3, marks, { noSpeed: true });
+  tram.path.computeSpeed(1.2, 0.9);
+  tram.stopList = stopInfo.map((o, k) => ({ s: tram.path.markS[k], stop: o.st, track: o.track, i: marks[k] }));
+  tram.stopList.sort((a, b) => a.s - b.s);
+  tram.platforms = [];
+  for (const so of tram.stopList) {
+    const p = tram.path.at(so.s);
+    const rx = -p.dz, rz = p.dx;
+    const off = 1.1 + 0.3 + 1.25;
+    tram.platforms.push({ x: p.x + rx * off, z: p.z + rz * off, y: p.y, dx: p.dx, dz: p.dz, rx, rz, name: so.stop.name, stop: so });
+  }
+  for (const pl of tram.platforms) reserveCircle(pl.x, pl.z, 6);
+  return tram;
+}
+
 /* ---------- U-Bahn ---------- */
-const METRO_DEF = [
-  { name: 'U1', color: '#e30613', depth: -12, wp: [[-1650, 220], [-1150, 330], [-650, 430], [-120, 260], [380, -120], [880, -300], [1320, -160]] },
-  { name: 'U2', color: '#0069b4', depth: -19, wp: [[180, -1650], [240, -1120], [300, -620], [120, -200], [180, 380], [100, 950], [40, 1580]] },
-  { name: 'U3', color: '#00963f', depth: -26, wp: [[-1450, -1050], [-1000, -480], [-420, -260], [620, -700], [1150, -820], [1330, -1250]] },
-  { name: 'U4', color: '#f29400', depth: -33, wp: [[-1300, 1450], [-700, 1120], [-80, 820], [560, 620], [1100, 420], [1420, -330]] }
-];
+/* Liniendefinitionen: js/network.js (METRO_DEF) */
 const M = { SL: 65, PW: 5, TL: 6.55, WALL: 8.8, CEIL: 5.2, aTop: 26 };
 
 function planMetroStations() {
   const used = [];
-  let ni = 0;
   for (const def of METRO_DEF) {
     const line = { name: def.name, color: def.color, trackY: def.depth, platY: def.depth + 1.05, stations: [] };
     for (const wp of def.wp) {
-      let best = null, bd = 260;
+      // Insel: Station ohne Häuserblock
+      if (wp.free) { line.stations.push({ cell: null, x: wp.x, z: wp.z, name: wp.n, line, free: true }); continue; }
+      // Knoten Hönggerberg: Halle genau am Abteil, ohne Treppe (Zugang per Lift)
+      if (wp.hub) {
+        const o = HUB.UHALLS[wp.hub][def.name], H0 = HUB[wp.hub];
+        line.stations.push({ cell: null, x: H0.x + o[0], z: H0.z + o[1], name: wp.n, line, free: true, hub: wp.hub, noStairs: true });
+        continue;
+      }
+      const T = wp;
+      let best = null, bd = 330;
       for (const c of ROADS.cells.values()) {
         if (c.use) continue;
-        const d = Math.hypot(c.cx - wp[0], c.cz - wp[1]);
+        const d = Math.hypot(c.cx - T.x, c.cz - T.z);
         if (d >= bd) continue;
         if (waterDist(c.cx, c.cz) < 70) continue;
-        if (used.some(u => Math.hypot(u.cx - c.cx, u.cz - c.cz) < 150)) continue;
+        // Abstand zu anderen Stationen; im Knoten Hönggerberg dürfen Hallen dicht beieinander liegen
+        if (used.some(u => Math.hypot(u.cx - c.cx, u.cz - c.cz) < (wp.hub && u.hub ? 60 : 150))) continue;
         bd = d; best = c;
       }
-      if (!best) continue;
-      best.use = 'station'; used.push(best);
-      line.stations.push({ cell: best, x: best.cx, z: best.cz, name: METRO_STATIONS[ni++ % METRO_STATIONS.length], line });
+      if (!best) { console.warn('U-Bahn: kein Platz für', def.name, wp.n); continue; }
+      best.use = 'station'; best.hub = wp.hub || null; used.push(best);
+      line.stations.push({ cell: best, x: best.cx, z: best.cz, name: wp.n, line, hub: wp.hub || null });
     }
     if (line.stations.length >= 2) TRANSIT.metro.push(line);
   }
@@ -440,6 +546,7 @@ function planMetroLines() {
       st.trackY = line.trackY; st.platY = line.platY;
       st.aTop = M.aTop;
       st.aBot = M.aTop - (st.surfY - st.platY) * 1.7320508;
+      if (st.noStairs) { st.aTop = -1e4; st.aBot = -1e4; } // kein Treppenschacht
       st.ceilY = st.platY + M.CEIL;
       TRANSIT.stations.push(st);
     }
@@ -472,6 +579,7 @@ function planMetroLines() {
     line.stopList.sort((a, b) => a.s - b.s);
     // Treppenöffnung und Pavillon an der Oberfläche
     for (const st of S) {
+      if (st.noStairs) continue;
       const holeA = st.aTop - 2.6;
       addTerrainHole(st.x + st.dx * holeA, st.z + st.dz * holeA, st.rot, 3.0, 2.35);
       const pc = M.aTop - 2.5;
@@ -559,10 +667,13 @@ function buildMetro(scene, surfaceGroup, mats) {
       // Decke mit Loch für die Treppe
       const hole0 = st.aBot + 3.4, hole1 = st.aTop + 0.5, hw = 2.35;
       const ceilPiece = (x0, x1, z0, z1) => { if (x1 - x0 < 0.05 || z1 - z0 < 0.05) return; mb.ceil.box((x0 + x1) / 2, cY + 0.15, (z0 + z1) / 2, x1 - x0, 0.3, z1 - z0, 0); };
-      ceilPiece(-WALL - 0.5, WALL + 0.5, -SL, hole0);
-      ceilPiece(-WALL - 0.5, WALL + 0.5, Math.min(hole1, SL), SL);
-      ceilPiece(-WALL - 0.5, -hw, hole0, Math.min(hole1, SL));
-      ceilPiece(hw, WALL + 0.5, hole0, Math.min(hole1, SL));
+      if (st.noStairs) ceilPiece(-WALL - 0.5, WALL + 0.5, -SL, SL);
+      else {
+        ceilPiece(-WALL - 0.5, WALL + 0.5, -SL, hole0);
+        ceilPiece(-WALL - 0.5, WALL + 0.5, Math.min(hole1, SL), SL);
+        ceilPiece(-WALL - 0.5, -hw, hole0, Math.min(hole1, SL));
+        ceilPiece(hw, WALL + 0.5, hole0, Math.min(hole1, SL));
+      }
       // Lichtbänder
       for (const lx of [-7.2, -3.6, 3.6, 7.2]) {
         for (let z = -SL + 2; z < SL - 2; z += 6) {
@@ -588,8 +699,8 @@ function buildMetro(scene, surfaceGroup, mats) {
         for (let z = -SL; z < SL; z += 0.7) mb.sleeper.box(s * TL, tY + 0.06, z, 2.4, 0.12, 0.25, 0);
         for (const r of [-0.7175, 0.7175]) mb.rail.box(s * TL + r, tY + 0.2, 0, 0.07, 0.15, SL * 2, 0);
       }
-      // Treppe
-      buildStair(st, mb, g);
+      // Treppe (Knotenhallen haben nur einen Lift)
+      if (!st.noStairs) buildStair(st, mb, g);
       for (const k in mb) {
         if (mb[k].empty()) continue;
         const mat = k === 'band' ? bandMat : k === 'col' ? colMat : M2[k];
@@ -616,7 +727,7 @@ function buildMetro(scene, surfaceGroup, mats) {
       ug.add(g);
       st.group = g;
       // Pavillon an der Oberfläche
-      buildPavilion(st, surfaceGroup, line, sign);
+      if (!st.noStairs) buildPavilion(st, surfaceGroup, line, sign);
     }
     // Tunnel
     buildTunnels(line, ug, M2);
@@ -755,8 +866,9 @@ function buildTunnels(line, ug, M2) {
 
 /* ---------- Tram-Geometrie ---------- */
 function buildTramTracks(scene) {
-  const tram = TRANSIT.tram;
-  if (!tram) return;
+  for (const t of [TRANSIT.tram, TRANSIT.tram18]) if (t) buildTramTracksOne(scene, t);
+}
+function buildTramTracksOne(scene, tram) {
   const cm = new ChunkedMB(WS.CHUNK);
   const loop = tram.loop.loop;
   const pts3 = tram.pts3;

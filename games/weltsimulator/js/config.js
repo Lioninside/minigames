@@ -19,6 +19,9 @@ const WS = {
   CITY_NAME: 'Neu-Zürich'
 };
 
+/* Isla Venezia: kleine Insel im Meer östlich von Venedig (Ölplattform, U3, IR7) */
+const ISLAND = { x: 2385, z: -600, r: 70, top: 3.4, oil: { x: 2452, z: -735 } };
+
 const INNER_HILLS = [
   { x: -1500, z: 950, h: 30, s: 170 },
   { x: 1050, z: 1420, h: 24, s: 150 },

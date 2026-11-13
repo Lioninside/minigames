@@ -200,7 +200,7 @@ function instantiateAsset(a, opts) {
     },
     setDoors(open, side) {
       for (const d of doors) {
-        const o = d.side === side ? open : 0;
+        const o = (side === 0 || d.side === side) ? open : 0;
         for (const grp of d.groups) grp.position.set(d.side * o * 0.06, 0, d.dir * o * a.leafW * 0.95);
       }
     }

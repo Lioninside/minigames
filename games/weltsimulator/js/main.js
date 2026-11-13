@@ -72,13 +72,15 @@ let SPAWN = { x: 0, z: 0 };
     const steps = [
       ['Landschaft und Gewässer', () => { seedRng(WS.SEED); initWater(); buildHeightGrid(); initReserves(); initBuildings(); initNature(); makeMats(); }],
       ['Strassennetz', () => genRoads(planMetroStations)],
-      ['Buslinien, Tram und U-Bahn planen', () => { planBusLines(); planTram(); planMetroLines(); }],
+      ['Buslinien, Tram und U-Bahn planen', () => { planBusLines(); planTram(); planTram18(); planMetroLines(); }],
+      ['S-Bahn und InterRegio planen', () => { planRail(); planHub(); }],
       ['Strassen, Brücken und Laternen', () => { buildRoadMeshes(surf, MATS); buildQuays(surf, MATS); MATS.pools = buildLightPools(surf); }],
       ['ETH-Hügel, Hotels und Klein-Venedig', () => { genHill(); genHotels(); genVenice(scene); }],
       ['Stadthäuser', () => genCityBuildings()],
       ['Fassaden', () => buildBuildingMeshes(surf)],
       ['Parks, Bäume und Strand', () => { genTrees(); buildParksAndProps(surf); buildTreeMeshes(surf); buildBoats(surf); }],
       ['Tramgleise', () => { buildTramTracks(surf); }],
+      ['Viadukte, S-Bahnhöfe und Lifte', () => { buildRail(surf); buildHub(surf, scene); buildLifts(surf, scene); }],
       ['Gelände', () => { buildWaterMask(); buildTerrain(surf); buildWater(surf); }],
       ['Karte', () => { buildMapImage(); placeSpawn(); }],
       ['Shader vorbereiten', () => precompile()]
@@ -201,7 +203,7 @@ let SPAWN = { x: 0, z: 0 };
     if (e.target === WORLD.renderer.domElement && document.pointerLockElement !== WORLD.renderer.domElement) WORLD.renderer.domElement.requestPointerLock();
   });
   document.getElementById('mapClose').onclick = () => toggleMap(false);
-  document.getElementById('liftCancel').onclick = () => cancelLift();
+  document.getElementById('liftCancel').onclick = () => { if (LIFTS.menu) stationLiftCancel(); else cancelLift(); };
 
   /* ---------- Kamera ---------- */
   const focus = new THREE.Vector3(), _trailSrc = new THREE.Vector3();
@@ -267,7 +269,7 @@ let SPAWN = { x: 0, z: 0 };
       rebuildObstacles(trafficObstacles(P.x, P.z, playerObs));
       updateTransit(dt, cam.position, !!(P.underground || (P.ride && P.ride.veh.underground)));
       updateTraffic(dt, cam.position);
-      if (GAME.mode === 'world') updatePlayerWorld(dt); else updatePlayerInterior(dt);
+      if (!liftsUpdate(dt)) { if (GAME.mode === 'world') updatePlayerWorld(dt); else updatePlayerInterior(dt); }
       updateElevator(dt);
       updateNature(WORLD.t, dt);
       updateAmbientLife(WORLD.t, dt);
@@ -297,6 +299,7 @@ let SPAWN = { x: 0, z: 0 };
         let deep = false;
         if (ug) { deep = true; stationsNear(P.x, P.z, (st, lx, lz) => { if (Math.abs(lx) < 4 && lz > st.aTop - 22 && P.y > st.surfY - 12) deep = false; }); }
         WORLD.surface.visible = !deep; WORLD.surfaceHidden = deep;
+        if (HUBT.group) HUBT.group.visible = ug && Math.hypot(P.x - WS.HILL.x, P.z - WS.HILL.z) < 1100;
         if (nearSt) for (const st of TRANSIT.stations) st.group.visible = Math.abs(st.x - cam.position.x) < 420 && Math.abs(st.z - cam.position.z) < 420;
       }
       SKY.mesh.position.copy(cam.position);

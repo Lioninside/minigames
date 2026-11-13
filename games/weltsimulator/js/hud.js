@@ -190,8 +190,8 @@ function liftMenuKey(code) {
   else if (code === 'ArrowUp') LIFT_SEL = Math.max(0, LIFT_SEL - cols);
   else if (code === 'ArrowRight') LIFT_SEL = Math.min(LIFT_LIST.length - 1, LIFT_SEL + 1);
   else if (code === 'ArrowLeft') LIFT_SEL = Math.max(0, LIFT_SEL - 1);
-  else if (code === 'Enter' || code === 'Space') { chooseFloor(LIFT_LIST[LIFT_SEL]); return; }
-  else if (code === 'Escape') { cancelLift(); return; }
+  else if (code === 'Enter' || code === 'Space') { if (LIFTS.menu) stationLiftChoose(LIFT_LIST[LIFT_SEL]); else chooseFloor(LIFT_LIST[LIFT_SEL]); return; }
+  else if (code === 'Escape') { if (LIFTS.menu) stationLiftCancel(); else cancelLift(); return; }
   markLiftSel();
 }
 function hideLiftMenu() { HUD.el.liftMenu.classList.add('hidden'); }

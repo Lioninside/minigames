@@ -784,6 +784,7 @@ function buildBuildingMeshes(scene) {
   // Stadtplätze und Stationsplätze gepflastert
   for (const pz of ROADS.plazas) if (pz.poly) { const q = cellPoly(pz.cell, 0); cm.get('ground', pz.cell.cx, pz.cell.cz).flat(q[3], q[2], q[1], q[0], terrainH(pz.cell.cx, pz.cell.cz) + 0.04, 3, null); }
   for (const st of TRANSIT.stations) {
+    if (!st.cell) continue; // Inselstation: eigener Platz (island.js)
     const q = cellPoly(st.cell, 0);
     const y = terrainH(st.cell.cx, st.cell.cz) + 0.04;
     emitPlazaWithHole(cm.get('ground', st.cell.cx, st.cell.cz), q, y, st);

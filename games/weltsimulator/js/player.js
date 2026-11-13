@@ -36,6 +36,9 @@ function groundAt(x, z, y) {
     if (Math.abs(lx) <= 2.35 && lz >= st.aBot - 0.05 && lz <= st.aTop + 0.05) cand(clamp(st.platY + (lz - st.aBot) / 1.7320508, st.platY, st.surfY));
     if (Math.abs(lz) <= M.SL && Math.abs(lx) <= M.WALL) cand(Math.abs(lx) <= M.PW ? st.platY : st.trackY + 0.02);
   });
+  // Fussgängertunnel und Stationslift (vor dem Gelände-Ersatzwert prüfen)
+  if (hubTunnelBand(y) && inHubTunnel(x, z, 0)) cand(HUB.TUN_Y);
+  { const o = liftAt(x, z, y, 0); if (o) cand(o.cabY); }
   if (!inHole) {
     const wd = waterDist(x, z);
     cand(wd < -0.5 ? -2.2 : terrainH(x, z));
@@ -56,6 +59,8 @@ function groundAt(x, z, y) {
 
 /* ---------- Horizontale Kollision ---------- */
 function collideWorld(x, z, y, px, pz) {
+  // Fussgängertunnel Hönggerberg: nur innerhalb der Gänge, keine Gebäude darüber
+  if (hubTunnelBand(y) && inHubTunnel(px, pz, 0)) return hubTunnelClamp(x, z, px, pz);
   // Gebäude
   BLD.hash.query(x - 1.5, z - 1.5, x + 1.5, z + 1.5, (box) => {
     if (box.bottom !== undefined && y + 1.75 < box.bottom) return;
@@ -237,6 +242,8 @@ function updatePlayerWorld(dt) {
   stationsNear(P.x, P.z, (st, lx, lz) => {
     if (P.y < st.surfY - 2.4 && ((Math.abs(lz) < M.SL + 2 && Math.abs(lx) < M.WALL + 2) || (Math.abs(lx) < 3 && lz > st.aBot - 1 && lz < st.aTop + 1))) ug = true;
   });
+  if (hubTunnelBand(P.y) && inHubTunnel(P.x, P.z, 0)) ug = true;
+  if (!ug) { const lo = liftAt(P.x, P.z, P.y, 0); if (lo && P.y < terrainH(P.x, P.z) - 2) ug = true; }
   P.underground = ug;
   if (P.y < -60) respawn();
 }
@@ -441,6 +448,7 @@ function actionE() {
   if (b && Math.abs(P.y - b.door.y) < 1.6) enterBuilding(b);
 }
 function actionL() {
+  if (GAME.mode === 'world' && ELEV.state === 'none' && stationLiftAction()) return; // Stationslift
   if (ELEV.state === 'arrived') { ELEV.state = 'exitOpen'; ELEV.t = 0; sfxDing(); return; }
   if (ELEV.state !== 'none') return;
   if (GAME.mode === 'interior') {
