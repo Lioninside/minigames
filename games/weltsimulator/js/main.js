@@ -9,6 +9,26 @@ let SPAWN = { x: 0, z: 0 };
 (function () {
   if (!window.THREE) { document.getElementById('loaderr').classList.remove('hidden'); return; }
   const STORAGE_KEY = 'weltsimulator.save.v1';
+  /* Startorte: dort wird die Welt zuerst gebaut (Umkreis NEAR_R), der Rest danach im Hintergrund */
+  const START_LOCS = {
+    zentrum: { label: 'Zentrum', x: WS.CENTER.x, z: WS.CENTER.z },
+    hoengg: { label: 'Hönggerberg', x: WS.HILL.x, z: WS.HILL.z + 60 },
+    venedig: { label: 'Klein-Venedig', x: WS.PIAZZA.x, z: WS.PIAZZA.z },
+    riviera: { label: 'Riviera', x: 1880, z: 950 },
+    isla: { label: 'Isla Venezia', x: ISLAND.x, z: ISLAND.z }
+  };
+  const START_KEY = 'weltsimulator.start.v1', NEAR_R = 650;
+  let START = 'zentrum';
+  try { const s0 = localStorage.getItem(START_KEY); if (START_LOCS[s0]) START = s0; } catch (e) { }
+  function updateStartUI() { document.querySelectorAll('.sbtn').forEach(b => b.classList.toggle('on', b.dataset.s === START)); }
+  document.querySelectorAll('.sbtn').forEach(b => { b.onclick = () => {
+    if (!START_LOCS[b.dataset.s]) return;
+    START = b.dataset.s; updateStartUI();
+    try { localStorage.setItem(START_KEY, START); } catch (e) { }
+    if (GAME.ready && !GAME.started) placeSpawn();
+  }; });
+  updateStartUI();
+  const startDist = (x, z) => { const S = START_LOCS[START]; return Math.hypot(x - S.x, z - S.z); };
 
   function makeMats() {
     const rt = roadTextures();
@@ -77,16 +97,28 @@ let SPAWN = { x: 0, z: 0 };
       ['Strassen, Brücken und Laternen', () => { buildRoadMeshes(surf, MATS); buildQuays(surf, MATS); MATS.pools = buildLightPools(surf); }],
       ['ETH-Hügel, Hotels und Klein-Venedig', () => { genHill(); genHotels(); genVenice(scene); }],
       ['Stadthäuser', () => genCityBuildings()],
-      ['Fassaden', () => buildBuildingMeshes(surf)],
-      ['Parks, Bäume und Strand', () => { genTrees(); buildParksAndProps(surf); buildTreeMeshes(surf); buildBoats(surf); }],
+      ['Fassaden rund um den Startort', () => {
+        // nur die Zellen in der Nähe des Startorts; der Rest folgt nach dem Start-Knopf
+        WORLD.bldRest = buildingCellsAll();
+        const near = new Set();
+        for (const [k, c] of WORLD.bldRest) if (startDist(c.x, c.z) < NEAR_R + 125) near.add(k);
+        for (const k of near) WORLD.bldRest.delete(k);
+        buildBuildingMeshes(surf, near);
+      }],
+      ['Parks, Bäume und Strand', () => {
+        genTrees(); buildParksAndProps(surf);
+        const tk = treeBucketKeys();
+        buildTreeMeshes(surf, (k) => tk.has(k) && startDist(tk.get(k).x, tk.get(k).z) < NEAR_R + 312);
+        buildBoats(surf);
+      }],
       ['Tramgleise', () => { buildTramTracks(surf); }],
       ['Viadukte, S-Bahnhöfe und Lifte', () => { buildRail(surf); buildHub(surf, scene); buildIsland(surf); buildLifts(surf, scene); }],
       ['Gelände', () => { buildWaterMask(); buildTerrain(surf); buildWater(surf); }],
-      ['Karte', () => { buildMapImage(); placeSpawn(); }],
-      ['Shader vorbereiten', () => precompile()]
+      ['Karte', () => { buildMapImage(); placeSpawn(); }]
     ];
     // Erst nach dem Start-Knopf, im Hintergrund (nicht nötig für das erste Bild)
     const later = [
+      ['Shader vorbereiten', () => precompile()], // der Menü-Rundflug übersetzt die sichtbaren schon vorher
       ['U-Bahn-Stationen', () => buildMetro(scene, surf, MATS)],
       ['Busse, Trams und U-Bahnen', () => spawnTransitVehicles(surf)],
       ['Autos und Fussgänger', () => spawnTraffic(surf)],
@@ -111,6 +143,22 @@ let SPAWN = { x: 0, z: 0 };
     GAME.ready = true;
     WORLD.readyMs = Math.round(performance.now());
     requestAnimationFrame(loop);
+    // übrige Häuser in Paketen, die nächsten zum (gewählten) Startort zuerst
+    {
+      const total = WORLD.bldRest.size; let done = 0;
+      while (WORLD.bldRest.size) {
+        const cells = [...WORLD.bldRest.entries()].sort((a, b) => startDist(a[1].x, a[1].z) - startDist(b[1].x, b[1].z)).slice(0, 14);
+        const set = new Set(cells.map(c => c[0]));
+        for (const k of set) WORLD.bldRest.delete(k);
+        txt.textContent = 'Spielbereit · im Hintergrund: Häuser ' + Math.round(done / Math.max(1, total) * 100) + ' % …';
+        await new Promise(r => setTimeout(r, 15));
+        const t0 = performance.now(); buildBuildingMeshes(surf, set); WORLD.timing.push(['(später) Häuser-Paket', Math.round(performance.now() - t0)]);
+        done += set.size;
+      }
+      txt.textContent = 'Spielbereit · im Hintergrund: Bäume …';
+      await new Promise(r => setTimeout(r, 15));
+      const t0 = performance.now(); buildTreeMeshes(surf, null); WORLD.timing.push(['(später) Bäume', Math.round(performance.now() - t0)]);
+    }
     for (const [label, fn] of later) {
       txt.textContent = 'Spielbereit · im Hintergrund: ' + label + ' …';
       await new Promise(r => setTimeout(r, 30));
@@ -139,12 +187,24 @@ let SPAWN = { x: 0, z: 0 };
 
   function placeSpawn() {
     const pz = ROADS.plazas.find(p => p.kind === 'center');
-    let x = WS.CENTER.x, z = WS.CENTER.z;
+    let x = WS.CENTER.x, z = WS.CENTER.z, yaw = Math.PI / 2;
     if (pz) { x = pz.cell.cx + 20; z = pz.cell.cz + 4; }
+    if (START === 'hoengg' && TRANSIT.tram) { x = TRANSIT.tram.plazaE[0] + 6; z = TRANSIT.tram.plazaE[1] + 22; yaw = 0; }
+    else if (START === 'venedig') { x = WS.PIAZZA.x; z = WS.PIAZZA.z + 45; yaw = 0; }
+    else if (START === 'riviera') { const o = LIFTS.list.find(o => o.station === 'Riviera'); if (o) { x = o.x - 6; z = o.z + 4; } else { z = 950; x = 1800; } yaw = -Math.PI / 2; }
+    else if (START === 'isla') { x = ISLAND.x - 12; z = ISLAND.z + 30; yaw = Math.PI / 2 + 0.4; } // auf der Insel, Blick zum Viadukt und nach Venedig
+    // nie in einem Gebäude, einem Pfeiler oder im Wasser beginnen
+    const blocked = (px, pz) => waterDist(px, pz) < 2 || terrainH(px, pz) < WS.WATER_Y + 0.3 || !!BLD.hash.query(px - 1, pz - 1, px + 1, pz + 1, (b) => obbContains(b.obb, px, pz, 0.8));
+    if (blocked(x, z)) {
+      search: for (let r = 3; r < 90; r += 3) for (let k = 0; k < 16; k++) {
+        const a = k / 16 * Math.PI * 2, nx = x + Math.cos(a) * r, nz = z + Math.sin(a) * r;
+        if (!blocked(nx, nz)) { x = nx; z = nz; break search; }
+      }
+    }
     SPAWN = { x, z };
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { saved = null; }
-    P.x = x; P.z = z; P.y = groundAt(x, z, 50); P.yaw = Math.PI / 2;
+    P.x = x; P.z = z; P.y = groundAt(x, z, terrainH(x, z) + 2); P.yaw = yaw; P.ride = null; P.underground = false;
     if (saved && typeof saved.hour === 'number') GAME.hour = saved.hour;
     if (saved && saved.char === 'dragon') { P.char = 'dragon'; P.third = true; }
   }

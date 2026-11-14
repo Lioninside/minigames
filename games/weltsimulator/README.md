@@ -173,6 +173,24 @@ und schliessen sich die Lifttüren sichtbar. Jedes Stockwerk ist anders eingeric
   Teeküche.
 - **ETH:** Halle mit Säulen; Hörsäle, Bibliothek, Rechnerraum.
 
+## Startort und Ladezeit
+
+Im Startmenü wählt die Zeile **„Start“** den Startort: Zentrum, Hönggerberg, Klein-Venedig, Riviera
+oder Isla Venezia (wird gespeichert). Die Welt bleibt immer vollständig, alle Linien fahren durch;
+der Startort bestimmt nur die Reihenfolge, in der gebaut wird:
+
+1. Geplant wird die ganze Welt (Gelände, Strassen, Linien, Gebäude-Daten): schnell und nötig,
+   damit Netz, Karte und Kollisionen überall stimmen.
+2. Vor dem Start-Knopf entstehen Fassaden und Bäume nur im Umkreis von 650 m um den Startort.
+3. Danach baut sich der Rest im Hintergrund in kleinen Paketen von innen nach aussen dazu;
+   wechselt man im Menü den Startort, gilt die neue Reihenfolge für die übrigen Pakete.
+4. Das Übersetzen aller Shader läuft ebenfalls erst nach dem Start-Knopf (der Rundflug im Menü
+   übersetzt die sichtbaren schon vorher).
+
+Messung im Testbrowser (ohne Grafikkarte): Start-Knopf nach 2,3–2,8 s statt 3,2–3,3 s. Fassaden vor
+dem Start 140–260 ms statt rund 860 ms. Liegt der Startpunkt in einem Gebäude oder im Wasser, sucht
+das Spiel die nächste freie Stelle.
+
 ## Grafikstufen und Leistung
 
 Die Stufe wird im Startmenü gewählt (oder im Spiel mit **Q**) und im Browser gespeichert.

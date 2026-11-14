@@ -767,36 +767,50 @@ function emitSigns(scene) {
   }
 }
 
-function buildBuildingMeshes(scene) {
-  const M = makeBuildingMaterials();
+/* Zellen der Gebäude-Meshes (für regionales Bauen: erst um den Startort, den Rest später) */
+function buildingCellSize() { return (WORLD.renderer && WORLD.renderer.capabilities.isWebGL2) ? 250 : WS.CHUNK; }
+function buildingCellsAll() {
+  const CH = buildingCellSize(), set = new Map();
+  const add = (x, z) => { const cx = Math.floor((x + 2500) / CH), cz = Math.floor((z + 2500) / CH); set.set(cx + '|' + cz, { cx, cz, x: (cx + 0.5) * CH - 2500, z: (cz + 0.5) * CH - 2500 }); };
+  for (const b of BLD.list) add(b.x, b.z);
+  for (const br of BLD.vBridges) add(br.x, br.z);
+  return set;
+}
+/* cells: Set der Zellschlüssel 'cx|cz', die in diesem Durchgang gebaut werden (null = alle) */
+function buildBuildingMeshes(scene, cells) {
+  const first = !BLD.mats;
+  const M = BLD.mats || makeBuildingMaterials();
   BLD.mats = M;
   const atlas = WORLD.renderer && WORLD.renderer.capabilities.isWebGL2;
-  const CH = atlas ? 250 : WS.CHUNK; // feine Zellen: genauere Detailstufen und Verdeckungs-Culling
+  const CH = buildingCellSize(); // feine Zellen: genauere Detailstufen und Verdeckungs-Culling
+  const inPass = (x, z) => !cells || cells.has(Math.floor((x + 2500) / CH) + '|' + Math.floor((z + 2500) / CH));
   const cm = new ChunkedMB(CH);
   const cmLod = atlas ? new ChunkedMB(CH) : null;
-  for (const b of BLD.list) { emitBuilding(cm, b, false); if (cmLod) emitBuilding(cmLod, b, true); }
+  for (const b of BLD.list) { if (!inPass(b.x, b.z)) continue; emitBuilding(cm, b, false); if (cmLod) emitBuilding(cmLod, b, true); }
   // Venedig: Brücken
-  for (const br of BLD.vBridges) { emitVeniceBridge(cm, br); if (cmLod) emitVeniceBridge(cmLod, br, true); }
+  for (const br of BLD.vBridges) { if (!inPass(br.x, br.z)) continue; emitVeniceBridge(cm, br); if (cmLod) emitVeniceBridge(cmLod, br, true); }
   // Piazza-Pflaster und Venedig-Pflaster vor dem Wasser
   const PZ = WS.PIAZZA;
   const pg = cm.get('ground', PZ.x, PZ.z);
-  pg.flat([PZ.x - PZ.hw, PZ.z + PZ.hd], [PZ.x + PZ.hw, PZ.z + PZ.hd], [PZ.x + PZ.hw, PZ.z - PZ.hd], [PZ.x - PZ.hw, PZ.z - PZ.hd], WS.VENICE_Y + 0.04, 3, null);
+  if (inPass(PZ.x, PZ.z)) pg.flat([PZ.x - PZ.hw, PZ.z + PZ.hd], [PZ.x + PZ.hw, PZ.z + PZ.hd], [PZ.x + PZ.hw, PZ.z - PZ.hd], [PZ.x - PZ.hw, PZ.z - PZ.hd], WS.VENICE_Y + 0.04, 3, null);
   // Stadtplätze und Stationsplätze gepflastert
-  for (const pz of ROADS.plazas) if (pz.poly) { const q = cellPoly(pz.cell, 0); cm.get('ground', pz.cell.cx, pz.cell.cz).flat(q[3], q[2], q[1], q[0], terrainH(pz.cell.cx, pz.cell.cz) + 0.04, 3, null); }
+  for (const pz of ROADS.plazas) if (pz.poly && inPass(pz.cell.cx, pz.cell.cz)) { const q = cellPoly(pz.cell, 0); cm.get('ground', pz.cell.cx, pz.cell.cz).flat(q[3], q[2], q[1], q[0], terrainH(pz.cell.cx, pz.cell.cz) + 0.04, 3, null); }
   for (const st of TRANSIT.stations) {
-    if (!st.cell) continue; // Inselstation: eigener Platz (island.js)
+    if (!st.cell || !inPass(st.cell.cx, st.cell.cz)) continue; // Inselstation: eigener Platz (island.js)
     const q = cellPoly(st.cell, 0);
     const y = terrainH(st.cell.cx, st.cell.cz) + 0.04;
     emitPlazaWithHole(cm.get('ground', st.cell.cx, st.cell.cz), q, y, st);
   }
   let meshes;
   if (atlas) {
-    M.atlas = makeAtlasMaterial(buildAtlasTexture());
+    if (!M.atlas) M.atlas = makeAtlasMaterial(buildAtlasTexture());
     const near = finishAtlas(cm, M.atlas, scene, CH);
     const far = finishAtlas(cmLod, M.atlas, scene, CH);
-    for (const k in near) LOD.bld.push(Object.assign({ near: near[k].mesh, far: far[k] ? far[k].mesh : null }, near[k].c));
-    for (const k in far) if (!near[k]) LOD.bld.push(Object.assign({ near: null, far: far[k].mesh }, far[k].c));
-    for (const c of LOD.bld) {
+    const added = [];
+    for (const k in near) added.push(Object.assign({ near: near[k].mesh, far: far[k] ? far[k].mesh : null }, near[k].c));
+    for (const k in far) if (!near[k]) added.push(Object.assign({ near: null, far: far[k].mesh }, far[k].c));
+    for (const c of added) LOD.bld.push(c);
+    for (const c of added) {
       const bb = (c.near || c.far).geometry.boundingBox;
       c.occ = occRegister({ x: (bb.min.x + bb.max.x) / 2, z: (bb.min.z + bb.max.z) / 2, hx: (bb.max.x - bb.min.x) / 2, hz: (bb.max.z - bb.min.z) / 2, minY: bb.min.y, maxY: bb.max.y });
     }
@@ -806,8 +820,7 @@ function buildBuildingMeshes(scene) {
     const cast = {}; for (const k in M) cast[k] = k !== 'ground';
     meshes = cm.finish(mats, scene, { cast });
   }
-  emitSpecials(scene, M);
-  emitSigns(scene);
+  if (first) { emitSpecials(scene, M); emitSigns(scene); }
   return meshes;
 }
 

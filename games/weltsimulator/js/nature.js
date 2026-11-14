@@ -193,7 +193,34 @@ function distToDiag(p, cell) {
   return Math.min(segDist(p[0], p[1], a.x, a.z, c.x, c.z), segDist(p[0], p[1], b.x, b.z, d.x, d.z));
 }
 
-function buildTreeMeshes(scene) {
+/* Bäume bauen; keep(bucketKey) wählt die Kacheln dieses Durchgangs (null = alle).
+   Materialien und Impostor entstehen nur beim ersten Aufruf. */
+function buildTreeMeshes(scene, keep) {
+  if (!NAT.treeBuild) NAT.treeBuild = treeBuildSetup();
+  const { groups } = NAT.treeBuild;
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const CH = 625;
+  NAT.treeDone = NAT.treeDone || new Set();
+  for (const grp of groups) {
+    const buckets = new Map();
+    for (const t of grp.list) {
+      const k = Math.floor((t.x + 2500) / CH) + '_' + Math.floor((t.z + 2500) / CH);
+      if (NAT.treeDone.has(grp.name + k) || (keep && !keep(k))) continue;
+      let a = buckets.get(k); if (!a) { a = []; buckets.set(k, a); } a.push(t);
+    }
+    for (const k of buckets.keys()) NAT.treeDone.add(grp.name + k);
+    treeBuckets(scene, grp, buckets, m4, q, sc, ps, up);
+  }
+}
+function treeBucketKeys() {
+  const CH = 625, set = new Map();
+  for (const kind of ['deciduous', 'conifer', 'palm']) for (const t of TREES[kind]) {
+    const cx = Math.floor((t.x + 2500) / CH), cz = Math.floor((t.z + 2500) / CH);
+    set.set(cx + '_' + cz, { x: (cx + 0.5) * CH - 2500, z: (cz + 0.5) * CH - 2500 });
+  }
+  return set;
+}
+function treeBuildSetup() {
   const G = treeGeos();
   const leafTex = (() => {
     const cv = noiseCanvas(128, 128, 0.7, 0.5, 9, 77);
@@ -232,14 +259,11 @@ function buildTreeMeshes(scene) {
   mats.needle.onBeforeCompile = windPatch(0.012); mats.needle.customProgramCacheKey = () => 'wind-needle';
   mats.palmLeaf.onBeforeCompile = windPatch(0.05); mats.palmLeaf.customProgramCacheKey = () => 'wind-palm';
   for (const k of ['leaf', 'needle', 'palmLeaf']) mats[k].needsUpdate = true;
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  const CH = 625;
-  for (const grp of groups) {
-    const buckets = new Map();
-    for (const t of grp.list) {
-      const k = Math.floor((t.x + 2500) / CH) + '_' + Math.floor((t.z + 2500) / CH);
-      let a = buckets.get(k); if (!a) { a = []; buckets.set(k, a); } a.push(t);
-    }
+  groups.forEach((g, i) => { g.name = ['deciduous', 'conifer', 'palm'][i]; });
+  return { G, mats, groups };
+}
+function treeBuckets(scene, grp, buckets, m4, q, sc, ps, up) {
+  {
     for (const [k, arr] of buckets) {
       let cx = 0, cz = 0; for (const t of arr) { cx += t.x; cz += t.z; } cx /= arr.length; cz /= arr.length;
       let rad = 0, ymin = 1e9, ymax = -1e9; for (const t of arr) { rad = Math.max(rad, Math.hypot(t.x - cx, t.z - cz)); ymin = Math.min(ymin, t.y); ymax = Math.max(ymax, t.y); }
@@ -251,7 +275,7 @@ function buildTreeMeshes(scene) {
         g.boundingSphere = new THREE.Sphere(new THREE.Vector3(cx, (ymin + ymax) / 2 + 5, cz), rad + 15 + (ymax - ymin) / 2);
         const im = new THREE.InstancedMesh(g, mat, arr.length);
         arr.forEach((t, i) => {
-          if (!t.sy) t.sy = t.s * rr(0.9, 1.1);
+          if (!t.sy) t.sy = t.s * (0.9 + 0.2 * hash2i(t.x | 0, t.z | 0)); // unabhängig von der Bau-Reihenfolge
           q.setFromAxisAngle(up, t.r); sc.set(t.s, t.sy, t.s); ps.set(t.x, t.y - 0.1, t.z);
           m4.compose(ps, q, sc); im.setMatrixAt(i, m4);
           if (colored && grp.cols) { const c = grp.cols[Math.floor(hash2i(i, t.x | 0) * grp.cols.length)]; im.setColorAt(i, c); }
