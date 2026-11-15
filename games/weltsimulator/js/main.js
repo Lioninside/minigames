@@ -169,6 +169,7 @@ let SPAWN = { x: 0, z: 0 };
     WORLD.released = releaseStaticGeometry(WORLD.scene);
     await new Promise(r => setTimeout(r, 30));
     { const t0 = performance.now(); uploadAllGeometry(WORLD.renderer, WORLD.scene, WORLD.camera); WORLD.timing.push(['(später) Grafikdaten hochladen', Math.round(performance.now() - t0)]); }
+    gpInit(scene, surf); // Gameplay-Module (js/gameplay/)
     WORLD.allMs = Math.round(performance.now());
     txt.textContent = 'Fertig: ' + BLD.list.length + ' Gebäude, ' + TRANSIT.busLines.length + ' Buslinien, ' + TRANSIT.metro.length + ' U-Bahn-Linien, 2 Tramlinien, ' + RAIL.lines.length + ' S-Bahn-/IR-Linien, ' + LIFE.people.length + ' Leute unterwegs.';
   }
@@ -237,6 +238,7 @@ let SPAWN = { x: 0, z: 0 };
     if (e.code === 'Escape' && HUD.mapOpen) { toggleMap(false); return; }
     if (e.repeat) { KEYS[e.code] = true; return; }
     KEYS[e.code] = true;
+    if (gpKey(e.code)) return;
     if (e.code === 'KeyE') actionE();
     if (e.code === 'KeyL') actionL();
     if (e.code === 'KeyM') toggleMap();
@@ -335,6 +337,7 @@ let SPAWN = { x: 0, z: 0 };
       updateNature(WORLD.t, dt);
       updateAmbientLife(WORLD.t, dt);
       updateAmbience(dt);
+      gpUpdate(dt);
       updateRoofCab();
       updateNearVis(P.x, P.z, dt);
       saveT += dt;

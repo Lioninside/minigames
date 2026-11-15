@@ -1,0 +1,53 @@
+# Welt-Simulator: Projektnotizen für die Entwicklung
+
+Zweck: Schnittstellen nachschlagen statt Dateien lesen. Bei Änderungen an einer Schnittstelle
+diese Datei mitpflegen. Sprache im Code und in der Doku: Deutsch (Schweizer Schreibweise, „ss“).
+
+## Grundregeln
+- three.js r128, kein Build, globale Scripts in fester Reihenfolge (`index.html`). Nur `main.js` läuft beim Laden.
+- Welt −2500…2500 m in x/z. Norden = −z, Meer im Osten (+x). Blick/Vorwärts des Spielers: `(-sin yaw, -cos yaw)`.
+  Fahrzeuge, Fussgänger und Leute schauen nach `(sin yaw, cos yaw)` (Modell zeigt nach +z).
+- Welt ist bei jedem Start gleich (`seedRng(WS.SEED)`, `rnd/rr/ri/pick/chance`). Für Zufall, der die Welt
+  nicht verschieben soll: `hash2i(a, b)` oder `Math.random()` (nur Gameplay).
+- Neue Spielinhalte gehören nach `js/gameplay/` (siehe unten), nicht in `main.js`/`player.js`/`hud.js`.
+- Meshes, die sich später ändern: `mesh.userData.dynamic = true` (sonst gibt `releaseStaticGeometry` die Daten frei).
+- Commit nur auf dem vorgegebenen Branch; kein PR ohne Auftrag.
+
+## Module (js/)
+| Datei | Inhalt | wichtigste Globale |
+|---|---|---|
+| util.js | Zufall, Rauschen, `MB` (Mesh-Baukasten: `box(cx,cy,cz,sx,sy,sz,rot,col)`, `cyl(cx,yBasis,cz,rUnten,rOben,h,seg,col,caps)`, `quad`, `addGeom`, `build()`), `ChunkedMB(size).get(key,x,z)/.finish(mats,parent,opts)`, `SHash`, `SIGNS`/`signMesh`, `compactGeometry`, `AMB_T` | `lin(hex)`, `clamp`, `lerp`, `smooth(a,b,x)` |
+| config.js / network.js | `WS` (HILL, CENTER, VENICE, PIAZZA, WATER_Y …), `ISLAND`; `HUB`, `RAIL_DEF`, `METRO_DEF`, `T18_DEF`, `BUS_DEF` | |
+| terrain.js | `terrainH(x,z)`, `waterDist(x,z)` (<0 = im Wasser), `coastX(z)`, `veniceMask(x,z)` | `WATER`, `TGRID` |
+| roads.js | Strassengraph `ROADS.nodes/edges/cells/parks/plazas`, `roadClear(x,z,extra)` (<0 = auf Strasse/Trottoir), `nearestNode`, `addDeck({ox,oz,dx,dz,a0,a1,hw,h(a)})` begehbare Fläche, `cellPoly`, `pointInQuad` | |
+| transit.js | `TRANSIT` (busLines, stops, tram, tram18, metro, stations), `TPath` (`at(s,out)`, `L`), Reservierungen `reserveCircle/Seg/Poly`, `isReserved(x,z,m)` | |
+| rail.js | S2/S5/IR7: `RAIL.lines/stations`, `RL`, `railStationFrame(st).W(a,q)` | |
+| hub.js | Stationslifte `LIFTS`, `addLift`, Fussgängertunnel `HUBT`, `inHubTunnel` | |
+| island.js | Isla Venezia, Ölplattform (`ISLE`) | |
+| vehicles.js + assets/ | `VEH.list`, `Vehicle` (state 'drive'/'dwell', door 0…1, `toWorld(car,lx,ly,lz)`), Assets über `finishAsset` (near/mid/far) | |
+| buildings.js | `BLD.list` (Gebäude mit obb, door, cat), `BLD.hash` (Kollisionsboxen), `buildBuildingMeshes(scene, cells)` | |
+| nature.js | `TREES`, `addTree(kind,x,z,s)`, `NAT` (treeHash, benches, fountains, treeBuild.groups), `nearVis(obj, r)` | |
+| life.js / traffic.js | Leute (`LIFE`, `lifeAdd`), Autos/Fussgänger (`TRAFFIC`), Vögel, Boote | |
+| player.js | `P` (x,y,z,yaw,pitch,onGround,ride,underground,char,flying,rocket), `GAME` (mode,hour,timeScale,paused), `KEYS`, `groundAt(x,z,y)`, `collideWorld` | |
+| hud.js | `HUD`, `updateHUD`, Karten, Töne (`sfxDing`, `sfxStep`, `tone`) | |
+| main.js | Renderer, Ladeschritte (`steps` vor, `later` nach dem Start-Knopf), Eingabe, Kamera, Schleife | `WORLD`, `MATS` |
+
+## Gameplay-Schnittstelle (js/gameplay/)
+- `core.js`: `gpRegister({ name, init(scene, surf, saved), update(dt), key(code)→bool, minimap(c, toMini), save() })`.
+  Kern bietet `GP.inv[kind]`, `GP.stats`, `GP.sel`, `gpToast(text)`, `gpChanged()` (Leiste neu + speichern),
+  `gpSurfaceAt(x,z)` → `'park'|'meadow'|'hill'|'island'|null` (null = dort wächst nichts).
+  Spielstand: `localStorage['weltsimulator.gameplay.v1']`.
+- `data.js`: `GP_DATA` (Arten, Wachstumszeiten, Flächen, Paketzahl). Neue Inhalte zuerst hier.
+- `packages.js` (`GPP`): Pakete zufällig pro Start, Einsammeln durch Darüberlaufen.
+- `plants.js` (`GPL`): Taste P sät; fester/falscher Boden verbraucht den Samen ohne Wirkung.
+- Kern ruft nur: `gpInit` (Ende von `generate`), `gpUpdate` (Schleife), `gpKey` (keydown), `gpMinimap` (hud.js).
+
+## Testen (spart Zeit und Tokens)
+```bash
+python3 -m http.server 8765            # im Repo-Wurzelordner
+node games/weltsimulator/tools/play-test.cjs skript.js [--shot bild.png] [--start hoengg]
+```
+Das Skript läuft in der Seite (Helfer `step(n)`, `key(code)`, `tp(x,z,y?)`, `hold(code,n)`), gibt Text zurück.
+Screenshots nur, wenn das Aussehen geprüft werden muss. Syntaxcheck ohne Browser:
+`node -e "new Function(require('fs').readFileSync('js/datei.js','utf8'))"`.
+Smoke-Test aller Spiele: `npm test` im Repo-Wurzelordner (Playwright global; zahnradbergbahn scheitert ohne CDN, das ist bekannt).

@@ -34,6 +34,8 @@
       <tr><td>R</td><td>als Drache: Raketenmodus (↑ Turbo, ↑ halten = Hyperturbo, ↓ bremsen, Leertaste hoch, Shift runter)</td></tr>
       <tr><td>Q / F</td><td>Grafikstufe wechseln / Bildraten-Anzeige</td></tr>
       <tr><td>G</td><td>Umgebungsgeräusche an/aus</td></tr>
+      <tr><td>P</td><td>Samen säen (Pakete einsammeln: darüberlaufen)</td></tr>
+      <tr><td>1 – 5</td><td>Samenart wählen</td></tr>
     </table>
     <p class="sub small">Bus, Tram und U-Bahn halten 10 Sekunden mit offenen Türen: einfach hineinlaufen.
       Zum Aussteigen bei offenen Türen hinausgehen.</p>
@@ -64,7 +66,7 @@
   <div id="crosshair"></div>
   <canvas id="minimap" width="210" height="210"></canvas>
   <div id="stats"></div>
-  <div id="hintBar">↑↓ gehen · ←→ drehen · Klick: Maus schauen · Leertaste springen · Shift rennen · E Tür · L Lift · M Netzplan · V Ansicht · T Zeitraffer · C Drache/Mensch · R Rakete · Q Grafik · F FPS · G Geräusche</div>
+  <div id="hintBar">↑↓ gehen · ←→ drehen · Klick: Maus schauen · Leertaste springen · Shift rennen · E Tür · L Lift · M Netzplan · V Ansicht · T Zeitraffer · C Drache/Mensch · R Rakete · Q Grafik · F FPS · G Geräusche · P säen · 1–5 Samenart</div>
 </div>
 
 <div id="mapOverlay" class="overlay hidden">
@@ -139,6 +141,10 @@
 <script src="js/quality.js"></script>
 <script src="js/occlusion.js"></script>
 <script src="js/post.js"></script>
+<script src="js/gameplay/data.js"></script>
+<script src="js/gameplay/core.js"></script>
+<script src="js/gameplay/packages.js"></script>
+<script src="js/gameplay/plants.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

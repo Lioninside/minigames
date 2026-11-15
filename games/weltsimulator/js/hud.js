@@ -132,6 +132,7 @@ function drawMinimap() {
   c.scale(zoom, zoom);
   c.drawImage(HUD.net, -(px + 2500) * k, -(pz + 2500) * k);
   c.restore();
+  if (typeof gpMinimap === 'function' && GAME.mode === 'world') gpMinimap(c, W, zoom * k, px, pz);
   drawArrow(c, W / 2, W / 2, 0, 9, '#e8001c');
   c.strokeStyle = 'rgba(255,255,255,0.8)'; c.lineWidth = 3; c.beginPath(); c.arc(W / 2, W / 2, W / 2 - 2, 0, 7); c.stroke();
   // Nordpfeil

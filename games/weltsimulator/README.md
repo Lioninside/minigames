@@ -173,6 +173,24 @@ und schliessen sich die Lifttüren sichtbar. Jedes Stockwerk ist anders eingeric
   Teeküche.
 - **ETH:** Halle mit Säulen; Hörsäle, Bibliothek, Rechnerraum.
 
+## Sammeln und Pflanzen
+
+- **Pakete:** 150 leuchtende Pakete liegen verstreut in der Welt, bei jedem Spielstart an anderen
+  Orten (Minikarte: farbige Quadrate). Darüberlaufen sammelt sie ein; jedes enthält 3–6 Samen einer
+  Art. Der Fundort bestimmt die Art mit (Palmen an der Küste, Tannen am Hügel). Ein eingesammeltes
+  Paket taucht nach 45 Sekunden an einem neuen Ort auf.
+- **Arten** (Tasten 1–5): Laubbaum, Tanne, Palme, Wiesenblumen, Sonnenblumen.
+- **Säen (P):** streut einen Samen vor die Figur, nur am Boden (nicht aus der Luft). Bepflanzbar sind
+  Parks, Wiesen, der Hügel und die Insel. Auf festem Boden (Strasse, Trottoir, Platz, Strand, Wasser,
+  Gleistrassee) oder auf einer Fläche, die der Art nicht passt, ist der Samen verbraucht, und nichts
+  wächst; der Zähler steigt dann nicht.
+- **Wachstum:** schnell: Blumen in 12–18 Sekunden, Bäume in 40–50 Sekunden (Zeitraffer T: sechsmal
+  schneller). Bäume wiegen sich im Wind und sind Hindernisse wie alle anderen.
+- **Anzeige:** Leiste oben links mit Samenvorrat, „Gepflanzte Bäume“ und „Blumen“. Vorrat, Zähler und
+  alle Pflanzen werden gespeichert (höchstens 2000 Pflanzen).
+- **Aufbau:** eigenes Modul `js/gameplay/` mit Datentabelle (`data.js`); neue Paketinhalte brauchen
+  dort nur eine Zeile. Schnittstellen stehen in `CLAUDE.md`, Testlauf: `tools/play-test.cjs`.
+
 ## Startort und Ladezeit
 
 Im Startmenü wählt die Zeile **„Start“** den Startort: Zentrum, Hönggerberg, Klein-Venedig, Riviera
