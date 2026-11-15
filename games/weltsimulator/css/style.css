@@ -75,3 +75,7 @@ button:disabled { opacity: 0.5; cursor: default; }
 #gpBar .gpStat b { color: var(--ink, #fff); }
 #gpToast { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); padding: 8px 16px; border-radius: 10px; background: rgba(10,18,26,0.85); color: #fff; font-size: 15px; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; }
 #gpToast.on { opacity: 1; }
+
+/* Abblende für Übergänge (Treppe überspringen) */
+#fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.24s; z-index: 5; }
+#fade.on { opacity: 1; }

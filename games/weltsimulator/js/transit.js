@@ -444,6 +444,18 @@ function planTram18() {
   reservePoly(hp, 8);
   reserveCircle(plazaEnd[0], plazaEnd[1], 42);
   reserveCircle(D.hub[0][0], D.hub[0][1], 40);
+  // Endplatz am Hang: Gelände einebnen, damit der flache Platz weder im Hang steckt noch schwebt
+  {
+    const p = D.hub[0], y0 = terrainH(p[0], p[1]);
+    flattenTerrain(p[0], p[1], 48, y0, 26);
+    for (const nd of ROADS.nodes) if (!nd.dead && Math.hypot(nd.x - p[0], nd.z - p[1]) < 80) nd.y = terrainH(nd.x, nd.z);
+    // Gleise ausserhalb des Platzes folgen dem neuen Gelände
+    const near = (x, z) => { const d = Math.hypot(x - p[0], z - p[1]); return d >= 42 && d < 90; };
+    tram.pts3.forEach((q, i) => { if (!tram.onRoad3[i] && near(q[0], q[2])) q[1] = terrainH(q[0], q[2]) + 0.3; });
+    const P2 = tram.path;
+    for (let i = 0; i < P2.n; i++) if (near(P2.X[i], P2.Z[i]) && roadClear(P2.X[i], P2.Z[i], 2) > 0) P2.Y[i] = terrainH(P2.X[i], P2.Z[i]) + 0.3;
+    for (const pl of tram.platforms) if (Math.hypot(pl.x - p[0], pl.z - p[1]) < 90) pl.y = P2.at(pl.stop.s).y;
+  }
   TRANSIT.tram18 = tram;
 }
 

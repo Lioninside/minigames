@@ -43,9 +43,9 @@ Mac/Linux) steht auf der Seite [`worlds/index.html`](worlds/index.html) unter �
 
 Im Startmenü (Zeile „Figur“) oder mit **C** wählbar; die Wahl wird gespeichert.
 
-- **Mensch:** geht, rennt und springt, Ego- oder Verfolgerkamera. Die Figur ist das Modell „man“
-  von [cadnav.com](https://www.cadnav.com/3d-models/model-53323.html) (412 Dreiecke), umgerechnet
-  mit `tools/bake_avatar.py`; Arme und Beine schwingen beim Gehen.
+- **Mensch:** geht, rennt und springt, Ego- oder Verfolgerkamera. Die Figur ist neu gezeichnet und
+  reduziert (rund 600 Dreiecke, flach schattiert): weisses Kurzarmhemd, blaue Hose, dunkle Haare,
+  Schuhe mit heller Sohle. Arme und Beine schwingen beim Gehen.
 - **Fallschirm:** Wer als Mensch aus der Höhe fällt (ab 5 m über Grund und 9 m/s Fallgeschwindigkeit,
   z. B. Sprung vom Hausdach oder Viadukt), bekommt automatisch einen Fallschirm. Er bremst auf
   3,4 m/s; mit den Pfeiltasten lässt sich steuern.
@@ -62,7 +62,8 @@ Im Startmenü (Zeile „Figur“) oder mit **C** wählbar; die Wahl wird gespeic
   - **Lenken:** ←/→ lenkt mit Schräglage, Leertaste steigt, Shift geht in den Sturzflug, die Maus neigt zusätzlich.
   - **Darstellung:** Feuerstrahl und Funkenspur. Mit dem Tempo weitet sich der Blickwinkel und die Kamera rückt etwas ab; dazu ein Triebwerksdröhnen.
   - **Kollision:** Die Bewegung ist in Schritte von höchstens 2 m geteilt, so rast er nicht durch Häuser. Prallt er gegen eine Wand, bremst er stark ab. Er bleibt über Boden und Wasser und innerhalb der Stadtgrenze.
-  - **Ende:** R schaltet zurück in den normalen Flug, er gleitet dann weiter.
+  - **Ende:** R schaltet ab. Der Drache geht dann in den Sturzflug (34 m/s), fängt kurz über dem Boden
+    ab und landet: aus 300 m in rund 10 Sekunden. Die Leertaste bricht den Sturzflug ab (weiterfliegen).
 - Beide Figuren sind auf der Asset-Testseite (`assets.html`) mit Bewegungsarten zu sehen.
 
 ## Die Stadt
@@ -103,6 +104,9 @@ die Kamera fährt mit; zum Aussteigen durch die offene Tür hinausgehen. Der Net
 - **Hönggerberg/Z** liegt auf einer breiten Hochbrücke auf Höhe des ETH-Dachs (99 m), vier Gleise
   mit Mittelperron für S2 und S5. Von dort führt die S2 in einer grossen Kurve nördlich um den
   Hügel nach Letten.
+- **Treppe überspringen:** Oben am Pavillon oder unten am Treppenfuss bringt **E** mit einer kurzen
+  Abblende direkt zum Perron bzw. nach oben; die Treppe lässt sich weiterhin gehen.
+- **Perronkante:** Aufs U-Bahn-Gleis kommt man nicht; nur durch eine offene Zugtür geht es über die Kante.
 - **U-Bahn:** Tunnel in vier Tiefen, beleuchtete Stationen mit Treppenpavillons; die Hallen in
   Hönggerberg haben stattdessen einen Lift (Perron – Fussgängertunnel – Strasse).
 - **Tram:** Gleise mittig auf der Strasse mit stark gerundeten Kurven, am Hügel auf eigenem
@@ -205,6 +209,9 @@ Auftragstext zum Kopieren: [`worlds/AUFTRAG-VORLAGE.md`](worlds/AUFTRAG-VORLAGE.
 
 ## Hindernisse
 
+Die Figur steht auf den gezeichneten Belägen (Strasse, Trottoir, flache Plätze), nicht auf dem rohen
+Gelände darunter; sonst versinken die Füsse. Unter dem Tram-Endplatz Hönggerberg/S ist der Hang eingeebnet.
+
 Fest sind Gebäude, Bäume, Brunnen, Laternen, Masten, Bänke, Wartehäuschen, Liftschächte,
 Perron- und Dachsäulen, Glaswände, Café-Tische und -Stühle, Fahnenmasten, Sonnenschirme, Autos,
 die Werkhalle mit den abgestellten Zügen, der Leuchtturm sowie Tanks und Bohrturm der Ölplattform.
@@ -214,7 +221,7 @@ Probe startet im Becken.) Nicht fest sind Fussgänger und die Leute in der Stadt
 
 ## Sammeln und Pflanzen
 
-- **Pakete:** 150 leuchtende Pakete liegen verstreut in der Welt, bei jedem Spielstart an anderen
+- **Pakete:** 150 bunte, leuchtende Geschenkkisten mit Band und Schleife liegen verstreut in der Welt, bei jedem Spielstart an anderen
   Orten (Minikarte: farbige Quadrate). Darüberlaufen sammelt sie ein; jedes enthält 3–6 Samen einer
   Art. Der Fundort bestimmt die Art mit (Palmen an der Küste, Tannen am Hügel). Ein eingesammeltes
   Paket taucht nach 45 Sekunden an einem neuen Ort auf.

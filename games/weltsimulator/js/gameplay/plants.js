@@ -13,9 +13,10 @@ function gplBuildMeshes(surf) {
   for (const grp of NAT.treeBuild.groups) {
     const parts = grp.parts.map(([geo, mat, colored]) => {
       const im = new THREE.InstancedMesh(geo.clone(), mat, GPL.CAP_T);
+      // Farb-Attribut in voller Länge anlegen, BEVOR count auf 0 geht (setColorAt nutzt count als Grösse)
+      if (colored && grp.cols) { im.setColorAt(0, grp.cols[0]); }
       im.count = 0; im.frustumCulled = false; im.castShadow = true; im.receiveShadow = true; im.userData.dynamic = true;
       im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      if (colored && grp.cols) { im.setColorAt(0, grp.cols[0]); }
       surf.add(im);
       return { im, colored: colored && !!grp.cols };
     });

@@ -252,6 +252,17 @@ function sfxRocket() {
   g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.linearRampToValueAtTime(0.06, c.currentTime + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.9);
   o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 1);
 }
+/* Kurze Abblende: Bild wird schwarz, dann läuft fn, dann wieder hell */
+let _fadeBusy = false;
+function fadeTeleport(fn) {
+  if (_fadeBusy) return;
+  const el = document.getElementById('fade');
+  if (!el) { fn(); return; }
+  _fadeBusy = true; el.classList.add('on');
+  const open = () => { el.classList.remove('on'); _fadeBusy = false; };
+  // Aufblenden ist garantiert, auch wenn fn oder der Ton einen Fehler wirft
+  setTimeout(() => { try { fn(); } finally { setTimeout(open, 140); } try { sfxStep(); } catch (e) { } }, 260);
+}
 function sfxChute() { tone(160, 0, 0.5, 0.1, 'triangle'); tone(240, 0.05, 0.6, 0.07, 'sine'); }
 function sfxMorph() { tone(392, 0, 0.15, 0.08, 'triangle'); tone(587, 0.08, 0.2, 0.08, 'triangle'); tone(880, 0.16, 0.35, 0.07, 'sine'); }
 function sfxChime() { tone(784, 0, 0.35, 0.08); tone(659, 0.3, 0.35, 0.08); tone(523, 0.6, 0.6, 0.08); }

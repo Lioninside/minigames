@@ -68,28 +68,49 @@ function partMesh(mb, mat, cast) { const m = new THREE.Mesh(mb.build(), mat); m.
 function pivot(parent, x, y, z) { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g); return g; }
 
 /* ---------- Mensch ---------- */
-function buildHumanModel() {
-  if (window.AVATAR_MAN) return buildAvatarModel(window.AVATAR_MAN);
-  return buildSimpleHumanModel();
-}
-/* Spielfigur aus dem umgerechneten 3DS-Modell (js/data/avatar-man.js): Rumpf + vier Glieder
-   mit Gelenkpunkt; die Animation dreht die Glieder wie bei der einfachen Figur. */
-function buildAvatarModel(A) {
+function buildHumanModel() { return buildAvatarModel(); }
+/* Spielfigur Mensch: neu gezeichnet, reduziert (rund 400 Dreiecke, flach schattiert).
+   Optisch an das hochgeladene Modell angelehnt: weisses Kurzarmhemd, blaue Hose, dunkle Haare,
+   dunkle Schuhe mit heller Sohle. Blick nach -z, Füsse auf y = 0, Gelenke an Hüfte und Schulter. */
+function buildAvatarModel() {
   const M = charMats();
-  const pal = A.palette.map(c => new THREE.Color(c[0] / 255, c[1] / 255, c[2] / 255).convertSRGBToLinear());
-  const mesh = (part) => {
-    const n = part.c.length, pos = new Float32Array(part.p), col = new Float32Array(n * 9);
-    for (let t = 0; t < n; t++) { const c = pal[part.c[t]]; for (let k = 0; k < 3; k++) col.set([c.r, c.g, c.b], t * 9 + k * 3); }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    g.computeVertexNormals();
-    const m = new THREE.Mesh(g, M.avatar); m.castShadow = true; m.receiveShadow = true; m.userData.dynamic = true;
-    return m;
-  };
+  const SHIRT = lin(0xf6f6f2), PANTS = lin(0x4e759c), SKIN = lin(0xb9784f), HAIR = lin(0x2b2420), SHOE = lin(0x1d1d20), SOLE = lin(0xd9d9d6), BELT = lin(0x2a2a2e);
+  const BOX = new THREE.BoxGeometry(1, 1, 1);
+  const tube = (rt, rb, h) => new THREE.CylinderGeometry(rt, rb, h, 8);
+  const part = (fn) => { const mb = new MB(); fn(mb); const g = mb.build(); g.deleteAttribute('uv'); const m = new THREE.Mesh(g.toNonIndexed(), M.avatar); m.geometry.computeVertexNormals(); m.castShadow = true; m.receiveShadow = true; return m; };
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-  body.add(mesh(A.parts.body));
-  const limb = (k) => { const pv = pivot(body, A.parts[k].pivot[0], A.parts[k].pivot[1], A.parts[k].pivot[2]); pv.add(mesh(A.parts[k])); return pv; };
-  root.userData = { kind: 'human', body, legL: limb('legL'), legR: limb('legR'), armL: limb('armL'), armR: limb('armR'), ph: 0, eye: 1.68, camDist: 4.0 };
+  body.add(part((mb) => {
+    prim(mb, BOX, 0, 0.97, 0, 0.36, 0.22, 0.21, PANTS);                       // Hüfte
+    prim(mb, BOX, 0, 1.085, 0, 0.37, 0.045, 0.22, BELT);                      // Gürtel
+    prim(mb, tube(0.215, 0.185, 0.46), 0, 1.335, 0, 1, 1, 0.62, SHIRT);       // Rumpf
+    prim(mb, BOX, 0, 1.56, 0, 0.47, 0.09, 0.2, SHIRT);                        // Schultern
+    prim(mb, tube(0.052, 0.058, 0.1), 0, 1.635, 0, 1, 1, 1, SKIN);            // Hals
+    prim(mb, new THREE.IcosahedronGeometry(0.122, 1), 0, 1.765, 0, 0.94, 1.12, 1.0, SKIN);   // Kopf
+    prim(mb, new THREE.SphereGeometry(0.13, 10, 5, 0, Math.PI * 2, 0, Math.PI * 0.5), 0, 1.795, 0.008, 0.97, 1.0, 1.04, HAIR); // Haare
+    prim(mb, BOX, 0, 1.76, 0.1, 0.2, 0.13, 0.05, HAIR);                       // Hinterkopf
+    for (const s of [1, -1]) prim(mb, BOX, s * 0.043, 1.775, -0.116, 0.026, 0.02, 0.012, HAIR); // Augen
+  }));
+  const leg = (s) => {
+    const pv = pivot(body, s * 0.095, 0.93, 0);
+    pv.add(part((mb) => {
+      prim(mb, tube(0.088, 0.062, 0.81), 0, -0.405, 0, 1, 1, 1, PANTS);       // Bein
+      prim(mb, BOX, 0, -0.9125, -0.06, 0.108, 0.035, 0.29, SOLE);             // Sohle (liegt auf y = 0)
+      prim(mb, BOX, 0, -0.855, -0.015, 0.1, 0.08, 0.2, SHOE);                 // Schuh
+      prim(mb, BOX, 0, -0.872, -0.158, 0.1, 0.046, 0.09, SHOE);               // Schuhspitze, flacher
+    }));
+    return pv;
+  };
+  const arm = (s) => {
+    const pv = pivot(body, s * 0.258, 1.5, 0);
+    pv.add(part((mb) => {
+      prim(mb, tube(0.064, 0.057, 0.24), 0, -0.11, 0, 1, 1, 1, SHIRT);        // kurzer Ärmel
+      prim(mb, tube(0.047, 0.04, 0.38), 0, -0.41, 0, 1, 1, 1, SKIN);          // Arm
+      prim(mb, BOX, 0, -0.645, 0, 0.07, 0.1, 0.085, SKIN);                    // Hand
+    }));
+    return pv;
+  };
+  body.scale.setScalar(0.95); // Gesamthöhe 1,80 m
+  root.userData = { kind: 'human', body, legL: leg(1), legR: leg(-1), armL: arm(1), armR: arm(-1), ph: 0, eye: 1.68, camDist: 4.0 };
   return root;
 }
 function buildSimpleHumanModel() {

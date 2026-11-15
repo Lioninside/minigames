@@ -24,13 +24,13 @@ diese Datei mitpflegen. Sprache im Code und in der Doku: Deutsch (Schweizer Schr
 | rail.js | S2/S5/IR7: `RAIL.lines/stations`, `RL`, `railStationFrame(st).W(a,q)` | |
 | hub.js | Stationslifte `LIFTS`, `addLift`, Fussgängertunnel `HUBT`, `inHubTunnel` | |
 | island.js | Isla Venezia, Ölplattform (`ISLE`) | |
-| assets/characters.js | Spielfiguren: Mensch aus `js/data/avatar-man.js` (`tools/bake_avatar.py`), Drache, Fallschirm; `animateCharacter` | |
+| assets/characters.js | Spielfiguren: Mensch (`buildAvatarModel`, aus Grundformen), Drache, Fallschirm; `animateCharacter` | |
 | vehicles.js + assets/ | `VEH.list`, `Vehicle` (state 'drive'/'dwell', door 0…1, `toWorld(car,lx,ly,lz)`), Assets über `finishAsset` (near/mid/far) | |
 | buildings.js | `BLD.list` (Gebäude mit obb, door, cat), `BLD.hash` (Kollisionsboxen), `buildBuildingMeshes(scene, cells)` | |
 | nature.js | `TREES`, `addTree(kind,x,z,s)`, `NAT` (treeHash, benches, fountains, treeBuild.groups), `nearVis(obj, r)` | |
 | life.js / traffic.js | Leute (`LIFE`, `lifeAdd`), Autos/Fussgänger (`TRAFFIC`), Vögel, Boote | |
 | player.js | `P` (x,y,z,yaw,pitch,onGround,ride,underground,char,flying,rocket), `GAME` (mode,hour,timeScale,paused), `KEYS`, `groundAt(x,z,y)`, `collideWorld` | |
-| player.js (Hindernisse) | `addProp(x,z,r,top,bottom?)` Kreis-Hindernis (Mast, Säule, Tisch); Kästen: `addCollider({obb: makeOBB(cx,cz,rot,hw,hd), top, bottom?})` in buildings.js. Jedes neue feste Objekt braucht eines von beiden. `CHUTE`, `P.chute` Fallschirm | |
+| player.js (Hindernisse) | `addProp(x,z,r,top,bottom?)` Kreis-Hindernis (Mast, Säule, Tisch); Kästen: `addCollider({obb: makeOBB(cx,cz,rot,hw,hd), top, bottom?})` in buildings.js. Jedes neue feste Objekt braucht eines von beiden. `groundAt` kennt Beläge über dem Gelände (Strasse +0,09, Trottoir +0,06, `pavedAreas()` für flache Plätze): neue flache Flächen dort eintragen, sonst versinken die Füsse. `stairShortcut()`/`fadeTeleport(fn)` (hud.js) für Übergänge mit Abblende. `CHUTE`, `P.chute` Fallschirm | |
 | hud.js | `HUD`, `updateHUD`, Karten, Töne (`sfxDing`, `sfxStep`, `tone`) | |
 | main.js | Renderer, Ladeschritte (`steps` vor, `later` nach dem Start-Knopf), Eingabe, Kamera, Schleife | `WORLD`, `MATS` |
 

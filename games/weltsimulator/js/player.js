@@ -5,7 +5,7 @@
 
 const STEP = 0.65, PR = 0.33, EYE = 1.68, GRAV = 22, JUMP = 7.4;
 const P = { x: 0, y: 3, z: 0, vy: 0, yaw: 0, pitch: 0, onGround: true, ride: null, swim: false, underground: false, bob: 0, third: false, moving: false, char: 'human', flying: false, flapping: false };
-const DRAGON = { climb: 6.5, flapAcc: 20, glideSink: 3.2, airSpeed: 10, airRun: 19, ceiling: 420 };
+const DRAGON = { climb: 6.5, flapAcc: 20, glideSink: 3.2, airSpeed: 10, airRun: 19, ceiling: 420, dive: 34 };
 /* Raketenmodus des Drachen (Taste R): Reiseflug, Turbo, Bremsen in m/s */
 const ROCKET = { cruise: 70, turbo: 170, hyper: 1700, slow: 22, acc: 42, hyperAcc: 380, turn: 1.45, climb: 32, ceiling: 900, launch: 22, bound: 2700 };
 /* Fallschirm: öffnet ab Fallgeschwindigkeit openVy (m/s) und mindestens minH m über Grund */
@@ -35,6 +35,17 @@ function boxSurf(box, x, z) {
   const e = Math.min(box.obb.hw - Math.abs(l[0]), box.obb.hd - Math.abs(l[1])) + 0.45;
   return box.top - box.hipH + box.hipH * clamp(e / box.hip, 0, 1);
 }
+/* Flache, gepflasterte Flächen (Stadtplätze, Stationsplätze, Tram-Endplätze) mit ihrer gezeichneten Höhe */
+let _paved = null;
+function pavedAreas() {
+  if (_paved) return _paved;
+  if (!ROADS.plazas || !TRANSIT.stations.length) return [];
+  _paved = [];
+  for (const pz of ROADS.plazas) if (pz.cell && pz.poly) _paved.push({ x: pz.cell.cx, z: pz.cell.cz, r: 110, poly: pz.poly, y: terrainH(pz.cell.cx, pz.cell.cz) + 0.04 });
+  for (const st of TRANSIT.stations) if (st.cell) _paved.push({ x: st.cell.cx, z: st.cell.cz, r: 110, poly: cellPoly(st.cell, 0), y: terrainH(st.cell.cx, st.cell.cz) + 0.04 });
+  for (const T of [TRANSIT.tram, TRANSIT.tram18]) if (T) for (const [p, r] of [[T.plazaV, 50], [T.plazaE, 46]]) _paved.push({ x: p[0], z: p[1], r, y: terrainH(p[0], p[1]) + 0.07 });
+  return _paved;
+}
 function groundAt(x, z, y) {
   if (WELT.cur) return weltGround(x, z, y);
   let inHole = false;
@@ -51,6 +62,14 @@ function groundAt(x, z, y) {
   if (!inHole) {
     const wd = waterDist(x, z);
     cand(wd < -0.5 ? -2.2 : terrainH(x, z));
+    // Gezeichnete Beläge liegen über dem rohen Gelände: Strasse +9 cm, Trottoir +6 cm, Plätze flach.
+    // Ohne das stünde die Figur mit den Füssen im Belag.
+    const rc = roadClear(x, z, 2);
+    if (RC_EDGE && rc < 0 && !RC_EDGE.bridge) { const e = RC_EDGE, A = ROADS.nodes[e.a]; cand(edgeY(e, clamp((x - A.x) * e.dx + (z - A.z) * e.dz, 0, e.len)) + (rc < -e.sw ? 0.09 : 0.06)); }
+    for (const pz of pavedAreas()) {
+      if (Math.abs(pz.x - x) > pz.r || Math.abs(pz.z - z) > pz.r) continue;
+      if (pz.poly ? pointInQuad(x, z, pz.poly) : Math.hypot(pz.x - x, pz.z - z) < pz.r) cand(pz.y);
+    }
     if (g === -50) g = wd < -0.5 ? -2.2 : terrainH(x, z) - 30; // unter dem Gelände: nicht hochspringen
   }
   ROADS.deckHash.query(x - 0.5, z - 0.5, x + 0.5, z + 0.5, (d) => {
@@ -129,6 +148,8 @@ function collideWorld(x, z, y, px, pz) {
     if (inStation) {
       if (Math.abs(clx) > M.WALL - PR) { clx = Math.sign(clx) * (M.WALL - PR); ch = true; }
       if (Math.abs(clz) > M.SL - PR) { clz = Math.sign(clz) * (M.SL - PR); ch = true; }
+      // Perronkante: aufs Gleis geht es nicht, ausser durch eine offene Zugtür
+      if (y > st.platY - 0.4 && Math.abs(clx) > M.PW - PR && !metroDoorOpenAt(x, z, y)) { clx = Math.sign(clx) * (M.PW - PR); ch = true; }
       for (const c of (st.columns || [])) { const dx = clx - c[0], dz = clz - c[1], d = Math.hypot(dx, dz); if (d < 0.35 + PR && d > 1e-4) { clx = c[0] + dx / d * (0.35 + PR); clz = c[1] + dz / d * (0.35 + PR); ch = true; } }
     } else if (y < st.surfY - 0.4 && y > st.ceilY - 1.0 && lz > st.aBot && lz < st.aTop + 0.5 && Math.abs(lx) < 3) {
       if (Math.abs(clx) > 2.3 - PR) { clx = Math.sign(clx) * (2.3 - PR); ch = true; }
@@ -138,6 +159,30 @@ function collideWorld(x, z, y, px, pz) {
   });
   x = clamp(x, -2490, 2490); z = clamp(z, -2490, 2490);
   return [x, z];
+}
+
+/* Steht hier ein U-Bahn-Zug mit offener Tür? (Durchgang an der Perronkante) */
+function metroDoorOpenAt(x, z, y) {
+  for (const v of VEH.list) {
+    if (v.kind !== 'metro' || v.state !== 'dwell' || v.door < 0.75) continue;
+    const c0 = v.cars[0].g.position;
+    if (Math.abs(c0.x - x) > 90 || Math.abs(c0.z - z) > 90) continue;
+    for (const c of v.cars) {
+      const l = v.toLocal(c, x, y, z);
+      if (Math.abs(l[2]) > c.hl || Math.abs(l[0]) > c.hw + 1.4) continue;
+      if (v.doorAt(c, l[2], l[0] > 0 ? 1 : -1)) return true;
+    }
+  }
+  return false;
+}
+/* Wer trotzdem im Gleisbett einer Station steht, wird auf den Perron zurückgestellt */
+function rescueFromTracks() {
+  stationsNear(P.x, P.z, (st, lx, lz) => {
+    if (Math.abs(lz) > M.SL + 1 || Math.abs(lx) > M.WALL + 1 || Math.abs(lx) < M.PW - 0.2) return;
+    if (P.y > st.platY - 0.4 || P.y < st.trackY - 2) return;
+    const w = stLocalToWorld(st, Math.sign(lx) * (M.PW - 0.7), clamp(lz, -M.SL + 1, M.SL - 1));
+    P.x = w[0]; P.z = w[1]; P.y = st.platY; P.vy = 0; P.onGround = true;
+  });
 }
 
 /* ---------- Fahrzeuge: Kollision und Einsteigen ---------- */
@@ -216,6 +261,7 @@ function updatePlayerWorld(dt) {
   const input = readInput();
   if (P.ride) { P.flying = P.flapping = false; P.rocket = false; P.chute = false; updateRide(dt, input); return; }
   if (P.rocket) { updateRocket(dt, input); return; }
+  rescueFromTracks();
   P.yaw += input.turn * 2.2 * dt;
   const dragon = P.char === 'dragon';
   let spd = P.swim ? 2.2 : (input.run ? 8.5 : 4.4);
@@ -249,7 +295,12 @@ function updatePlayerWorld(dt) {
     P.swim = false;
     if (dragon && !P.onGround) {
       // Drache in der Luft: Leertaste gehalten = flattern und steigen, sonst gleiten
-      if (input.jump) { P.vy = Math.min(DRAGON.climb, P.vy + DRAGON.flapAcc * dt); P.flapping = true; }
+      if (input.jump) { P.vy = Math.min(DRAGON.climb, P.vy + DRAGON.flapAcc * dt); P.flapping = true; P.fastLand = false; }
+      else if (P.fastLand) {
+        // nach dem Raketenmodus: Sturzflug zum Boden, kurz davor abfangen (Leertaste bricht ab)
+        const hA = P.y - g, target = hA > 14 ? -DRAGON.dive : -Math.max(DRAGON.glideSink, hA * 2.4);
+        P.vy = Math.max(target, P.vy - GRAV * 2 * dt);
+      }
       else P.vy = Math.max(-DRAGON.glideSink, P.vy - GRAV * 0.35 * dt);
     } else {
       P.vy -= GRAV * dt;
@@ -265,6 +316,7 @@ function updatePlayerWorld(dt) {
     if (P.y > ceil) { P.y = ceil; P.vy = Math.min(P.vy, 0); }
     if (P.y <= g) { P.y = g; P.vy = 0; P.onGround = true; } else P.onGround = P.y - g < 0.06;
     if (P.onGround || dragon) P.chute = false;
+    if (P.onGround || P.swim) P.fastLand = false;
     if (input.jump && P.onGround) { P.vy = JUMP; P.onGround = false; }
     if (P.y < g - 0.01) P.y = g;
   }
@@ -289,7 +341,7 @@ function toggleRocket() {
     P.rspd = Math.max(18, P.rspd || 0); P.vy = ROCKET.launch; P.onGround = false; P.swim = false; P.third = true; P.bank = 0;
     P.launchT = P.y - Math.max(groundAt(P.x, P.z, P.y + 1), WS.WATER_Y) < 20 ? 1.6 : 0; // vom Boden: erst steil hoch
     if (typeof sfxRocket === 'function') sfxRocket();
-  } else { P.vy = Math.min(P.vy, 4); P.rspd = 0; P.bank = 0; }
+  } else { P.vy = Math.min(P.vy, 0); P.rspd = 0; P.bank = 0; P.fastLand = true; }
   return true;
 }
 function updateRocket(dt, input) {
@@ -479,6 +531,8 @@ function actionE() {
     return;
   }
   if (P.ride) return;
+  const sc = stairShortcut();
+  if (sc) { fadeTeleport(() => { P.x = sc.x; P.z = sc.z; P.y = sc.y; P.vy = 0; P.yaw = sc.yaw; P.pitch = 0; P.onGround = true; P.underground = sc.down; P.swim = false; }); return; }
   const b = doorNear(P.x, P.z, 2.6);
   if (b && Math.abs(P.y - b.door.y) < 1.6) enterBuilding(b);
 }
@@ -496,6 +550,24 @@ function actionL() {
 }
 
 /* Hinweis, was gerade möglich ist */
+/* U-Bahn-Treppe überspringen: oben am Pavillon oder unten am Treppenfuss steht man richtig.
+   Liefert das Ziel (mit kurzer Abblende statt des langen Treppenwegs) oder null. */
+function stairShortcut() {
+  if (GAME.mode !== 'world' || P.ride || (P.char === 'dragon' && P.flying)) return null;
+  let res = null;
+  stationsNear(P.x, P.z, (st, lx, lz) => {
+    if (st.noStairs || res) return;
+    if (Math.abs(lx) < 3.2 && lz > st.aTop - 0.5 && lz < st.aTop + 5 && Math.abs(P.y - st.surfY) < 1.5) {
+      const w = stLocalToWorld(st, 0, st.aBot - 2.5);
+      res = { x: w[0], z: w[1], y: st.platY, yaw: Math.atan2(st.dx, st.dz), down: true, name: st.name, line: st.line.name };
+    } else if (Math.abs(lx) < 3.4 && lz > st.aBot - 6 && lz < st.aBot + 2.5 && Math.abs(P.y - st.platY) < 0.7) {
+      const w = stLocalToWorld(st, 0, st.aTop + 3);
+      res = { x: w[0], z: w[1], y: st.surfY, yaw: Math.atan2(-st.dx, -st.dz), down: false, name: st.name, line: st.line.name };
+    }
+  });
+  return res;
+}
+
 function currentPrompt() {
   if (ELEV.state === 'arrived') return 'L – Aussteigen (' + floorLabel(ELEV.b, ELEV.floor) + ')';
   if (ELEV.state === 'select') return 'Stockwerk wählen';
@@ -510,6 +582,7 @@ function currentPrompt() {
     if (v.state === 'dwell' && v.door > 0.7) return 'Türen offen – durch die Tür hinausgehen zum Aussteigen';
     return '';
   }
+  { const sc = stairShortcut(); if (sc) return sc.down ? 'E – direkt zum Perron ' + sc.line + ' „' + sc.name + '“ (oder Treppe gehen)' : 'E – direkt nach oben (oder Treppe gehen)'; }
   const b = doorNear(P.x, P.z, 2.6);
   if (b && Math.abs(P.y - b.door.y) < 1.6) return 'E – Eintreten: ' + buildingLabel(b);
   const lb = liftNear(P.x, P.z, P.y, 2.4);

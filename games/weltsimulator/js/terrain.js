@@ -91,6 +91,17 @@ function terrainH(x, z) {
   return c + (b - c) * (1 - u) + (d - c) * (1 - v);
 }
 
+/* Gelände in einem Kreis auf die Höhe y einebnen (weicher Rand). Nur vor dem Bau der Meshes aufrufen. */
+function flattenTerrain(cx, cz, R, y, blend) {
+  const n = TGRID.seg + 1, st = TGRID.step, H = TGRID.h, B = blend || 22;
+  const i0 = Math.max(0, Math.floor((cx - R - B + 2500) / st)), i1 = Math.min(n - 1, Math.ceil((cx + R + B + 2500) / st));
+  const j0 = Math.max(0, Math.floor((cz - R - B + 2500) / st)), j1 = Math.min(n - 1, Math.ceil((cz + R + B + 2500) / st));
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const d = Math.hypot(-2500 + i * st - cx, -2500 + j * st - cz);
+    H[j * n + i] = lerp(y, H[j * n + i], smooth(R, R + B, d));
+  }
+}
+
 /* ---------- Höhenfunktion ---------- */
 function terrainHRaw(x, z) {
   let h = WS.CITY_Y + fbm(x * 0.0009 + 3, z * 0.0009 - 7, 3) * 1.2;
