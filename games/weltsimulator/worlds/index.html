@@ -52,6 +52,13 @@
   .idea { padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
   .idea:hover { border-color: var(--accent); }
   code { background: rgba(127,127,127,.18); padding: 1px 6px; border-radius: 5px; font-size: .92em; }
+  .os { display: flex; gap: 8px; margin: 0 0 10px; }
+  .os button { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+  .os button.on { background: var(--accent); color: #04202f; border-color: var(--accent); }
+  .start ol { margin: 8px 0 0; padding-left: 22px; } .start li { margin: 8px 0; }
+  .keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+  .keys div { background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; font-size: 14px; color: var(--dim); }
+  .keys b { color: var(--ink); }
   footer { margin-top: 56px; color: var(--dim); font-size: 14px; text-align: center; }
   .copied { color: var(--ok); font-weight: 700; margin-left: 10px; }
 </style>
@@ -66,6 +73,28 @@
   <a class="btn" href="../index.html">Spiel öffnen</a>
   <div class="gate" aria-hidden="true"><i></i><i></i><b></b><span></span></div>
 </header>
+
+<h2 id="start">Spiel starten</h2>
+<p class="sub">Einmal einrichten, danach genügt ein Befehl.</p>
+<div class="card start">
+  <div class="os"><button data-os="win" class="on">Windows</button><button data-os="mac">Mac / Linux</button></div>
+  <ol>
+    <li><b>Code holen.</b> Im Ordner deines Repositorys (Windows: PowerShell, Mac/Linux: Terminal):
+<pre id="cmdGet"></pre></li>
+    <li><b>Server starten</b> (Python muss installiert sein). Das Fenster danach offen lassen:
+<pre id="cmdRun"></pre></li>
+    <li><b>Im Browser öffnen:</b> <a id="gameLink" href="../index.html">http://localhost:8000/games/weltsimulator/</a><br>
+      Auf „Welt betreten“ klicken, dann einmal ins Bild klicken (Maus schauen).</li>
+  </ol>
+  <p style="margin:12px 0 0;color:var(--dim);font-size:14.5px"><b>Ohne Python:</b> Die Datei <code>games/weltsimulator/index.html</code> lässt sich meist auch per Doppelklick öffnen (im Test lief sie so in Chromium). Funktioniert das bei dir nicht, nimm den Server oder <code>npx serve</code>. Das Laden dauert rund 3 Sekunden bis zum Start-Knopf; im Menü wählst du Startort, Figur und Grafik.</p>
+  <div class="keys">
+    <div><b>↑ ↓ ← →</b> gehen, drehen</div><div><b>Leertaste</b> springen · Drache: fliegen</div>
+    <div><b>C</b> Mensch ↔ Drache</div><div><b>R</b> Raketenmodus (Drache)</div>
+    <div><b>P</b> Samen säen · <b>1–5</b> Art</div><div><b>E / L</b> Tür / Lift</div>
+    <div><b>M</b> Netzplan</div><div><b>V</b> Ansicht · <b>Q</b> Grafik</div>
+  </div>
+  <p style="margin:12px 0 0;color:var(--dim);font-size:14.5px"><b>Dein Tor finden:</b> Nach dem Start stehst du im Zentrum. Auf dem Platz leuchten blaue Tore; durch ein Tor gehen = in die Welt wechseln.</p>
+</div>
 
 <h2>So einfach geht das</h2>
 <p class="sub">Du brauchst keine Zeile Code zu schreiben. Die Idee ist deine, den Rest macht der Agent.</p>
@@ -199,6 +228,16 @@ $('copy').onclick = async () => {
   $('copied').hidden = false; setTimeout(() => $('copied').hidden = true, 1800);
 };
 IDEAS.forEach(([n, t, m]) => { const b = document.createElement('button'); b.className = 'idea'; b.textContent = n; b.onclick = () => { $('gName').value = n; $('gTheme').value = t; $('gMust').value = m; render(); location.hash = 'generator'; }; $('ideas').appendChild(b); });
+const CMD = {
+  win: ['git fetch origin claude/world-simulator-city-ky4n2u\ngit checkout claude/world-simulator-city-ky4n2u\ngit pull origin claude/world-simulator-city-ky4n2u', 'python -m http.server 8000'],
+  mac: ['git fetch origin claude/world-simulator-city-ky4n2u\ngit checkout claude/world-simulator-city-ky4n2u\ngit pull origin claude/world-simulator-city-ky4n2u', 'python3 -m http.server 8000']
+};
+function setOs(os) {
+  document.querySelectorAll('.os button').forEach(b => b.classList.toggle('on', b.dataset.os === os));
+  $('cmdGet').textContent = CMD[os][0]; $('cmdRun').textContent = CMD[os][1];
+}
+document.querySelectorAll('.os button').forEach(b => b.onclick = () => setOs(b.dataset.os));
+setOs(/Mac|Linux/.test(navigator.platform) ? 'mac' : 'win');
 render();
 </script>
 </body>

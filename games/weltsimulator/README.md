@@ -5,6 +5,18 @@ mit Bus, Tram und U-Bahn fährt und jedes Gebäude durch seine Haupttür betrete
 Die Welt wird beim Laden prozedural erzeugt, immer aus demselben Startwert. Sie sieht deshalb
 bei jedem Besuch gleich aus.
 
+## Spiel starten
+
+Im Wurzelordner des Repositorys einen kleinen Webserver starten und im Browser öffnen:
+
+```bash
+python3 -m http.server 8000      # Windows: python -m http.server 8000
+# dann: http://localhost:8000/games/weltsimulator/
+```
+
+Dann „Welt betreten“ klicken und einmal ins Bild klicken. Schritt für Schritt (Windows und
+Mac/Linux) steht auf der Seite [`worlds/index.html`](worlds/index.html) unter „Spiel starten“.
+
 ## Steuerung
 
 | Taste | Wirkung |
