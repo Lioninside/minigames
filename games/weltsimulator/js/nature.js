@@ -341,6 +341,7 @@ function buildParksAndProps(scene) {
     const mb = cm.get('props', x, z);
     const s = Math.sin(rot), c = Math.cos(rot);
     NAT.benches.push({ x, y, z, rot, seatY: y + 0.485 });
+    addCollider({ obb: makeOBB(x - s * 0.1, z - c * 0.1, rot, 0.92, 0.3), top: y + 0.98 });
     mb.box(x, y + 0.45, z, 1.8, 0.07, 0.5, rot, wood);
     mb.box(x - s * 0.24, y + 0.75, z - c * 0.24, 1.8, 0.45, 0.06, rot, wood);
     for (const k of [-0.75, 0.75]) mb.box(x + c * k, y + 0.22, z - s * k, 0.06, 0.44, 0.45, rot, iron);
@@ -392,6 +393,11 @@ function buildParksAndProps(scene) {
     // Haltestellenmast
     const pp = P(2.8, 0.6); mb.box(pp[0], y + 1.5, pp[1], 0.08, 3.0, 0.08, sh.rot, iron);
     NAT.poles.push({ st, x: pp[0], z: pp[1], y, rot: sh.rot });
+    addProp(pp[0], pp[1], 0.1, y + 3);
+    // Wartehäuschen: Glasrückwand und Bank
+    const yc = Math.max(y, terrainH(sh.x, sh.z)); // am Hang zählt das höhere Niveau
+    addCollider({ obb: makeOBB(g0[0], g0[1], sh.rot, 2.25, 0.08), top: yc + 2.4 });
+    addCollider({ obb: makeOBB(bb[0], bb[1], sh.rot, 1.5, 0.22), top: yc + 0.98 });
   }
   // Strand: Schirme und Liegen
   const umbCols = [0xe23b3b, 0x2f7fd8, 0xf2c230, 0x2fae6a, 0xf27a30, 0xffffff].map(c => lin(c));
@@ -405,6 +411,7 @@ function buildParksAndProps(scene) {
       const mb = cm.get('beach', x, zz);
       const col = pick(umbCols);
       NAT.umbrellas.push({ x, y, z: zz });
+      addProp(x, zz, 0.08, y + 2.2);
       mb.cyl(x, y, zz, 0.03, 0.03, 2.3, 6, lin(0xdddddd), false);
       mb.cyl(x, y + 2.0, zz, 1.6, 0.05, 0.5, 12, col, false);
       for (const k of [-0.9, 0.9]) {

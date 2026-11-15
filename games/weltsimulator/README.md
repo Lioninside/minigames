@@ -30,7 +30,12 @@ bei jedem Besuch gleich aus.
 
 Im Startmenü (Zeile „Figur“) oder mit **C** wählbar; die Wahl wird gespeichert.
 
-- **Mensch:** geht, rennt und springt, Ego- oder Verfolgerkamera.
+- **Mensch:** geht, rennt und springt, Ego- oder Verfolgerkamera. Die Figur ist das Modell „man“
+  von [cadnav.com](https://www.cadnav.com/3d-models/model-53323.html) (412 Dreiecke), umgerechnet
+  mit `tools/bake_avatar.py`; Arme und Beine schwingen beim Gehen.
+- **Fallschirm:** Wer als Mensch aus der Höhe fällt (ab 5 m über Grund und 9 m/s Fallgeschwindigkeit,
+  z. B. Sprung vom Hausdach oder Viadukt), bekommt automatisch einen Fallschirm. Er bremst auf
+  3,4 m/s; mit den Pfeiltasten lässt sich steuern.
 - **Drache:** roter Comic-Drache mit cremefarbenem Plattenbauch, weissen Hörnern, grossen Augen,
   grauen Fledermausflügeln und orangen Tupfen. Er wird immer von hinten gezeigt. Leertaste halten
   lässt ihn flattern und steigen (bis 420 m über Grund, im Untergrund bis knapp unter die Decke).
@@ -172,6 +177,15 @@ und schliessen sich die Lifttüren sichtbar. Jedes Stockwerk ist anders eingeric
 - **Normales Büro:** Empfang, Grossraumbüro mit Pulten und grossen PCs, Besprechungsraum,
   Teeküche.
 - **ETH:** Halle mit Säulen; Hörsäle, Bibliothek, Rechnerraum.
+
+## Hindernisse
+
+Fest sind Gebäude, Bäume, Brunnen, Laternen, Masten, Bänke, Wartehäuschen, Liftschächte,
+Perron- und Dachsäulen, Glaswände, Café-Tische und -Stühle, Fahnenmasten, Sonnenschirme, Autos,
+die Werkhalle mit den abgestellten Zügen, der Leuchtturm sowie Tanks und Bohrturm der Ölplattform.
+Prüfen: `node tools/play-test.cjs tools/test-durchlaufen.js` läuft je Objektart aus vier Richtungen
+dagegen und meldet, was durchlässig ist. (Der erste Brunnen wird dort fälschlich gemeldet: die
+Probe startet im Becken.) Nicht fest sind Fussgänger und die Leute in der Stadt.
 
 ## Sammeln und Pflanzen
 

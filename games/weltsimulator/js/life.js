@@ -182,6 +182,7 @@ function buildCafes(surf) {
       if (typeof occFree === 'function' && !occFree(makeOBB(x, z, 0, 1.9, 1.9), 0.3)) continue;
       mb.cyl(x, y, z, 0.05, 0.05, 0.72, 6, chairC, false);
       mb.cyl(x, y + 0.72, z, 0.38, 0.38, 0.04, 14, tableC, true);
+      addProp(x, z, 0.4, y + 0.9);
       mb.cyl(x, y, z, 0.25, 0.25, 0.03, 10, chairC, true);
       if (ti % 2 === 0) { mb.cyl(x, y + 0.76, z, 0.03, 0.03, 1.7, 6, lin(0xcccccc), false); mb.cyl(x, y + 2.2, z, 1.5, 0.05, 0.45, 12, umbC[ti % 3], false); }
       const nC = 2 + Math.floor(lifeHash(ti, 3) * 3);
@@ -195,6 +196,7 @@ function buildCafes(surf) {
           const px = cx + lx * fc + lz * fs, pz = cz - lx * fs + lz * fc;
           mb.box(px, y + 0.21, pz, 0.03, 0.42, 0.03, yaw, chairC);
         }
+        addProp(cx, cz, 0.2, y + 0.95);
         lifeAdd({ kind: 'cafe', x: cx + fs * 0.04, z: cz + fc * 0.04, yaw, sit: true, seatY: y + 0.46 });
       }
     }
@@ -613,7 +615,7 @@ function buildFlags(surf) {
   }
   if (!list.length) return;
   const pm = new MB();
-  for (const f of list) { pm.cyl(f.x, f.y, f.z, 0.07, 0.05, 8.2, 8, lin(0xe8e8e8), true); pm.cyl(f.x, f.y + 8.2, f.z, 0.1, 0.1, 0.12, 8, lin(0xd8b45a), true); }
+  for (const f of list) { addProp(f.x, f.z, 0.08, f.y + 8); pm.cyl(f.x, f.y, f.z, 0.07, 0.05, 8.2, 8, lin(0xe8e8e8), true); pm.cyl(f.x, f.y + 8.2, f.z, 0.1, 0.1, 0.12, 8, lin(0xd8b45a), true); }
   const pg = pm.build(); compactGeometry(pg, true);
   const poles = new THREE.Mesh(pg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, metalness: 0.6 }));
   poles.castShadow = true; surf.add(poles);

@@ -643,6 +643,7 @@ function addLamp(cm, x, y, z, rot, onBridge) {
   mb.box(ax, y + H - 0.1, az, 0.45, 0.18, 0.9, rot, null);
   hb.box(ax, y + H - 0.22, az, 0.36, 0.05, 0.75, rot, null);
   ROADS.lamps.push({ x: ax, y: y + H - 0.25, z: az, gx: ax, gz: az, gy: y });
+  addProp(ax, az, 0.14, y + H);
 }
 
 /* Lichtkegel der Laternen auf dem Boden (nur nachts sichtbar). */

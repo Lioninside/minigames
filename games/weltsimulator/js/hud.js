@@ -155,6 +155,7 @@ function updateHUD() {
     place = WS.CITY_NAME + ' · ' + q + (s ? ' · ' + s : '');
     const rb = liftNear(P.x, P.z, P.y, 30); if (rb && P.y > rb.lift.y - 1) place = buildingLabel(rb) + ' · Dach';
   }
+  if (P.chute && GAME.mode === 'world') place += ' · 🪂 Fallschirm';
   if (P.char === 'dragon' && GAME.mode === 'world') place += P.rocket ? ' · 🚀 Raketenmodus ' + Math.round(P.rspd * 3.6) + ' km/h, Höhe ' + Math.max(0, Math.round(P.y - Math.max(terrainH(P.x, P.z), WS.WATER_Y))) + ' m'
     : P.flying ? ' · Drache, Flughöhe ' + Math.max(0, Math.round(P.y - terrainH(P.x, P.z))) + ' m' : ' · Drache';
   HUD.el.place.textContent = place;
@@ -250,6 +251,7 @@ function sfxRocket() {
   g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.linearRampToValueAtTime(0.06, c.currentTime + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.9);
   o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 1);
 }
+function sfxChute() { tone(160, 0, 0.5, 0.1, 'triangle'); tone(240, 0.05, 0.6, 0.07, 'sine'); }
 function sfxMorph() { tone(392, 0, 0.15, 0.08, 'triangle'); tone(587, 0.08, 0.2, 0.08, 'triangle'); tone(880, 0.16, 0.35, 0.07, 'sine'); }
 function sfxChime() { tone(784, 0, 0.35, 0.08); tone(659, 0.3, 0.35, 0.08); tone(523, 0.6, 0.6, 0.08); }
 function sfxHum(on) {

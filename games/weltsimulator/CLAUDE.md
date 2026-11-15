@@ -24,11 +24,13 @@ diese Datei mitpflegen. Sprache im Code und in der Doku: Deutsch (Schweizer Schr
 | rail.js | S2/S5/IR7: `RAIL.lines/stations`, `RL`, `railStationFrame(st).W(a,q)` | |
 | hub.js | Stationslifte `LIFTS`, `addLift`, Fussgängertunnel `HUBT`, `inHubTunnel` | |
 | island.js | Isla Venezia, Ölplattform (`ISLE`) | |
+| assets/characters.js | Spielfiguren: Mensch aus `js/data/avatar-man.js` (`tools/bake_avatar.py`), Drache, Fallschirm; `animateCharacter` | |
 | vehicles.js + assets/ | `VEH.list`, `Vehicle` (state 'drive'/'dwell', door 0…1, `toWorld(car,lx,ly,lz)`), Assets über `finishAsset` (near/mid/far) | |
 | buildings.js | `BLD.list` (Gebäude mit obb, door, cat), `BLD.hash` (Kollisionsboxen), `buildBuildingMeshes(scene, cells)` | |
 | nature.js | `TREES`, `addTree(kind,x,z,s)`, `NAT` (treeHash, benches, fountains, treeBuild.groups), `nearVis(obj, r)` | |
 | life.js / traffic.js | Leute (`LIFE`, `lifeAdd`), Autos/Fussgänger (`TRAFFIC`), Vögel, Boote | |
 | player.js | `P` (x,y,z,yaw,pitch,onGround,ride,underground,char,flying,rocket), `GAME` (mode,hour,timeScale,paused), `KEYS`, `groundAt(x,z,y)`, `collideWorld` | |
+| player.js (Hindernisse) | `addProp(x,z,r,top,bottom?)` Kreis-Hindernis (Mast, Säule, Tisch); Kästen: `addCollider({obb: makeOBB(cx,cz,rot,hw,hd), top, bottom?})` in buildings.js. Jedes neue feste Objekt braucht eines von beiden. `CHUTE`, `P.chute` Fallschirm | |
 | hud.js | `HUD`, `updateHUD`, Karten, Töne (`sfxDing`, `sfxStep`, `tone`) | |
 | main.js | Renderer, Ladeschritte (`steps` vor, `later` nach dem Start-Knopf), Eingabe, Kamera, Schleife | `WORLD`, `MATS` |
 
@@ -48,6 +50,6 @@ python3 -m http.server 8765            # im Repo-Wurzelordner
 node games/weltsimulator/tools/play-test.cjs skript.js [--shot bild.png] [--start hoengg]
 ```
 Das Skript läuft in der Seite (Helfer `step(n)`, `key(code)`, `tp(x,z,y?)`, `hold(code,n)`), gibt Text zurück.
-Screenshots nur, wenn das Aussehen geprüft werden muss. Syntaxcheck ohne Browser:
+Fertige Skripte: `tools/test-durchlaufen.js` (was ist durchlässig?). Screenshots nur, wenn das Aussehen geprüft werden muss. Syntaxcheck ohne Browser:
 `node -e "new Function(require('fs').readFileSync('js/datei.js','utf8'))"`.
 Smoke-Test aller Spiele: `npm test` im Repo-Wurzelordner (Playwright global; zahnradbergbahn scheitert ohne CDN, das ist bekannt).

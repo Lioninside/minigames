@@ -135,6 +135,7 @@ let SPAWN = { x: 0, z: 0 };
     }
     bar.style.width = '100%';
     WORLD.chars = { human: buildHumanModel(), dragon: buildDragonModel() };
+    WORLD.chute = buildParachuteModel(); scene.add(WORLD.chute);
     for (const k in WORLD.chars) { scene.add(WORLD.chars[k]); WORLD.chars[k].visible = false; }
     updateCharUI();
     const btn = document.getElementById('btnStart');
@@ -285,6 +286,12 @@ let SPAWN = { x: 0, z: 0 };
     const eyeY = P.y + eye + bob + (P.camShake || 0);
     cam.rotation.set(P.pitch, P.yaw, 0, 'YXZ');
     if (other) other.visible = false;
+    // Fallschirm über der Figur (auch in der Ego-Ansicht sichtbar, wenn man hochschaut)
+    if (WORLD.chute) {
+      const on = !!P.chute && GAME.mode === 'world';
+      WORLD.chute.visible = on;
+      if (on) { const k = Math.min(1, (P.chuteT || 0) / CHUTE.openTime), e = k * k * (3 - 2 * k); WORLD.chute.position.set(P.x, P.y, P.z); WORLD.chute.rotation.set(Math.sin(WORLD.t * 1.3) * 0.05, P.yaw, Math.sin(WORLD.t * 0.9) * 0.05); WORLD.chute.scale.set(0.25 + 0.75 * e, 0.6 + 0.4 * e, 0.25 + 0.75 * e); }
+    }
     if (P.third && GAME.mode === 'world' && ch) {
       const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
       const rk = P.rocket ? clamp(P.rspd / ROCKET.turbo, 0, 1) : 0;

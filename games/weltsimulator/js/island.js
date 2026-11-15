@@ -68,6 +68,7 @@ function buildIsland(surf) {
     const mb = cm.get('stone', lx, lz);
     for (let k = 0; k < 6; k++) mb.cyl(lx, ly + k * 3, lz, 2.4 - k * 0.18, 2.4 - (k + 1) * 0.18, 3, 16, k % 2 ? red : white, false);
     mb.cyl(lx, ly + 18, lz, 1.6, 1.6, 0.3, 16, steel, true);
+    addProp(lx, lz, 2.3, ly + 18);
     cm.get('lamp', lx, lz).cyl(lx, ly + 18.3, lz, 1.0, 1.0, 1.8, 12, null, true);
     mb.cyl(lx, ly + 20.1, lz, 1.3, 0.1, 1.2, 12, red, false);
     for (let k = 0; k < 6; k++) { const a = k * 1.05 + 0.4; const bx = I.x + Math.cos(a) * 30, bz = I.z + Math.sin(a) * 30, by = terrainH(bx, bz); mb.box(bx, by + 0.45, bz, 1.8, 0.07, 0.5, -a, lin(0x7a5434)); NAT.benches.push({ x: bx, y: by, z: bz, rot: -a + Math.PI / 2, seatY: by + 0.485 }); }
@@ -100,7 +101,7 @@ function buildIsland(surf) {
     const qx = O.x + 14, qz = O.z + 10;
     mb.box(qx, D1 + 5, qz, 22, 10, 14, 0, white);
     for (let k = 0; k < 3; k++) for (let j = -4; j <= 4; j++) cm.get('lamp', qx, qz).box(qx + j * 2.2, D1 + 2 + k * 3.2, qz - 7.05, 1.2, 0.9, 0.05, 0);
-    for (let k = 0; k < 4; k++) mb.cyl(O.x - 20 + k * 6, D1, O.z + 12, 2.2, 2.2, 7, 14, orange, true);
+    for (let k = 0; k < 4; k++) { mb.cyl(O.x - 20 + k * 6, D1, O.z + 12, 2.2, 2.2, 7, 14, orange, true); addProp(O.x - 20 + k * 6, O.z + 12, 2.2, D1 + 7, D1 - 0.5); }
     // Oberdeck auf Stützen
     mb.box(O.x - 6, D2 - 0.5, O.z - 6, 32, 1.0, 24, 0, grey);
     for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) mb.box(O.x - 6 + sx * 15, (D1 + D2) / 2, O.z - 6 + sz * 11, 0.7, D2 - D1, 0.7, 0, yellow);
@@ -123,6 +124,7 @@ function buildIsland(surf) {
         mb.addGeom(new THREE.BoxGeometry(0.35, 0.35, len), m, red);
       }
     }
+    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) addProp(bx + sx * 4.8, bz + sz * 4.8, 0.35, D2 + 6, D2 - 0.5);
     for (let k = 1; k < 8; k++) { const t = k / 8, w = lerp(5, 1.2, t); mb.box(bx, D2 + H * t, bz, w * 2, 0.25, w * 2, 0, red); }
     mb.box(bx, D2 + H + 0.6, bz, 3, 1.2, 3, 0, red);
     // Kran und Fackelausleger

@@ -941,7 +941,8 @@ function buildTramTracksOne(scene, tram) {
     // Dach
     const mt = cm.get('metal', pl.x, pl.z);
     const bx = pl.rx * 0.8, bz = pl.rz * 0.8;
-    for (const s of [-5, 5]) mt.box(pl.x + bx + pl.dx * s, pl.y + H + 1.4, pl.z + bz + pl.dz * s, 0.12, 2.8, 0.12, rot);
+    for (const s of [-5, 5]) { mt.box(pl.x + bx + pl.dx * s, pl.y + H + 1.4, pl.z + bz + pl.dz * s, 0.12, 2.8, 0.12, rot); addProp(pl.x + bx + pl.dx * s, pl.z + bz + pl.dz * s, 0.1, pl.y + H + 2.8); }
+    addCollider({ obb: makeOBB(pl.x + pl.rx * 1.15, pl.z + pl.rz * 1.15, rot, 0.06, 5), top: pl.y + H + 2.5 });
     mt.box(pl.x, pl.y + H + 2.85, pl.z, 2.9, 0.12, 13, rot);
     cm.get('glass', pl.x, pl.z).box(pl.x + pl.rx * 1.15, pl.y + H + 1.35, pl.z + pl.rz * 1.15, 0.04, 2.3, 10, rot);
     mt.box(pl.x - pl.rx * 0.2, pl.y + H + 0.45, pl.z - pl.rz * 0.2, 0.45, 0.06, 2.6, rot);

@@ -20,7 +20,8 @@ function charMats() {
     skin: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0 }),
     belly: new THREE.MeshStandardMaterial({ map: bt, roughness: 0.7 }),
     wing: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.65, side: THREE.DoubleSide }),
-    cloth: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 })
+    cloth: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }),
+    avatar: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, side: THREE.DoubleSide, flatShading: true })
   };
   return CHAR.mats;
 }
@@ -68,6 +69,30 @@ function pivot(parent, x, y, z) { const g = new THREE.Group(); g.position.set(x,
 
 /* ---------- Mensch ---------- */
 function buildHumanModel() {
+  if (window.AVATAR_MAN) return buildAvatarModel(window.AVATAR_MAN);
+  return buildSimpleHumanModel();
+}
+/* Spielfigur aus dem umgerechneten 3DS-Modell (js/data/avatar-man.js): Rumpf + vier Glieder
+   mit Gelenkpunkt; die Animation dreht die Glieder wie bei der einfachen Figur. */
+function buildAvatarModel(A) {
+  const M = charMats();
+  const pal = A.palette.map(c => new THREE.Color(c[0] / 255, c[1] / 255, c[2] / 255).convertSRGBToLinear());
+  const mesh = (part) => {
+    const n = part.c.length, pos = new Float32Array(part.p), col = new Float32Array(n * 9);
+    for (let t = 0; t < n; t++) { const c = pal[part.c[t]]; for (let k = 0; k < 3; k++) col.set([c.r, c.g, c.b], t * 9 + k * 3); }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, M.avatar); m.castShadow = true; m.receiveShadow = true; m.userData.dynamic = true;
+    return m;
+  };
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  body.add(mesh(A.parts.body));
+  const limb = (k) => { const pv = pivot(body, A.parts[k].pivot[0], A.parts[k].pivot[1], A.parts[k].pivot[2]); pv.add(mesh(A.parts[k])); return pv; };
+  root.userData = { kind: 'human', body, legL: limb('legL'), legR: limb('legR'), armL: limb('armL'), armR: limb('armR'), ph: 0, eye: 1.68, camDist: 4.0 };
+  return root;
+}
+function buildSimpleHumanModel() {
   const M = charMats();
   const skin = lin(0xe9bf9a), shirt = lin(0x2f5fa8), pants = lin(0x23262b), shoe = lin(0x111111), hair = lin(0x3a2618), dark = lin(0x111111);
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
@@ -288,6 +313,30 @@ function updateRocketTrail(scene, src, dt, active, thrust) {
   }
   TRAIL.pts.visible = any || active;
   pos.needsUpdate = true; col.needsUpdate = true;
+}
+
+/* Fallschirm: Kappe aus farbigen Bahnen, Leinen zum Gurt. Ursprung = Füsse der Figur. */
+function buildParachuteModel() {
+  const mb = new MB(), R = 3.2, H = 5.6, N = 12;
+  const cols = [lin(0xe23b3b), lin(0xf5f5f0)];
+  for (let i = 0; i < N; i++) {
+    const a0 = i / N * Math.PI * 2, a1 = (i + 1) / N * Math.PI * 2, c = cols[i % 2];
+    for (let k = 0; k < 4; k++) {
+      const t0 = k / 4 * 1.2, t1 = (k + 1) / 4 * 1.2;
+      const P = (a, t) => [Math.cos(a) * Math.sin(t) * R, H + Math.cos(t) * R * 0.62 - R * 0.2, Math.sin(a) * Math.sin(t) * R];
+      mb.quad(P(a0, t0), P(a0, t1), P(a1, t1), P(a1, t0), null, c);
+    }
+    // Leine vom Kappenrand zum Gurt
+    const e = [Math.cos(a0) * Math.sin(1.2) * R, H + Math.cos(1.2) * R * 0.62 - R * 0.2, Math.sin(a0) * Math.sin(1.2) * R];
+    const s = [Math.cos(a0) * 0.22, 1.5, Math.sin(a0) * 0.22];
+    const len = Math.hypot(e[0] - s[0], e[1] - s[1], e[2] - s[2]);
+    const m = new THREE.Matrix4().lookAt(new THREE.Vector3(...s), new THREE.Vector3(...e), new THREE.Vector3(0, 1, 0)); m.setPosition((s[0] + e[0]) / 2, (s[1] + e[1]) / 2, (s[2] + e[2]) / 2);
+    mb.addGeom(new THREE.BoxGeometry(0.02, 0.02, len), m, lin(0x333333));
+  }
+  const g = mb.build(); g.deleteAttribute('uv');
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: THREE.DoubleSide }));
+  m.castShadow = true; m.userData.dynamic = true; m.visible = false; m.frustumCulled = false;
+  return m;
 }
 
 /* Statistik für die Asset-Testseite */

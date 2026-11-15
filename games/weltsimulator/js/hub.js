@@ -106,6 +106,11 @@ function buildLifts(surf, scene) {
       }
       mb.box(o.x, b + 0.15, o.z, 3.0, 0.3, 3.0, o.rot, lin(0x3d444b));
     }
+    // Schachtwände (drei Seiten), auf allen Etagen fest
+    for (const [lx, lz, hw, hd] of [[-1.25, 0, 0.06, 1.3], [1.25, 0, 0.06, 1.3], [0, -1.25 * (o.open || 1), 1.3, 0.06]]) {
+      const p = [o.x + lx * o.c + lz * o.s, o.z - lx * o.s + lz * o.c];
+      addCollider({ obb: makeOBB(p[0], p[1], o.rot, hw, hd), top: y1 + 2.8, bottom: y0 - 0.5 });
+    }
     const g = new THREE.Group();
     g.position.set(o.x, o.cabY, o.z); g.rotation.y = o.rot + ((o.open || 1) < 0 ? Math.PI : 0);
     const f = new THREE.Mesh(cabGeo.fr, frMat); f.castShadow = true; g.add(f);
@@ -280,7 +285,7 @@ function buildHubSurface(surf) {
     const bt = hubBusTerminal(), y = terrainH(bt.x, bt.z);
     const mb = cm.get('mat', bt.x, bt.z);
     const c = Math.cos(bt.rot), s = Math.sin(bt.rot);
-    for (let a = -15; a <= 15; a += 6) for (const q of [-2.5, 2.5]) mb.box(bt.x + a * s + q * c, y + 2, bt.z + a * c - q * s, 0.2, 4, 0.2, bt.rot, steel);
+    for (let a = -15; a <= 15; a += 6) for (const q of [-2.5, 2.5]) { mb.box(bt.x + a * s + q * c, y + 2, bt.z + a * c - q * s, 0.2, 4, 0.2, bt.rot, steel); addProp(bt.x + a * s + q * c, bt.z + a * c - q * s, 0.14, y + 4); }
     mb.box(bt.x, y + 4.1, bt.z, 7.5, 0.25, 34, bt.rot, roofC);
     mb.box(bt.x, y + 0.08, bt.z, 7, 0.16, 32, bt.rot, conc);
     const rs = SIGNS.add('bushub', 512, 96, (ctx, w, h) => {
@@ -309,6 +314,7 @@ function buildHubSurface(surf) {
   const hm = cm.get('mat', D.x, D.z);
   hm.box(D.x + 8.5, hy + 5, D.z + 40, 16, 10, 70, 0, lin(0xc2b8a3));
   hm.box(D.x + 8.5, hy + 10.4, D.z + 40, 17, 0.8, 71, 0, lin(0x6d6a66));
+  addCollider({ obb: makeOBB(D.x + 8.5, D.z + 40, 0, 8, 35), top: hy + 10.8 });
   const rsS = SIGNS.add('depot', 512, 96, (ctx, w, h) => { ctx.fillStyle = '#123a7a'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = '#fff'; ctx.font = 'bold 36px Arial'; ctx.textBaseline = 'middle'; ctx.fillText('Serviceanlage Hönggerberg/S', 22, h / 2); });
   const ms = signMesh(rsS, 'glow', 9, 1.7); ms.position.set(D.x + 8.5, hy + 8, D.z + 40 - 35.6); ms.rotation.y = Math.PI; surf.add(ms); nearVis(ms, 500);
   const mats = { mat: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 }), ballast: new THREE.MeshStandardMaterial({ map: railTextures(), roughness: 0.95 }), rail: MATS.rail };
@@ -325,6 +331,7 @@ function buildHubSurface(surf) {
       inst.g.position.set(D.x + q, yBase(a, q), D.z + a);
       inst.g.rotation.y = 0;
       surf.add(inst.g); nearVis(inst.g, 600);
+      addCollider({ obb: makeOBB(D.x + q, D.z + a, 0, asset.hw, asset.len / 2), top: yBase(a, q) + asset.roofY });
       a += asset.len / 2 + 0.9;
     }
   }

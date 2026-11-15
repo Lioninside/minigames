@@ -396,6 +396,7 @@ function buildRailStation(st, cm, surf) {
     for (let a = -rl / 2 + 4; a <= rl / 2 - 4; a += 10) {
       const cp = F.W(a, s * lat);
       mr.box(cp[0], py + 1.75, cp[1], 0.2, 3.5, 0.2, rot, cCol, null, true);
+      addProp(cp[0], cp[1], 0.14, py + 3.5, py - 0.4);
       if (Math.round(a / 10) % 2 === 0) { const bp = F.W(a + 4, s * (lat + 0.6)); mr.box(bp[0], py + 0.45, bp[1], 0.45, 0.06, 2.0, rot, lin(0x8a6a48)); }
     }
     const pdeck = F.W(-half, s * lat);

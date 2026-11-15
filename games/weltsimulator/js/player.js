@@ -8,10 +8,18 @@ const P = { x: 0, y: 3, z: 0, vy: 0, yaw: 0, pitch: 0, onGround: true, ride: nul
 const DRAGON = { climb: 6.5, flapAcc: 20, glideSink: 3.2, airSpeed: 10, airRun: 19, ceiling: 420 };
 /* Raketenmodus des Drachen (Taste R): Reiseflug, Turbo, Bremsen in m/s */
 const ROCKET = { cruise: 70, turbo: 170, hyper: 1700, slow: 22, acc: 42, hyperAcc: 380, turn: 1.45, climb: 32, ceiling: 900, launch: 22, bound: 2700 };
+/* Fallschirm: öffnet ab Fallgeschwindigkeit openVy (m/s) und mindestens minH m über Grund */
+const CHUTE = { openVy: -9, minH: 5, sink: 3.4, openTime: 0.7 };
 const GAME = { mode: 'world', hour: 9.5, timeScale: 1, paused: true, started: false };
 const KEYS = {};
 const ELEV = { state: 'none', t: 0, ctx: null, b: null, floor: 0, target: 0, from: null, to: null, dur: 0, startYaw: 0 };
 let ROOFCAB = null, ROOFCAB_B = null;
+
+/* ---------- Kleine Hindernisse (Masten, Säulen, Tische, Türme) ----------
+   Kreis mit Oberkante (und optional Unterkante, z. B. Säulen auf einem Perron).
+   Kastenförmiges (Bänke, Wände, Hallen) läuft über addCollider() in buildings.js. */
+const PROPS = new SHash(20);
+function addProp(x, z, r, top, bottom) { PROPS.insert({ x, z, r, top, bottom }, x - r, z - r, x + r, z + r); }
 
 /* ---------- Bodenhöhe ---------- */
 function stationsNear(x, z, fn) {
@@ -82,10 +90,24 @@ function collideWorld(x, z, y, px, pz) {
     const dx = x - t.x, dz = z - t.z, d = Math.hypot(dx, dz), r = t.r + PR;
     if (d < r && d > 1e-4 && y < terrainH(t.x, t.z) + 4) { x = t.x + dx / d * r; z = t.z + dz / d * r; }
   });
+  // Kleine Hindernisse
+  PROPS.query(x - 1, z - 1, x + 1, z + 1, (o) => {
+    if (y + STEP >= o.top || (o.bottom !== undefined && y + 1.7 < o.bottom)) return;
+    const dx = x - o.x, dz = z - o.z, d = Math.hypot(dx, dz), r = o.r + PR;
+    if (d < r && d > 1e-4) { x = o.x + dx / d * r; z = o.z + dz / d * r; }
+  });
+  // Autos (sie halten vor dem Spieler; hindurchgehen kann man trotzdem nicht)
+  for (const c of TRAFFIC.cars) {
+    if (Math.abs(c.x - x) > 4 || Math.abs(c.z - z) > 4 || c.yaw === undefined) continue;
+    const gy = terrainH(c.x, c.z);
+    if (y > gy + 1.6 || y < gy - 2) continue;
+    const p = obbPushCircle(makeOBB(c.x, c.z, c.yaw, 0.95, 2.2), x, z, PR);
+    if (p) { x = p[0]; z = p[1]; }
+  }
   // Brunnenrand
   for (const f of NAT.fountains) {
     const dx = x - f.x, dz = z - f.z, d = Math.hypot(dx, dz);
-    if (y + STEP < f.top && d < f.r + PR && d > 1e-4) { x = f.x + dx / d * (f.r + PR); z = f.z + dz / d * (f.r + PR); }
+    if (y < f.top - 0.05 && d < f.r + PR && d > 1e-4) { x = f.x + dx / d * (f.r + PR); z = f.z + dz / d * (f.r + PR); }
   }
   // Brückengeländer
   ROADS.deckHash.query(x - 0.5, z - 0.5, x + 0.5, z + 0.5, (d) => {
@@ -190,7 +212,7 @@ function readInput() {
 function updatePlayerWorld(dt) {
   if (ELEV.state !== 'none') { P.vy = 0; P.moving = false; P.flying = P.flapping = false; return; } // der Lift steuert die Position
   const input = readInput();
-  if (P.ride) { P.flying = P.flapping = false; P.rocket = false; updateRide(dt, input); return; }
+  if (P.ride) { P.flying = P.flapping = false; P.rocket = false; P.chute = false; updateRide(dt, input); return; }
   if (P.rocket) { updateRocket(dt, input); return; }
   P.yaw += input.turn * 2.2 * dt;
   const dragon = P.char === 'dragon';
@@ -227,12 +249,20 @@ function updatePlayerWorld(dt) {
       // Drache in der Luft: Leertaste gehalten = flattern und steigen, sonst gleiten
       if (input.jump) { P.vy = Math.min(DRAGON.climb, P.vy + DRAGON.flapAcc * dt); P.flapping = true; }
       else P.vy = Math.max(-DRAGON.glideSink, P.vy - GRAV * 0.35 * dt);
-    } else P.vy -= GRAV * dt;
+    } else {
+      P.vy -= GRAV * dt;
+      // Fallschirm (Mensch): öffnet sich bei einem Sturz aus der Höhe von selbst und bremst den Fall
+      if (!dragon && !P.onGround) {
+        if (!P.chute && P.vy < CHUTE.openVy && P.y - g > CHUTE.minH) { P.chute = true; P.chuteT = 0; if (typeof sfxChute === 'function') sfxChute(); }
+        if (P.chute) { P.chuteT += dt; const k = Math.min(1, P.chuteT / CHUTE.openTime); P.vy = Math.max(P.vy, lerp(P.vy, -CHUTE.sink, k)); if (k >= 1) P.vy = Math.max(P.vy, -CHUTE.sink); }
+      }
+    }
     P.y += P.vy * dt;
     // Decke: unter der Erde nicht durch die Stationsdecke, oben eine Höchstgrenze
     const ceil = P.underground ? g + 3.2 : DRAGON.ceiling;
     if (P.y > ceil) { P.y = ceil; P.vy = Math.min(P.vy, 0); }
     if (P.y <= g) { P.y = g; P.vy = 0; P.onGround = true; } else P.onGround = P.y - g < 0.06;
+    if (P.onGround || dragon) P.chute = false;
     if (input.jump && P.onGround) { P.vy = JUMP; P.onGround = false; }
     if (P.y < g - 0.01) P.y = g;
   }
