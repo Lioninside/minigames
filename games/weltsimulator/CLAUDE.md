@@ -47,7 +47,7 @@ diese Datei mitpflegen. Sprache im Code und in der Doku: Deutsch (Schweizer Schr
 ## Zusatzwelten (js/worlds.js, worlds/)
 - Welten anderer Agenten: `worlds/<id>/world.js` ruft `weltRegister({ id, name, size, seed, spawn, height, surfaceAt?, build(api), update? })`.
   Verzeichnis `worlds/index.js` (eine Zeile pro Welt), Vertrag und Regeln `worlds/AGENTS.md`, Auftragstext `worlds/AUFTRAG-VORLAGE.md`,
-  Vorlage `worlds/_vorlage/`. Abnahme: `node tools/play-test.cjs tools/welt-check.js --welt <id>`.
+  Vorlage `worlds/_vorlage/`, Einstiegsseite mit Auftragsgenerator `worlds/index.html` (Links auf alle Dateien). Abnahme: `node tools/play-test.cjs tools/welt-check.js --welt <id>`.
 - Tore auf dem Stadtplatz (`weltInit`), Modul wird beim ersten Durchgang geladen (`weltEnter(id)`), Rücktor `weltLeave()`.
 - Jede Welt liegt bei `(ox, oz) = (20000 + i·12000, 0)` und rechnet lokal. `WELT.cur` gesetzt ⇒ `terrainH`, `groundAt`,
   `collideWorld`, `gpSurfaceAt` leiten in die Welt um; alles andere (Spieler, Kamera, Himmel) läuft unverändert.

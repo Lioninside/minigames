@@ -186,7 +186,7 @@ Rakete, Fallschirm, Tageszeit und das Pflanzen funktionieren dort wie gewohnt. M
 „Testinsel“ als Vorlage.
 
 Weitere Welten können andere Agenten unabhängig voneinander bauen: Jede Welt ist ein Ordner unter
-`worlds/` und nutzt eine kleine, feste Schnittstelle. Anleitung: [`worlds/AGENTS.md`](worlds/AGENTS.md),
+`worlds/` und nutzt eine kleine, feste Schnittstelle. Einstieg mit Auftragsgenerator: [`worlds/index.html`](worlds/index.html). Anleitung: [`worlds/AGENTS.md`](worlds/AGENTS.md),
 Auftragstext zum Kopieren: [`worlds/AUFTRAG-VORLAGE.md`](worlds/AUFTRAG-VORLAGE.md), Abnahmeprüfung:
 `node tools/play-test.cjs tools/welt-check.js --welt <id>`.
 

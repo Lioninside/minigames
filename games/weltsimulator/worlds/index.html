@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Erstelle und verbinde deine Welt</title>
+<style>
+  :root { --bg: #0b1520; --card: #12202f; --line: rgba(255,255,255,.12); --ink: #eef3f7; --dim: #9db0c0; --accent: #4fc3f7; --gold: #ffc857; --ok: #7bd88f; }
+  @media (prefers-color-scheme: light) { :root { --bg: #f3f6f9; --card: #fff; --line: rgba(0,0,0,.12); --ink: #14212d; --dim: #52646f; --accent: #0a7cb8; --gold: #b07a00; --ok: #1d8a3c; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 16px 64px; }
+  header { padding: 56px 0 28px; text-align: center; }
+  h1 { font-size: clamp(30px, 6vw, 52px); line-height: 1.1; margin: 0 0 14px; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .lead { color: var(--dim); font-size: 18px; max-width: 680px; margin: 0 auto 24px; }
+  .btn { display: inline-block; padding: 11px 20px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); text-decoration: none; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn.primary { background: var(--accent); color: #04202f; border-color: var(--accent); }
+  .btn:hover { filter: brightness(1.1); }
+  .gate { margin: 32px auto 0; width: 150px; height: 190px; position: relative; }
+  .gate i { position: absolute; top: 0; width: 20px; height: 190px; background: #30363c; border-radius: 4px; }
+  .gate i:nth-child(1) { left: 0; } .gate i:nth-child(2) { right: 0; }
+  .gate b { position: absolute; left: 20px; right: 20px; top: 0; height: 22px; background: #30363c; border-radius: 4px; }
+  .gate span { position: absolute; left: 20px; right: 20px; top: 22px; bottom: 0; background: radial-gradient(circle at 50% 60%, rgba(79,195,247,.9), rgba(79,195,247,.15)); animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+  h2 { font-size: 26px; margin: 52px 0 6px; }
+  .sub { color: var(--dim); margin: 0 0 18px; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; counter-reset: s; }
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; counter-increment: s; }
+  .step::before { content: counter(s); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #04202f; font-weight: 800; margin-bottom: 10px; }
+  .step h3 { margin: 0 0 6px; font-size: 18px; }
+  .step p { margin: 0; color: var(--dim); font-size: 15px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .card h3 { margin: 0 0 4px; font-size: 17px; }
+  .card p { margin: 0 0 8px; color: var(--dim); font-size: 14.5px; }
+  .card a { color: var(--accent); font-weight: 600; word-break: break-all; }
+  .tag { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; margin-bottom: 8px; background: rgba(123,216,143,.16); color: var(--ok); }
+  .tag.core { background: rgba(255,200,87,.16); color: var(--gold); }
+  .tag.no { background: rgba(255,100,100,.16); color: #ff7b7b; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px) { .two { grid-template-columns: 1fr; } }
+  ul.clean { margin: 6px 0 0; padding-left: 18px; color: var(--dim); font-size: 15px; } ul.clean li { margin: 3px 0; }
+  .gen { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  .gen .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 720px) { .gen .row { grid-template-columns: 1fr; } }
+  label { display: block; font-size: 13px; font-weight: 700; color: var(--dim); margin: 10px 0 4px; }
+  input, textarea, select { width: 100%; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+  textarea { min-height: 70px; resize: vertical; }
+  pre { margin: 14px 0 0; padding: 14px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); white-space: pre-wrap; word-break: break-word; font: 13px/1.5 Consolas, 'Courier New', monospace; max-height: 340px; overflow: auto; }
+  .ideas { display: flex; flex-wrap: wrap; gap: 8px; }
+  .idea { padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+  .idea:hover { border-color: var(--accent); }
+  code { background: rgba(127,127,127,.18); padding: 1px 6px; border-radius: 5px; font-size: .92em; }
+  footer { margin-top: 56px; color: var(--dim); font-size: 14px; text-align: center; }
+  .copied { color: var(--ok); font-weight: 700; margin-left: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Erstelle und verbinde <em>deine Welt</em></h1>
+  <p class="lead">Neu-Zürich ist nur der Anfang. Beschreibe eine Welt, übergib den Auftrag einem Agenten und gehe ein paar Minuten später durch ein leuchtendes Tor hinein: mit Drache, Rakete, Fallschirm und Pflanzen.</p>
+  <a class="btn primary" href="#generator">Auftrag erstellen</a>
+  <a class="btn" href="../index.html">Spiel öffnen</a>
+  <div class="gate" aria-hidden="true"><i></i><i></i><b></b><span></span></div>
+</header>
+
+<h2>So einfach geht das</h2>
+<p class="sub">Du brauchst keine Zeile Code zu schreiben. Die Idee ist deine, den Rest macht der Agent.</p>
+<div class="steps">
+  <div class="step"><h3>Idee</h3><p>Ein Alpental? Eine Unterwasserstadt? Ein Wüstenmarkt mit Karawanen? Sag in zwei Sätzen, was es geben soll.</p></div>
+  <div class="step"><h3>Auftrag</h3><p>Fülle unten den Generator aus und kopiere den fertigen Auftragstext in deinen Agenten (z. B. Claude Code).</p></div>
+  <div class="step"><h3>Bauen lassen</h3><p>Der Agent liest nur die Anleitung und die Vorlage, baut die Welt und prüft sie selbst, bis die Abnahme „BESTANDEN“ meldet.</p></div>
+  <div class="step"><h3>Verbinden</h3><p>Eine Zeile in <code>worlds/index.js</code> genügt: Auf dem Stadtplatz erscheint ein neues Tor zu deiner Welt.</p></div>
+</div>
+
+<h2>Warum das so reibungslos klappt</h2>
+<div class="cards">
+  <div class="card"><h3>Kleiner Vertrag</h3><p>Eine Welt ist ein Ordner und ein Aufruf: <code>weltRegister({ … })</code>. Der Agent muss das übrige Spiel (über 11 000 Zeilen) nicht lesen.</p></div>
+  <div class="card"><h3>Mehrere Agenten gleichzeitig</h3><p>Jede Welt hat ihren eigenen Ordner und eine eigene Zeile im Verzeichnis. Zehn Agenten können parallel bauen, ohne sich in die Quere zu kommen.</p></div>
+  <div class="card"><h3>Schnell geladen</h3><p>Eine Welt wird erst beim ersten Durchgang durchs Tor geladen. Der Start von Neu-Zürich wird dadurch nicht langsamer.</p></div>
+  <div class="card"><h3>Gleich Spielgefühl</h3><p>Figur, Drache, Rakete, Fallschirm, Tag und Nacht, Pflanzen und Töne funktionieren in jeder Welt, ohne dass der Agent etwas dafür tut.</p></div>
+  <div class="card"><h3>Eingebaute Abnahme</h3><p>Ein Prüfskript testet Vertrag, Bauzeit, Draw-Calls, Gehen in 8 Richtungen und das Rücktor. Fertig ist die Welt erst bei „BESTANDEN“.</p></div>
+  <div class="card"><h3>Dein Stil</h3><p>Low-Poly wie die Hauptwelt oder ganz anders: Thema, Farben, Grösse und Stimmung bestimmst du im Auftrag.</p></div>
+</div>
+
+<h2>Ideen zum Loslegen</h2>
+<p class="sub">Ein Klick setzt die Idee in den Generator.</p>
+<div class="ideas" id="ideas"></div>
+
+<h2 id="generator">Auftragsgenerator</h2>
+<p class="sub">Fülle die Felder aus. Der Auftragstext unten aktualisiert sich sofort.</p>
+<div class="gen">
+  <div class="row">
+    <div><label for="gName">Name der Welt</label><input id="gName" value="Alpental"></div>
+    <div><label for="gId">id (Ordnername, automatisch)</label><input id="gId" readonly></div>
+  </div>
+  <label for="gTheme">Thema und Stimmung</label>
+  <textarea id="gTheme">Hochalpines Tal mit Bergsee, Almhütten, Wasserfall und einer Seilbahnstation. Kräftige Low-Poly-Farben wie die Hauptwelt.</textarea>
+  <label for="gMust">Pflichtinhalte (je eine Zeile)</label>
+  <textarea id="gMust">Bergsee mit Steg
+Fünf Almhütten
+Seilbahnstation auf einem Hügel (begehbar)
+Wald aus Tannen</textarea>
+  <div class="row">
+    <div><label for="gSize">Grösse (Kantenlänge in m)</label><select id="gSize"><option>600</option><option>1000</option><option selected>1500</option><option>2000</option><option>3000</option></select></div>
+    <div><label for="gBranch">Branch</label><input id="gBranch" value="claude/world-simulator-city-ky4n2u"></div>
+  </div>
+  <div style="margin-top:14px"><button class="btn primary" id="copy">Auftrag kopieren</button><span id="copied" class="copied" hidden>Kopiert!</span></div>
+  <pre id="out"></pre>
+</div>
+
+<h2>Alle Dateien im Überblick</h2>
+<p class="sub">Alles liegt im Repository. Die Links öffnen die Dateien direkt (bei lokal gestartetem Server).</p>
+<div class="two">
+  <div>
+    <span class="tag">Für den Agenten</span>
+    <div class="cards" style="grid-template-columns:1fr">
+      <div class="card"><h3>Anleitung</h3><p>Vertrag, API, Budget, Prüfung und Checkliste auf einer Seite.</p><a href="AGENTS.md">worlds/AGENTS.md</a></div>
+      <div class="card"><h3>Vorlage „Testinsel“</h3><p>Lauffähige Beispielwelt: Insel mit Hügel, Wald, Hütte und Steg. Kopieren und anpassen.</p><a href="_vorlage/world.js">worlds/_vorlage/world.js</a></div>
+      <div class="card"><h3>Auftragstext</h3><p>Die Vorlage für den Auftrag, plus Hinweise zur Koordination mehrerer Agenten.</p><a href="AUFTRAG-VORLAGE.md">worlds/AUFTRAG-VORLAGE.md</a></div>
+      <div class="card"><h3>Abnahmeprüfung</h3><p>Prüft die Welt und meldet „BESTANDEN“ oder die Fehler.</p><a href="../tools/welt-check.js">tools/welt-check.js</a></div>
+      <div class="card"><h3>Testwerkzeug</h3><p>Lädt das Spiel im Hintergrund und führt Skripte aus (<code>--welt &lt;id&gt;</code>).</p><a href="../tools/play-test.cjs">tools/play-test.cjs</a></div>
+    </div>
+  </div>
+  <div>
+    <span class="tag core">Für dich / den Koordinator</span>
+    <div class="cards" style="grid-template-columns:1fr">
+      <div class="card"><h3>Weltenverzeichnis</h3><p>Hier trägst du pro Welt eine Zeile ein, damit das Tor erscheint.</p><a href="index.js">worlds/index.js</a></div>
+      <div class="card"><h3>Welten-Kern</h3><p>Tore, Laden, Umleitung von Gelände und Kollision, API für Weltmodule.</p><a href="../js/worlds.js">js/worlds.js</a></div>
+      <div class="card"><h3>Projektnotizen</h3><p>Modulkarte und Schnittstellen des ganzen Spiels.</p><a href="../CLAUDE.md">CLAUDE.md</a></div>
+      <div class="card"><h3>Dokumentation</h3><p>Steuerung, Linien, Gameplay und alles andere.</p><a href="../README.md">README.md</a></div>
+      <div class="card"><h3>Das Spiel</h3><p>Starten und das Tor auf dem Stadtplatz suchen.</p><a href="../index.html">index.html</a></div>
+    </div>
+    <span class="tag no" style="margin-top:14px">Nicht anfassen</span>
+    <ul class="clean"><li>Agenten ändern nur <code>worlds/&lt;id&gt;/</code> und eine Zeile in <code>worlds/index.js</code>.</li><li>Fehlt etwas in der Schnittstelle, schreibt der Agent eine <code>WUNSCH.md</code>.</li></ul>
+  </div>
+</div>
+
+<h2>Dein erstes Tor in 5 Minuten</h2>
+<div class="cards" style="grid-template-columns:1fr">
+  <div class="card">
+    <p>Lokal starten, im Ordner des Repositorys:</p>
+    <pre>python3 -m http.server 8765
+# Browser: http://localhost:8765/games/weltsimulator/</pre>
+    <p style="margin-top:12px">Neue Welt prüfen, im Ordner <code>games/weltsimulator</code>:</p>
+    <pre>node tools/play-test.cjs tools/welt-check.js --welt alpental</pre>
+    <p style="margin-top:12px">Bei „BESTANDEN“ ist die Welt fertig. Im Spiel auf den Stadtplatz laufen und durch das neue Tor gehen.</p>
+  </div>
+</div>
+
+<footer>
+  <p>Jede Welt, die du baust, macht das Spiel grösser. Fang mit der ersten Idee an. ✨</p>
+</footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const IDEAS = [
+  ['Alpental', 'Hochalpines Tal mit Bergsee, Almhütten, Wasserfall und Seilbahnstation.', 'Bergsee mit Steg\nFünf Almhütten\nSeilbahnstation auf einem Hügel (begehbar)\nWald aus Tannen'],
+  ['Wüstenmarkt', 'Weite Dünenlandschaft mit einer Oase, einem Marktplatz aus Lehmhäusern und Karawanenwegen.', 'Oase mit Palmen\nMarktplatz mit Ständen\nTurm mit Aussichtsplattform\nDünen mit Pfaden'],
+  ['Korallenriff', 'Flache Lagune mit Inselchen, Holzstegen, Leuchtturm und bunten Strandhäusern.', 'Drei kleine Inseln mit Stegen\nLeuchtturm\nStrandhütten auf Stelzen\nPalmen'],
+  ['Vulkaninsel', 'Dunkle Vulkaninsel mit Krater, Lavafeldern, einem Hafendorf und einem Observatorium.', 'Vulkan mit begehbarem Kraterrand\nHafendorf\nObservatorium\nSteg ins Meer'],
+  ['Herbstwald', 'Hügeliger Mischwald in Herbstfarben mit Lichtungen, Baumhäusern und einer Brücke über einen Bach.', 'Lichtung mit Feuerstelle\nDrei Baumhäuser (begehbar)\nHängebrücke\nBach durch das Tal'],
+  ['Schwebende Inseln', 'Fantasie-Welt aus schwebenden Inseln, die durch Brücken verbunden sind. Der Drache fliegt dazwischen.', 'Sieben Inseln in verschiedenen Höhen\nHängebrücken dazwischen\nGrosse Hauptinsel mit Turm\nWasserfälle über den Rand'],
+  ['Polarstation', 'Eis- und Schneelandschaft mit Forschungsstation, Pistenraupen und Eishöhle.', 'Forschungsstation mit begehbarem Dach\nEishöhle\nAntennenmast\nZugefrorener See']
+];
+function slug(s) { return s.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'meine-welt'; }
+function render() {
+  const name = $('gName').value.trim() || 'Meine Welt', id = slug(name); $('gId').value = id;
+  const must = $('gMust').value.split('\n').map(s => s.trim()).filter(Boolean).map(s => '  - ' + s).join('\n') || '  - (frei wählbar)';
+  const br = $('gBranch').value.trim() || '<branch>';
+  $('out').textContent =
+`Repository: lioninside/minigames, Branch: ${br}
+Arbeitsordner: games/weltsimulator
+
+Baue die Zusatzwelt „${name}“ (id: ${id}) für den Welt-Simulator.
+Lies zuerst und ausschliesslich: worlds/AGENTS.md und worlds/_vorlage/world.js.
+Lies keinen anderen Code des Spiels; die Schnittstelle in AGENTS.md ist vollständig.
+
+Thema: ${$('gTheme').value.trim()}
+Grösse: ${$('gSize').value} m Kantenlänge
+Pflichtinhalte:
+${must}
+
+Regeln: nur worlds/${id}/ und eine Zeile in worlds/index.js ändern
+(Eintrag: { id: '${id}', name: '${name}', file: 'worlds/${id}/world.js', color: 0x4fc3f7 }).
+Budget und Verbote laut AGENTS.md. Fertig ist die Welt erst, wenn
+  node tools/play-test.cjs tools/welt-check.js --welt ${id}
+"ergebnis": "BESTANDEN" meldet. Kopiere diese Ausgabe in deine Abschlussmeldung.
+Fehlt etwas in der Schnittstelle: worlds/${id}/WUNSCH.md schreiben, Kern nicht ändern.
+Commit auf dem Branch mit Nachricht „Welt ${id}: <Kurzbeschreibung>“, dann pushen. Kein Pull-Request.`;
+}
+for (const id of ['gName', 'gTheme', 'gMust', 'gSize', 'gBranch']) $(id).addEventListener('input', render);
+$('copy').onclick = async () => {
+  try { await navigator.clipboard.writeText($('out').textContent); } catch (e) { const r = document.createRange(); r.selectNodeContents($('out')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand('copy'); }
+  $('copied').hidden = false; setTimeout(() => $('copied').hidden = true, 1800);
+};
+IDEAS.forEach(([n, t, m]) => { const b = document.createElement('button'); b.className = 'idea'; b.textContent = n; b.onclick = () => { $('gName').value = n; $('gTheme').value = t; $('gMust').value = m; render(); location.hash = 'generator'; }; $('ideas').appendChild(b); });
+render();
+</script>
+</body>
+</html>
