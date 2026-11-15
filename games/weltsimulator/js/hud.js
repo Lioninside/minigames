@@ -155,6 +155,7 @@ function updateHUD() {
     place = WS.CITY_NAME + ' · ' + q + (s ? ' · ' + s : '');
     const rb = liftNear(P.x, P.z, P.y, 30); if (rb && P.y > rb.lift.y - 1) place = buildingLabel(rb) + ' · Dach';
   }
+  if (WELT.cur && GAME.mode === 'world') place = 'Welt: ' + WELT.cur.def.name;
   if (P.chute && GAME.mode === 'world') place += ' · 🪂 Fallschirm';
   if (P.char === 'dragon' && GAME.mode === 'world') place += P.rocket ? ' · 🚀 Raketenmodus ' + Math.round(P.rspd * 3.6) + ' km/h, Höhe ' + Math.max(0, Math.round(P.y - Math.max(terrainH(P.x, P.z), WS.WATER_Y))) + ' m'
     : P.flying ? ' · Drache, Flughöhe ' + Math.max(0, Math.round(P.y - terrainH(P.x, P.z))) + ' m' : ' · Drache';

@@ -36,6 +36,7 @@ function boxSurf(box, x, z) {
   return box.top - box.hipH + box.hipH * clamp(e / box.hip, 0, 1);
 }
 function groundAt(x, z, y) {
+  if (WELT.cur) return weltGround(x, z, y);
   let inHole = false;
   let g = -50;
   const cand = (h) => { if (h <= y + STEP && h > g) g = h; };
@@ -67,6 +68,7 @@ function groundAt(x, z, y) {
 
 /* ---------- Horizontale Kollision ---------- */
 function collideWorld(x, z, y, px, pz) {
+  if (WELT.cur) return weltCollide(x, z, y, px, pz);
   // Fussgängertunnel Hönggerberg: nur innerhalb der Gänge, keine Gebäude darüber
   if (hubTunnelBand(y) && inHubTunnel(px, pz, 0)) return hubTunnelClamp(x, z, px, pz);
   // Gebäude
@@ -315,7 +317,7 @@ function updateRocket(dt, input) {
     [nx, nz] = collideWorld(nx, nz, ny, P.x, P.z);
     // gegen eine Wand geprallt: kräftig abbremsen statt mit vollem Tempo entlangzuschrammen
     if ((nx - wx) ** 2 + (nz - wz) ** 2 > (dist / n) ** 2 * 0.25) { P.rspd = Math.max(ROCKET.slow, P.rspd * 0.55); }
-    nx = clamp(nx, -ROCKET.bound, ROCKET.bound); nz = clamp(nz, -ROCKET.bound, ROCKET.bound);
+    if (!WELT.cur) { nx = clamp(nx, -ROCKET.bound, ROCKET.bound); nz = clamp(nz, -ROCKET.bound, ROCKET.bound); }
     const g = groundAt(nx, nz, ny + 1.5);
     const floor = Math.max(g, terrainH(nx, nz), WS.WATER_Y) + 1.4;
     if (ny < floor) { ny = floor; if (P.vy < 0) P.vy *= 0.3; }

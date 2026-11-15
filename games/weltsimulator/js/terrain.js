@@ -77,6 +77,7 @@ function buildHeightGrid() {
   TGRID.h = h;
 }
 function terrainH(x, z) {
+  if (WELT.cur) return WELT.cur.h(x, z); // Zusatzwelt (js/worlds.js)
   const H = TGRID.h;
   if (!H) return terrainHRaw(x, z);
   const n = TGRID.seg + 1;

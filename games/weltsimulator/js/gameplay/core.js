@@ -63,6 +63,7 @@ function gpMinimap(c, W, scale, px, pz) {
 /* Welche Fläche liegt hier? 'park' | 'hill' | 'island' | 'meadow' oder null (fester Boden,
    Wasser, Strand, Strasse, Platz, Gebäude, Gleistrassee: dort wächst nichts) */
 function gpSurfaceAt(x, z) {
+  if (WELT.cur) return WELT.cur.surface(x, z);
   if (Math.abs(x) > 2480 || Math.abs(z) > 2480) return null;
   if (terrainH(x, z) < WS.WATER_Y + 0.25 || waterDist(x, z) < 1.5) return null;
   const di = Math.hypot(x - ISLAND.x, z - ISLAND.z);

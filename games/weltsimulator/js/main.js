@@ -123,6 +123,7 @@ let SPAWN = { x: 0, z: 0 };
       ['Busse, Trams und U-Bahnen', () => spawnTransitVehicles(surf)],
       ['Autos und Fussgänger', () => spawnTraffic(surf)],
       ['Leben in der Stadt', () => initLife(surf, scene)],
+      ['Weltentore', () => weltInit(surf)],
       ['Shader der Fahrzeuge', () => precompile()]
     ];
     for (let i = 0; i < steps.length; i++) {
@@ -345,6 +346,7 @@ let SPAWN = { x: 0, z: 0 };
       updateAmbientLife(WORLD.t, dt);
       updateAmbience(dt);
       gpUpdate(dt);
+      weltUpdate(dt);
       updateRoofCab();
       updateNearVis(P.x, P.z, dt);
       saveT += dt;

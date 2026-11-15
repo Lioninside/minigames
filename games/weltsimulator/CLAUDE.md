@@ -44,6 +44,15 @@ diese Datei mitpflegen. Sprache im Code und in der Doku: Deutsch (Schweizer Schr
 - `plants.js` (`GPL`): Taste P sät; fester/falscher Boden verbraucht den Samen ohne Wirkung.
 - Kern ruft nur: `gpInit` (Ende von `generate`), `gpUpdate` (Schleife), `gpKey` (keydown), `gpMinimap` (hud.js).
 
+## Zusatzwelten (js/worlds.js, worlds/)
+- Welten anderer Agenten: `worlds/<id>/world.js` ruft `weltRegister({ id, name, size, seed, spawn, height, surfaceAt?, build(api), update? })`.
+  Verzeichnis `worlds/index.js` (eine Zeile pro Welt), Vertrag und Regeln `worlds/AGENTS.md`, Auftragstext `worlds/AUFTRAG-VORLAGE.md`,
+  Vorlage `worlds/_vorlage/`. Abnahme: `node tools/play-test.cjs tools/welt-check.js --welt <id>`.
+- Tore auf dem Stadtplatz (`weltInit`), Modul wird beim ersten Durchgang geladen (`weltEnter(id)`), Rücktor `weltLeave()`.
+- Jede Welt liegt bei `(ox, oz) = (20000 + i·12000, 0)` und rechnet lokal. `WELT.cur` gesetzt ⇒ `terrainH`, `groundAt`,
+  `collideWorld`, `gpSurfaceAt` leiten in die Welt um; alles andere (Spieler, Kamera, Himmel) läuft unverändert.
+- Schnittstelle erweitern: nur in `js/worlds.js` (`weltApi`) und in AGENTS.md nachtragen.
+
 ## Testen (spart Zeit und Tokens)
 ```bash
 python3 -m http.server 8765            # im Repo-Wurzelordner

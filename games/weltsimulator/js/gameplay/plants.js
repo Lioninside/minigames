@@ -64,7 +64,7 @@ function gplPlace(p) {
       const h1 = hash2i(p.x * 7 + i * 13 | 0, p.z * 7 | 0), h2 = hash2i(p.z * 5 + i * 29 | 0, p.x * 3 | 0);
       const a = h1 * 6.283, r = 0.15 + h2 * (d.size > 2 ? 0.9 : 0.7);
       const x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r, sc = d.size * (0.8 + h2 * 0.5) * g;
-      _gq.setFromAxisAngle(_gup, a); _gm4.compose(_gv.set(x, terrainH(x, z), z), _gq, _gs.set(sc, sc, sc));
+      _gq.setFromAxisAngle(_gup, a); _gm4.compose(_gv.set(x, p.fy ? p.fy[i] : terrainH(x, z), z), _gq, _gs.set(sc, sc, sc));
       GPL.stem.setMatrixAt(p.slot + i, _gm4); GPL.bloom.setMatrixAt(p.slot + i, _gm4);
     }
     GPL.stem.instanceMatrix.needsUpdate = true; GPL.bloom.instanceMatrix.needsUpdate = true;
@@ -103,7 +103,7 @@ gpRegister({
     gplBuildMeshes(surf);
     if (saved && Array.isArray(saved)) for (const a of saved) {
       const k = GP_DATA.order[a[0]]; if (!k) continue;
-      const p = { k, x: a[1], z: a[2], y: terrainH(a[1], a[2]), t: a[3], r: a[4], s: a[5], c: a[6] };
+      const p = { k, x: a[1], z: a[2], y: a[7] !== undefined ? a[7] : terrainH(a[1], a[2]), t: a[3], r: a[4], s: a[5], c: a[6] };
       if (!gplAlloc(p)) continue;
       GPL.list.push(p); if (p.t < GP_DATA.kinds[k].grow) GPL.growing.push(p);
     }
@@ -118,5 +118,5 @@ gpRegister({
     }
   },
   key(code) { if (code === 'KeyP') { gplSow(); return true; } return false; },
-  save() { return GPL.list.map(p => [GP_DATA.order.indexOf(p.k), +p.x.toFixed(1), +p.z.toFixed(1), Math.round(p.t), +p.r.toFixed(2), +p.s.toFixed(2), +p.c.toFixed(2)]); }
+  save() { return GPL.list.map(p => [GP_DATA.order.indexOf(p.k), +p.x.toFixed(1), +p.z.toFixed(1), Math.round(p.t), +p.r.toFixed(2), +p.s.toFixed(2), +p.c.toFixed(2), +p.y.toFixed(2)]); }
 });

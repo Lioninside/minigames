@@ -178,6 +178,18 @@ und schliessen sich die Lifttüren sichtbar. Jedes Stockwerk ist anders eingeric
   Teeküche.
 - **ETH:** Halle mit Säulen; Hörsäle, Bibliothek, Rechnerraum.
 
+## Zusatzwelten
+
+Auf dem Stadtplatz im Zentrum steht pro Zusatzwelt ein leuchtendes Tor. Wer hindurchgeht, wechselt
+in die Welt (sie wird erst dann geladen); ein Rücktor führt zurück nach Neu-Zürich. Mensch, Drache,
+Rakete, Fallschirm, Tageszeit und das Pflanzen funktionieren dort wie gewohnt. Mitgeliefert ist die
+„Testinsel“ als Vorlage.
+
+Weitere Welten können andere Agenten unabhängig voneinander bauen: Jede Welt ist ein Ordner unter
+`worlds/` und nutzt eine kleine, feste Schnittstelle. Anleitung: [`worlds/AGENTS.md`](worlds/AGENTS.md),
+Auftragstext zum Kopieren: [`worlds/AUFTRAG-VORLAGE.md`](worlds/AUFTRAG-VORLAGE.md), Abnahmeprüfung:
+`node tools/play-test.cjs tools/welt-check.js --welt <id>`.
+
 ## Hindernisse
 
 Fest sind Gebäude, Bäume, Brunnen, Laternen, Masten, Bänke, Wartehäuschen, Liftschächte,

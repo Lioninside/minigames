@@ -3,7 +3,8 @@
    in der Seite aus und gibt dessen Rückgabewert als Text aus.
 
    Aufruf (Server im Repo-Wurzelordner: python3 -m http.server 8765):
-     node tools/play-test.cjs <skript.js> [--shot bild.png] [--start zentrum|hoengg|venedig|riviera|isla] [--port 8765]
+     node tools/play-test.cjs <skript.js> [--shot bild.png] [--start zentrum|hoengg|venedig|riviera|isla] [--welt id] [--port 8765]
+   --welt id: vor dem Skript in die Zusatzwelt wechseln (worlds/index.js)
 
    Das Skript ist der Rumpf einer (async) Funktion in der Seite. Helfer:
      step(n)            n Simulationsschritte à 0,05 s (Spiel ist pausiert, Logik läuft von Hand)
@@ -30,11 +31,13 @@ const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? proces
       rebuildObstacles(trafficObstacles(P.x, P.z, GAME.mode === 'world' && !P.ride && !P.underground));
       updateTransit(dt, WORLD.camera.position, !!(P.underground || (P.ride && P.ride.veh.underground))); updateTraffic(dt, WORLD.camera.position);
       if (!liftsUpdate(dt)) { if (GAME.mode === 'world') updatePlayerWorld(dt); else updatePlayerInterior(dt); }
-      updateElevator(dt); gpUpdate(dt); } updateHUD(); };
+      updateElevator(dt); gpUpdate(dt); weltUpdate(dt); } updateHUD(); };
     window.key = (c) => { window.dispatchEvent(new KeyboardEvent('keydown', { code: c })); window.dispatchEvent(new KeyboardEvent('keyup', { code: c })); };
     window.tp = (x, z, y) => { P.x = x; P.z = z; P.y = y !== undefined ? y : groundAt(x, z, terrainH(x, z) + 2); P.vy = 0; P.onGround = true; P.ride = null; P.underground = false; step(1); };
     window.hold = (c, n) => { KEYS[c] = true; step(n); KEYS[c] = false; };
   });
+  const welt = arg('--welt', null);
+  if (welt) await page.evaluate(async (id) => { const W = await weltEnter(id); if (!W) throw new Error('Welt ' + id + ' nicht gefunden (worlds/index.js?)'); step(1); }, welt);
   const out = await page.evaluate('(async () => {' + script + '\n})()');
   console.log(typeof out === 'string' ? out : JSON.stringify(out, null, 1));
   if (shot) { await page.waitForTimeout(2500); await page.screenshot({ path: shot }); console.log('Bild: ' + shot); }
