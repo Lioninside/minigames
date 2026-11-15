@@ -7,7 +7,8 @@ bei jedem Besuch gleich aus.
 
 ## Spiel starten
 
-Im Wurzelordner des Repositorys einen kleinen Webserver starten und im Browser öffnen:
+Zuerst in den Wurzelordner des Repositorys wechseln (dort, wo `games` und `shared` liegen; `git status`
+muss `On branch …` zeigen), dann einen kleinen Webserver starten und im Browser öffnen:
 
 ```bash
 python3 -m http.server 8000      # Windows: python -m http.server 8000

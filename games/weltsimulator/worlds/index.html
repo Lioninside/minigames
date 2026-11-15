@@ -79,7 +79,10 @@
 <div class="card start">
   <div class="os"><button data-os="win" class="on">Windows</button><button data-os="mac">Mac / Linux</button></div>
   <ol>
-    <li><b>Code holen.</b> Im Ordner deines Repositorys (Windows: PowerShell, Mac/Linux: Terminal):
+    <li><b>In den Repository-Ordner wechseln.</b> Das ist der Ordner, in dem <code>games</code> und <code>shared</code> liegen. Tipp: im Explorer öffnen, in die Adressleiste klicken, Pfad kopieren. <code>git status</code> muss danach <code>On branch …</code> zeigen, nicht „not a git repository“.
+<pre id="cmdCd"></pre>
+      <span style="color:var(--dim);font-size:14.5px">Noch kein Repository? Zuerst: <code>git clone https://github.com/lioninside/minigames.git</code> und dann <code>cd minigames</code>.</span></li>
+    <li><b>Code holen</b> (Windows: PowerShell, Mac/Linux: Terminal):
 <pre id="cmdGet"></pre></li>
     <li><b>Server starten</b> (Python muss installiert sein). Das Fenster danach offen lassen:
 <pre id="cmdRun"></pre></li>
@@ -234,6 +237,7 @@ const CMD = {
 };
 function setOs(os) {
   document.querySelectorAll('.os button').forEach(b => b.classList.toggle('on', b.dataset.os === os));
+  $('cmdCd').textContent = os === 'win' ? 'cd "C:\\Pfad\\zu\\deinem\\minigames"\ngit status' : 'cd ~/pfad/zu/deinem/minigames\ngit status';
   $('cmdGet').textContent = CMD[os][0]; $('cmdRun').textContent = CMD[os][1];
 }
 document.querySelectorAll('.os button').forEach(b => b.onclick = () => setOs(b.dataset.os));
